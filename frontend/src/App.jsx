@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './supabase';
 import { useAuth } from './hooks/useAuth';
 import { useTenantStore } from './store/useTenantStore';
+import { Menu } from 'lucide-react';
 
 import Sidebar from './components/Sidebar';
 import Compras from './pages/Compras';
@@ -22,6 +23,7 @@ import Onboarding from './pages/Onboarding';
 function App() {
   const { user, loading } = useAuth();
   const { tenantId, tenantInfo } = useTenantStore();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (tenantInfo?.theme === 'light') {
@@ -49,7 +51,31 @@ function App() {
   return (
     <Router>
       <div className="app-container">
-        <Sidebar onLogout={() => supabase.auth.signOut()} />
+        {/* Mobile Topbar */}
+        <div className="mobile-topbar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', fontWeight: 'bold' }}>
+            <span style={{ color: 'var(--primary)' }}>Estación</span> Digital SV
+          </div>
+          <button className="mobile-menu-btn" onClick={() => setIsSidebarOpen(true)}>
+            <Menu size={24} />
+          </button>
+        </div>
+
+        {/* Sidebar Overlay */}
+        {isSidebarOpen && (
+          <div 
+            className="modal-backdrop" 
+            style={{ zIndex: 99, background: 'rgba(0,0,0,0.5)' }}
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+
+        <Sidebar 
+          onLogout={() => supabase.auth.signOut()} 
+          isOpen={isSidebarOpen} 
+          onClose={() => setIsSidebarOpen(false)}
+        />
+        
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Navigate to="/ventas" replace />} />

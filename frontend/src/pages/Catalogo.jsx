@@ -11,7 +11,7 @@ const Catalogo = () => {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: '', sku: '', description: '', category: '',
-    price: '', cost: '', is_taxable: true
+    price: '', cost: '', target_margin: '', is_taxable: true
   });
 
   const fetchProducts = async () => {
@@ -34,7 +34,7 @@ const Catalogo = () => {
 
   const openNew = () => {
     setEditingId(null);
-    setFormData({ name: '', sku: '', description: '', category: '', price: '', cost: '', is_taxable: true });
+    setFormData({ name: '', sku: '', description: '', category: '', price: '', cost: '', target_margin: '', is_taxable: true });
     setShowModal(true);
   };
 
@@ -47,9 +47,31 @@ const Catalogo = () => {
       category: prod.category || '',
       price: prod.price,
       cost: prod.cost,
+      target_margin: prod.target_margin || '',
       is_taxable: prod.is_taxable,
     });
     setShowModal(true);
+  };
+
+  const handleMarginChange = (val) => {
+    const m = parseFloat(val) || 0;
+    const c = parseFloat(formData.cost) || 0;
+    if (c > 0) {
+      const p = c * (1 + m / 100);
+      setFormData({ ...formData, target_margin: val, price: p.toFixed(2) });
+    } else {
+      setFormData({ ...formData, target_margin: val });
+    }
+  };
+
+  const handlePriceChange = (val) => {
+    const p = parseFloat(val) || 0;
+    const c = parseFloat(formData.cost) || 0;
+    let m = formData.target_margin;
+    if (c > 0) {
+      m = (((p / c) - 1) * 100).toFixed(2);
+    }
+    setFormData({ ...formData, price: val, target_margin: m });
   };
 
   const handleSave = async (e) => {
@@ -72,6 +94,7 @@ const Catalogo = () => {
         category: formData.category,
         price: parseFloat(formData.price) || 0,
         cost: parseFloat(formData.cost) || 0,
+        target_margin: parseFloat(formData.target_margin) || 0,
         is_taxable: formData.is_taxable,
       };
 
@@ -151,6 +174,7 @@ const Catalogo = () => {
                 <th>Nombre</th>
                 <th>Categoría</th>
                 <th>Costo</th>
+                <th>Margen (%)</th>
                 <th>Precio Venta</th>
                 <th>IVA</th>
                 <th>Acciones</th>
@@ -169,6 +193,13 @@ const Catalogo = () => {
                     ) : '—'}
                   </td>
                   <td>${Number(prod.cost).toFixed(2)}</td>
+                  <td>
+                    {prod.target_margin > 0 ? (
+                      <span style={{ color: 'var(--primary)', fontWeight: 500 }}>
+                        {Number(prod.target_margin).toFixed(2)}%
+                      </span>
+                    ) : '—'}
+                  </td>
                   <td style={{ fontWeight: 600, color: 'var(--primary)' }}>${Number(prod.price).toFixed(2)}</td>
                   <td>
                     <span style={{ color: prod.is_taxable ? '#4ade80' : 'var(--text-muted)', fontSize: '13px' }}>
@@ -226,16 +257,21 @@ const Catalogo = () => {
                     onChange={e => setFormData({ ...formData, description: e.target.value })} />
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>Costo ($)</label>
-                  <input required type="number" step="0.01" min="0" className="glass-input" value={formData.cost}
-                    onChange={e => setFormData({ ...formData, cost: e.target.value })} />
+                  <label>Costo (Desde Compras)</label>
+                  <input type="number" step="0.01" className="glass-input" value={formData.cost} disabled 
+                    style={{ opacity: 0.5, cursor: 'not-allowed' }} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Margen (%)</label>
+                  <input type="number" step="0.01" className="glass-input" value={formData.target_margin}
+                    onChange={e => handleMarginChange(e.target.value)} placeholder="Ej: 30" />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label>Precio de Venta ($)</label>
                   <input required type="number" step="0.01" min="0" className="glass-input" value={formData.price}
-                    onChange={e => setFormData({ ...formData, price: e.target.value })} />
+                    onChange={e => handlePriceChange(e.target.value)} />
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

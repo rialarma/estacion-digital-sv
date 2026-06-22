@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   unit_measure TEXT DEFAULT '59', -- Según catálogo MH (59 = Unidad)
   price NUMERIC(10, 2) NOT NULL DEFAULT 0,
   cost NUMERIC(10, 2) NOT NULL DEFAULT 0,
+  target_margin NUMERIC(5, 2) DEFAULT 0,
   is_taxable BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(tenant_id, sku)
@@ -271,6 +272,40 @@ BEGIN
     UPDATE public.tenants SET invite_code = v_new_code WHERE id = v_tenant_id;
     
     RETURN v_new_code;
+END;
+$$;
+
+-- RPC: Actualizar costo y precio desde una compra
+CREATE OR REPLACE FUNCTION public.update_cost_and_price(
+  p_product_id UUID,
+  p_new_cost NUMERIC
+) RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_margin NUMERIC;
+    v_new_price NUMERIC;
+BEGIN
+    -- Obtener el margen actual del producto
+    SELECT target_margin INTO v_margin FROM public.products WHERE id = p_product_id;
+    
+    IF v_margin > 0 THEN
+        -- Calcular nuevo precio basado en el markup
+        v_new_price := p_new_cost * (1 + (v_margin / 100.0));
+        
+        -- Actualizar costo y precio
+        UPDATE public.products 
+        SET cost = p_new_cost, price = v_new_price 
+        WHERE id = p_product_id;
+    ELSE
+        -- Solo actualizar costo si no hay margen definido
+        UPDATE public.products 
+        SET cost = p_new_cost 
+        WHERE id = p_product_id;
+    END IF;
+    
+    RETURN TRUE;
 END;
 $$;
 

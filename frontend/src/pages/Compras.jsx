@@ -155,8 +155,16 @@ const Compras = () => {
               stock: item.quantity,
             }]);
         }
+        // 2.5 Actualizar el costo en el catálogo y recalcular precio según margen
+        const { error: rpcError } = await supabase.rpc('update_cost_and_price', {
+          p_product_id: item.product_id,
+          p_new_cost: item.unit_cost
+        });
+        
+        if (rpcError) {
+          console.error("Error actualizando costo/precio:", rpcError);
+        }
       }
-
       // 3. Resetear formulario
       setItems([]);
       setSelectedSupplierId('');

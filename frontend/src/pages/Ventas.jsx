@@ -213,7 +213,7 @@ const Ventas = () => {
         <h1 className="page-title">Ventas (POS)</h1>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '24px' }}>
+      <div className="grid-2-1" style={{ alignItems: 'flex-start' }}>
         {/* Left side: Form & Current Items */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div className="glass-panel" style={{ padding: '24px' }}>
@@ -289,41 +289,42 @@ const Ventas = () => {
 
           <div className="glass-panel" style={{ padding: '24px', flex: 1 }}>
             <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: 600 }}>Detalle del Pedido</h3>
-            {items.length === 0 ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                <ShoppingCart size={48} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
-                <p>No hay productos en el pedido actual.</p>
-              </div>
-            ) : (
-              <table className="glass-table">
-                <thead>
-                  <tr>
-                    <th>Producto</th>
-                    <th>Cant.</th>
-                    <th>Precio</th>
-                    <th>Subtotal</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map(item => (
-                    <tr key={item.id}>
-                      <td style={{ fontWeight: 500 }}>{item.name}</td>
-                      <td>{item.quantity}</td>
-                      <td>${Number(item.price).toFixed(2)}</td>
-                      <td>${Number(item.total).toFixed(2)}</td>
-                      <td>
-                        <button 
-                          onClick={() => removeItem(item.id)}
-                          style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontWeight: 'bold' }}>
-                          X
-                        </button>
-                      </td>
+            <div className="table-responsive">
+              {items.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                  No hay productos en la orden.
+                </div>
+              ) : (
+                <table className="glass-table">
+                  <thead>
+                    <tr>
+                      <th>Producto</th>
+                      <th>Cant.</th>
+                      <th>Precio</th>
+                      <th>Subtotal</th>
+                      <th></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                  </thead>
+                  <tbody>
+                    {items.map(item => (
+                      <tr key={item.id}>
+                        <td style={{ fontWeight: 500 }}>{item.name}</td>
+                        <td>{item.quantity}</td>
+                        <td>${Number(item.price).toFixed(2)}</td>
+                        <td>${Number(item.total).toFixed(2)}</td>
+                        <td>
+                          <button 
+                            onClick={() => removeItem(item.id)}
+                            style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontWeight: 'bold' }}>
+                            X
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
         </div>
 
