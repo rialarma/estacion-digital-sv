@@ -3,22 +3,39 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { supabase } from './supabase';
 import { useAuth } from './hooks/useAuth';
 import { useTenantStore } from './store/useTenantStore';
-import { Menu } from 'lucide-react';
+import { Menu, UserCheck, Truck, FileText } from 'lucide-react';
 
 import Sidebar from './components/Sidebar';
 import Compras from './pages/Compras';
 import Ventas from './pages/Ventas';
-import HistorialVentas from './pages/HistorialVentas';
+import Historial from './pages/Historial';
 import Documents from './pages/Documents';
 import Inventory from './pages/Inventory';
 import Catalogo from './pages/Catalogo';
 import Clients from './pages/Clients';
 import Proveedores from './pages/Proveedores';
 import Vendedores from './pages/Vendedores';
+import Repartidores from './pages/Repartidores';
+import Despachos from './pages/Despachos';
+import RevisionCargas from './pages/RevisionCargas';
 import Configuracion from './pages/Configuracion';
 import Reportes from './pages/Reportes';
+import CatalogoCuentas from './pages/CatalogoCuentas';
+import LibroDiario from './pages/LibroDiario';
+import EstadosFinancieros from './pages/EstadosFinancieros';
 import Auth from './pages/Auth';
 import Onboarding from './pages/Onboarding';
+
+import LibrosIva from './pages/LibrosIva';
+import CuentasPorCobrar from './pages/CuentasPorCobrar';
+import CuentasPorPagar from './pages/CuentasPorPagar';
+import SuspendedSaaS from './pages/SuspendedSaaS';
+import ProtectedRoute from './components/ProtectedRoute';
+import Caja from './pages/Caja';
+import Cotizaciones from './pages/Cotizaciones';
+import Kardex from './pages/Kardex';
+import Traslados from './pages/Traslados';
+import Home from './pages/Home';
 
 function App() {
   const { user, loading } = useAuth();
@@ -45,6 +62,11 @@ function App() {
   // 2. Si el usuario está autenticado pero no tiene Empresa (Tenant) -> Onboarding
   if (user && !tenantId) {
     return <Onboarding onComplete={() => window.location.reload()} />;
+  }
+
+  // 2.5 SaaS Wall: Si la suscripción está suspendida
+  if (tenantInfo?.subscription_status === 'SUSPENDED') {
+    return <SuspendedSaaS />;
   }
 
   // 3. Autenticado y con Tenant -> Aplicación Principal
@@ -78,20 +100,46 @@ function App() {
         
         <main className="main-content">
           <Routes>
-            <Route path="/" element={<Navigate to="/ventas" replace />} />
-            <Route path="/compras" element={<Compras />} />
-            <Route path="/ventas" element={<Ventas />} />
-            <Route path="/historial-ventas" element={<HistorialVentas />} />
-            <Route path="/firmador" element={<Documents />} />
-            <Route path="/catalogo" element={<Catalogo />} />
-            <Route path="/inventario" element={<Inventory />} />
-            <Route path="/clientes" element={<Clients />} />
-            <Route path="/proveedores" element={<Proveedores />} />
-            <Route path="/vendedores" element={<Vendedores />} />
-            <Route path="/reportes" element={<Reportes />} />
-            <Route path="/configuracion" element={<Configuracion />} />
+            {/* Ruta Principal / Dashboard */}
+            <Route path="/" element={<Home />} />
+            
+            {/* Rutas de Operaciones (Disponibles para Cajeros y superiores) */}
+            <Route path="/caja" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Caja /></ProtectedRoute>} />
+            <Route path="/ventas" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Ventas /></ProtectedRoute>} />
+            <Route path="/cotizaciones" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Cotizaciones /></ProtectedRoute>} />
+
+            
+            {/* Rutas de Compras e Inventario (Disponibles para Bodegueros y superiores) */}
+            <Route path="/compras" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Compras /></ProtectedRoute>} />
+            <Route path="/catalogo" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Catalogo /></ProtectedRoute>} />
+            <Route path="/inventario" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO', 'CAJERO']}><Inventory /></ProtectedRoute>} />
+            <Route path="/kardex" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Kardex /></ProtectedRoute>} />
+            <Route path="/traslados" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Traslados /></ProtectedRoute>} />
+            
+            {/* Cartera (Cobros y Pagos) */}
+            <Route path="/cartera/cxc" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><CuentasPorCobrar /></ProtectedRoute>} />
+            <Route path="/cartera/cxp" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><CuentasPorPagar /></ProtectedRoute>} />
+
+            {/* Administracion y Reportes (Solo Admin y Gerente) */}
+            <Route path="/firmador" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Documents /></ProtectedRoute>} />
+            <Route path="/clientes" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Clients /></ProtectedRoute>} />
+            <Route path="/proveedores" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Proveedores /></ProtectedRoute>} />
+            <Route path="/vendedores" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Vendedores /></ProtectedRoute>} />
+            <Route path="/repartidores" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Repartidores /></ProtectedRoute>} />
+            <Route path="/despachos" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Despachos /></ProtectedRoute>} />
+            <Route path="/bodega/revision-cargas" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><RevisionCargas /></ProtectedRoute>} />
+            <Route path="/historial" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Historial /></ProtectedRoute>} />
+            <Route path="/reportes" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Reportes /></ProtectedRoute>} />
+            
+            {/* Contabilidad y Configuración (Solo ADMIN) */}
+            <Route path="/configuracion" element={<ProtectedRoute allowedRoles={['ADMIN']}><Configuracion /></ProtectedRoute>} />
+            <Route path="/contabilidad/catalogo" element={<ProtectedRoute allowedRoles={['ADMIN']}><CatalogoCuentas /></ProtectedRoute>} />
+            <Route path="/contabilidad/partidas" element={<ProtectedRoute allowedRoles={['ADMIN']}><LibroDiario /></ProtectedRoute>} />
+            <Route path="/contabilidad/estados-financieros" element={<ProtectedRoute allowedRoles={['ADMIN']}><EstadosFinancieros /></ProtectedRoute>} />
+            <Route path="/contabilidad/libros-iva" element={<ProtectedRoute allowedRoles={['ADMIN']}><LibrosIva /></ProtectedRoute>} />
+            
             {/* Catch-all route */}
-            <Route path="*" element={<Navigate to="/ventas" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
       </div>

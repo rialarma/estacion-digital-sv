@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, ShoppingBag, Truck, X, Check } from 'lucide-react';
 import { supabase } from '../supabase';
+import ProductSearch from '../components/ProductSearch';
 
 const Compras = () => {
   const [suppliers, setSuppliers] = useState([]);
@@ -20,10 +21,9 @@ const Compras = () => {
   const [selectedSupplierId, setSelectedSupplierId] = useState('');
   const [documentType, setDocumentType] = useState('CCF');
   const [documentNumber, setDocumentNumber] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('CONTADO');
+  
   const [items, setItems] = useState([]);
-  const [selectedProductId, setSelectedProductId] = useState('');
-  const [quantity, setQuantity] = useState(1);
-  const [unitCost, setUnitCost] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -33,7 +33,7 @@ const Compras = () => {
     setLoading(true);
     const [suppRes, prodRes, purRes] = await Promise.all([
       supabase.from('suppliers').select('*').order('name'),
-      supabase.from('products').select('id, name, sku, cost').order('name'),
+      supabase.from('products').select('id, name, sku, cost, units_per_box, is_service').order('name'),
       supabase.from('purchases').select('*, suppliers(name)').order('created_at', { ascending: false }),
     ]);
     if (suppRes.data) setSuppliers(suppRes.data);
@@ -42,23 +42,12 @@ const Compras = () => {
     setLoading(false);
   };
 
-  const handleProductSelect = (e) => {
-    const productId = e.target.value;
-    setSelectedProductId(productId);
-    const prod = products.find(p => p.id === productId);
-    if (prod) setUnitCost(prod.cost || '');
-  };
-
-  const handleAddItem = () => {
-    if (!selectedProductId || !quantity || !unitCost) return;
-    const prod = products.find(p => p.id === selectedProductId);
-    if (!prod) return;
-
-    const existing = items.find(i => i.product_id === selectedProductId);
+  const handleSelectProduct = (prod) => {
+    const existing = items.find(i => i.product_id === prod.id && i.sale_type === 'UNIDAD');
     if (existing) {
       setItems(items.map(i =>
-        i.product_id === selectedProductId
-          ? { ...i, quantity: i.quantity + Number(quantity), subtotal: (i.quantity + Number(quantity)) * i.unit_cost }
+        i.product_id === prod.id && i.sale_type === 'UNIDAD'
+          ? { ...i, quantity: i.quantity + 1, subtotal: (i.quantity + 1) * i.unit_cost }
           : i
       ));
     } else {
@@ -66,17 +55,29 @@ const Compras = () => {
         product_id: prod.id,
         name: prod.name,
         sku: prod.sku,
-        quantity: Number(quantity),
-        unit_cost: Number(unitCost),
-        subtotal: Number(quantity) * Number(unitCost),
+        units_per_box: prod.units_per_box || 1,
+        is_service: prod.is_service || false,
+        sale_type: 'UNIDAD',
+        quantity: 1,
+        unit_cost: Number(prod.cost) || 0,
+        subtotal: Number(prod.cost) || 0,
       }]);
     }
-    setSelectedProductId('');
-    setQuantity(1);
-    setUnitCost('');
   };
 
-  const removeItem = (productId) => setItems(items.filter(i => i.product_id !== productId));
+  const changeItem = (index, field, value) => {
+    const newItems = [...items];
+    const item = newItems[index];
+    item[field] = value;
+    
+    if (field === 'quantity' || field === 'unit_cost' || field === 'sale_type') {
+      item.subtotal = Number(item.quantity) * Number(item.unit_cost);
+    }
+    
+    setItems(newItems);
+  };
+
+  const removeItem = (index) => setItems(items.filter((_, i) => i !== index));
 
   const total = items.reduce((acc, i) => acc + i.subtotal, 0);
 
@@ -106,6 +107,8 @@ const Compras = () => {
           document_number: documentNumber,
           total,
           status: 'COMPLETADA',
+          payment_method: paymentMethod,
+          balance: paymentMethod === 'CREDITO' ? total : 0,
         }])
         .select()
         .single();
@@ -128,8 +131,10 @@ const Compras = () => {
         
       if (itemsError) throw itemsError;
 
-      // 2. Por cada item, hacer upsert en inventory (sumar stock)
+      // 2. Por cada item, hacer upsert en inventory (sumar stock) (Omitir servicios)
       for (const item of items) {
+        if (item.is_service) continue; // No registrar inventario si es servicio
+
         // Verificar si ya existe entrada en inventory para este producto/sucursal
         const { data: existing } = await supabase
           .from('inventory')
@@ -138,12 +143,25 @@ const Compras = () => {
           .eq('branch_id', branch_id)
           .single();
 
+        const addition = item.sale_type === 'CAJA' ? item.quantity * item.units_per_box : item.quantity;
+        const actualCostPerUnit = item.sale_type === 'CAJA' ? item.unit_cost / item.units_per_box : item.unit_cost;
+
         if (existing) {
           // Sumar al stock existente
+          const newStock = existing.stock + addition;
           await supabase
             .from('inventory')
-            .update({ stock: existing.stock + item.quantity, last_updated: new Date().toISOString() })
+            .update({ stock: newStock, last_updated: new Date().toISOString() })
             .eq('id', existing.id);
+
+          // Kardex
+          await supabase.from('inventory_movements').insert([{
+            tenant_id, branch_id, product_id: item.product_id,
+            movement_type: 'IN', quantity: addition,
+            previous_stock: existing.stock, new_stock: newStock,
+            reference_id: purchase.id, description: `Compra - ${item.quantity} ${item.sale_type}`,
+            created_by: userData.user.id
+          }]);
         } else {
           // Crear nueva entrada
           await supabase
@@ -152,19 +170,35 @@ const Compras = () => {
               tenant_id,
               branch_id,
               product_id: item.product_id,
-              stock: item.quantity,
+              stock: addition,
             }]);
+
+          // Kardex
+          await supabase.from('inventory_movements').insert([{
+            tenant_id, branch_id, product_id: item.product_id,
+            movement_type: 'IN', quantity: addition,
+            previous_stock: 0, new_stock: addition,
+            reference_id: purchase.id, description: `Compra (Inicial) - ${item.quantity} ${item.sale_type}`,
+            created_by: userData.user.id
+          }]);
         }
         // 2.5 Actualizar el costo en el catálogo y recalcular precio según margen
         const { error: rpcError } = await supabase.rpc('update_cost_and_price', {
           p_product_id: item.product_id,
-          p_new_cost: item.unit_cost
+          p_new_cost: actualCostPerUnit
         });
         
         if (rpcError) {
           console.error("Error actualizando costo/precio:", rpcError);
         }
       }
+
+      // 2.6 Generar Partida Contable Automática
+      const { error: accError } = await supabase.rpc('create_purchase_journal_entry', {
+        p_purchase_id: purchase.id
+      });
+      if (accError) console.error("Error generando partida contable:", accError);
+
       // 3. Resetear formulario
       setItems([]);
       setSelectedSupplierId('');
@@ -290,7 +324,7 @@ const Compras = () => {
             </div>
 
             {/* Info de la compra */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label>Proveedor</label>
                 <select className="glass-input" value={selectedSupplierId} onChange={e => setSelectedSupplierId(e.target.value)}>
@@ -312,6 +346,13 @@ const Compras = () => {
                 <input type="text" className="glass-input" placeholder="001-0001-0000000" value={documentNumber}
                   onChange={e => setDocumentNumber(e.target.value)} />
               </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>Método de Pago</label>
+                <select className="glass-input" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
+                  <option value="CONTADO">Contado</option>
+                  <option value="CREDITO">Crédito</option>
+                </select>
+              </div>
             </div>
 
             {/* Agregar artículo */}
@@ -320,30 +361,10 @@ const Compras = () => {
               borderRadius: '10px', padding: '16px', marginBottom: '20px'
             }}>
               <h4 style={{ marginBottom: '12px', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                Agregar Artículo
+                Buscar Artículo
               </h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '12px', alignItems: 'flex-end' }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>Artículo</label>
-                  <select className="glass-input" value={selectedProductId} onChange={handleProductSelect}>
-                    <option value="">Selecciona artículo...</option>
-                    {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>)}
-                  </select>
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>Cantidad</label>
-                  <input type="number" min="1" className="glass-input" value={quantity}
-                    onChange={e => setQuantity(parseInt(e.target.value) || 1)} />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>Costo Unit. ($)</label>
-                  <input type="number" step="0.01" min="0" className="glass-input" value={unitCost}
-                    onChange={e => setUnitCost(e.target.value)} placeholder="0.00" />
-                </div>
-                <button className="glass-button" onClick={handleAddItem} disabled={!selectedProductId || !unitCost}
-                  style={{ height: '42px', marginBottom: '0' }}>
-                  <Plus size={16} />
-                </button>
+              <div style={{ zIndex: 10 }}>
+                <ProductSearch products={products} onSelect={handleSelectProduct} />
               </div>
             </div>
 
@@ -352,8 +373,8 @@ const Compras = () => {
               <table className="glass-table" style={{ marginBottom: '20px' }}>
                 <thead>
                   <tr>
-                    <th>SKU</th>
                     <th>Artículo</th>
+                    <th>Tipo</th>
                     <th>Cant.</th>
                     <th>Costo Unit.</th>
                     <th>Subtotal</th>
@@ -361,15 +382,33 @@ const Compras = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map(item => (
-                    <tr key={item.product_id}>
-                      <td style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-muted)' }}>{item.sku}</td>
-                      <td style={{ fontWeight: 500 }}>{item.name}</td>
-                      <td>{item.quantity}</td>
-                      <td>${item.unit_cost.toFixed(2)}</td>
+                  {items.map((item, index) => (
+                    <tr key={index}>
+                      <td style={{ fontWeight: 500 }}>{item.name} <br/><span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{item.sku}</span></td>
+                      <td>
+                        <select 
+                          className="glass-input" 
+                          style={{ padding: '4px', fontSize: '12px', minWidth: '90px' }}
+                          value={item.sale_type}
+                          onChange={(e) => changeItem(index, 'sale_type', e.target.value)}
+                        >
+                          <option value="UNIDAD">Unidad</option>
+                          {item.units_per_box > 1 && (
+                            <option value="CAJA">Caja (x{item.units_per_box})</option>
+                          )}
+                        </select>
+                      </td>
+                      <td>
+                        <input type="number" min="1" className="glass-input" style={{ width: '60px', padding: '4px', textAlign: 'center' }} 
+                          value={item.quantity} onChange={(e) => changeItem(index, 'quantity', e.target.value)} />
+                      </td>
+                      <td>
+                        <input type="number" min="0" step="0.01" className="glass-input" style={{ width: '80px', padding: '4px' }} 
+                          value={item.unit_cost} onChange={(e) => changeItem(index, 'unit_cost', e.target.value)} />
+                      </td>
                       <td style={{ fontWeight: 600 }}>${item.subtotal.toFixed(2)}</td>
                       <td>
-                        <button onClick={() => removeItem(item.product_id)}
+                        <button onClick={() => removeItem(index)}
                           style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontWeight: 700 }}>
                           <X size={16} />
                         </button>

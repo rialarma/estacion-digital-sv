@@ -28,6 +28,8 @@ export const useAuth = () => {
             .single();
             
           setTenant(profile.tenant_id, tenant);
+        } else {
+          clearTenant();
         }
       } else {
         setUser(null);

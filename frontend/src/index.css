@@ -141,6 +141,30 @@ body {
   color: var(--primary);
 }
 
+.sidebar-links {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 8px;
+}
+
+/* Custom scrollbar for sidebar */
+.sidebar-links::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-links::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-links::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+.sidebar-links::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 .main-content {
   margin-left: var(--sidebar-width);
   flex: 1;

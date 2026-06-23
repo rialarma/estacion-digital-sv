@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Download, FileText, Printer, Clock, CheckCircle,
   XCircle, Send, Stamp, FlaskConical, RefreshCw,
-  ChevronRight, AlertTriangle,
+  ChevronRight, AlertTriangle, Mail, MessageCircle
 } from 'lucide-react';
 import { supabase } from '../supabase';
 
@@ -514,6 +514,22 @@ const Documents = () => {
                           disabled={doc.status !== 'SELLADO'}
                         >
                           <Printer size={18} style={{ opacity: doc.status !== 'SELLADO' ? 0.25 : 1 }} />
+                        </button>
+                        <button
+                          onClick={() => alert('Simulando envío por correo...')}
+                          style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', cursor: 'pointer' }}
+                          title={doc.status !== 'SELLADO' ? 'Solo disponible cuando el documento esté sellado' : 'Enviar por Correo'}
+                          disabled={doc.status !== 'SELLADO'}
+                        >
+                          <Mail size={18} style={{ opacity: doc.status !== 'SELLADO' ? 0.25 : 1 }} />
+                        </button>
+                        <button
+                          onClick={() => alert('Simulando envío por WhatsApp...')}
+                          style={{ background: 'transparent', border: 'none', color: '#25D366', cursor: 'pointer' }}
+                          title={doc.status !== 'SELLADO' ? 'Solo disponible cuando el documento esté sellado' : 'Enviar por WhatsApp'}
+                          disabled={doc.status !== 'SELLADO'}
+                        >
+                          <MessageCircle size={18} style={{ opacity: doc.status !== 'SELLADO' ? 0.25 : 1 }} />
                         </button>
                       </div>
                     </td>

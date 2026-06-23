@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
-import { Building2, Receipt, MapPin, Users, Palette, Save, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Building2, Receipt, MapPin, Users, Palette, Save, Plus, Edit2, Trash2, Printer, Eye } from 'lucide-react';
+import { ACTIVIDADES_ECONOMICAS, DEPARTAMENTOS, MUNICIPIOS_NUEVOS, getDistritosPorMunicipio } from '../utils/svCatalogs';
+import { printDocument } from '../utils/printUtils';
 
 const TabEmpresa = ({ tenantInfo, onSave }) => {
   const [formData, setFormData] = useState({
@@ -10,10 +12,28 @@ const TabEmpresa = ({ tenantInfo, onSave }) => {
     nrc: tenantInfo?.nrc || '',
     activity_desc: tenantInfo?.activity_desc || '',
     logo_url: tenantInfo?.logo_url || '',
-    receipt_message: tenantInfo?.receipt_message || ''
+    department_code: tenantInfo?.department_code || '',
+    municipality_code: tenantInfo?.municipality_code || '',
+    district: tenantInfo?.district || '',
+    address: tenantInfo?.address || ''
   });
 
+  const [searchGiro, setSearchGiro] = useState(tenantInfo?.activity_desc || '');
+  const [showGiros, setShowGiros] = useState(false);
+
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+
+  const filteredGiros = ACTIVIDADES_ECONOMICAS.filter(act => 
+    act.name.toLowerCase().includes(searchGiro.toLowerCase()) || 
+    act.code.includes(searchGiro)
+  ).slice(0, 50);
+
+  const handleSelectGiro = (giro) => {
+    const text = `[${giro.code}] ${giro.name}`;
+    setSearchGiro(text);
+    setFormData({ ...formData, activity_desc: text });
+    setShowGiros(false);
+  };
 
   return (
     <div className="glass-panel" style={{ padding: '24px' }}>
@@ -23,9 +43,42 @@ const TabEmpresa = ({ tenantInfo, onSave }) => {
           <label>Nombre Comercial / Razón Social</label>
           <input className="glass-input" name="name" value={formData.name} onChange={handleChange} />
         </div>
-        <div className="form-group">
+        <div className="form-group" style={{ position: 'relative' }}>
           <label>Giro o Actividad Económica</label>
-          <input className="glass-input" name="activity_desc" value={formData.activity_desc} onChange={handleChange} />
+          <input 
+            type="text" 
+            className="glass-input" 
+            placeholder="Buscar por código o nombre..."
+            value={searchGiro}
+            onChange={(e) => {
+              setSearchGiro(e.target.value);
+              setFormData({ ...formData, activity_desc: e.target.value });
+              setShowGiros(true);
+            }}
+            onFocus={() => setShowGiros(true)}
+            onBlur={() => setTimeout(() => setShowGiros(false), 200)}
+          />
+          {showGiros && searchGiro && (
+            <div style={{
+              position: 'absolute', top: '100%', left: 0, right: 0,
+              background: 'var(--bg-color)', border: '1px solid var(--border-color)',
+              borderRadius: '8px', maxHeight: '200px', overflowY: 'auto', zIndex: 10
+            }}>
+              {filteredGiros.length > 0 ? filteredGiros.map(g => (
+                <div 
+                  key={g.code} 
+                  style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '12px' }}
+                  onClick={() => handleSelectGiro(g)}
+                  onMouseEnter={(e) => e.target.style.background = 'var(--glass-bg)'}
+                  onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                >
+                  <strong>{g.code}</strong> - {g.name}
+                </div>
+              )) : (
+                <div style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--text-muted)' }}>No se encontraron giros</div>
+              )}
+            </div>
+          )}
         </div>
         <div className="form-group">
           <label>NIT</label>
@@ -35,15 +88,43 @@ const TabEmpresa = ({ tenantInfo, onSave }) => {
           <label>NRC</label>
           <input className="glass-input" name="nrc" value={formData.nrc} onChange={handleChange} />
         </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginTop: '16px' }}>
+          <div className="form-group">
+            <label>Departamento</label>
+            <select className="glass-input" name="department_code" value={formData.department_code} onChange={handleChange}>
+              <option value="">-- Seleccionar --</option>
+              {DEPARTAMENTOS.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Municipio</label>
+            <select className="glass-input" name="municipality_code" value={formData.municipality_code} onChange={handleChange} disabled={!formData.department_code}>
+              <option value="">-- Seleccionar --</option>
+              {formData.department_code && MUNICIPIOS_NUEVOS[formData.department_code]?.map(m => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Distrito</label>
+            <select className="glass-input" name="district" value={formData.district} onChange={handleChange} disabled={!formData.municipality_code}>
+              <option value="">-- Seleccionar --</option>
+              {formData.municipality_code && getDistritosPorMunicipio(formData.municipality_code).map(d => (
+                <option key={d.code} value={d.name}>{d.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="form-group" style={{ marginTop: '16px' }}>
+          <label>Dirección Específica</label>
+          <input className="glass-input" name="address" value={formData.address} onChange={handleChange} placeholder="Calle, número de local..." />
+        </div>
         <div className="form-group" style={{ gridColumn: '1 / -1' }}>
           <label>URL del Logo</label>
           <input className="glass-input" name="logo_url" value={formData.logo_url} onChange={handleChange} placeholder="https://ejemplo.com/logo.png" />
         </div>
-        <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-          <label>Mensaje al pie del ticket/factura</label>
-          <input className="glass-input" name="receipt_message" value={formData.receipt_message} onChange={handleChange} placeholder="¡Gracias por su compra!" />
-        </div>
       </div>
+      
       <button className="glass-button" style={{ marginTop: '16px' }} onClick={() => onSave(formData)}>
         <Save size={18} /> Guardar Datos
       </button>
@@ -82,12 +163,72 @@ const TabFacturacion = ({ tenantInfo, onSave }) => {
   );
 };
 
+const TabImpresion = ({ tenantInfo, onSave }) => {
+  const [formData, setFormData] = useState({
+    ticket_header: tenantInfo?.ticket_header || 'Resolución No. 15044-RES-CR-54321-2023\nSerie Autorizada: 12AS0000001 al 12AS0000500\nFecha de Autorización: 01/01/2023\nSucursal Principal - San Salvador',
+    receipt_message: tenantInfo?.receipt_message || '¡Gracias por su compra!\nVuelva pronto.'
+  });
+
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+
+  const handlePreview = (format) => {
+    const dummySale = {
+      id: 'preview-123',
+      created_at: new Date().toISOString(),
+      dte_code: format === 'PDF' ? 'DTE-CCF-00000123' : 'DTE-FCF-00000123',
+      subtotal: 100.00,
+      tax_amount: 13.00,
+      total: 113.00,
+      clients: { name: 'Cliente de Prueba S.A. de C.V.', document_number: '0614-010190-101-1', address: 'San Salvador, El Salvador' },
+      sellers: { name: 'Cajero Principal' }
+    };
+
+    const dummyItems = [
+      { quantity: 2, products: { name: 'Producto de Prueba A' }, unit_price: 25.00, subtotal: 50.00 },
+      { quantity: 1, products: { name: 'Servicio de Prueba B' }, unit_price: 50.00, subtotal: 50.00 }
+    ];
+
+    // Merge actual tenantInfo with edited form data so preview reflects unsaved changes
+    const previewTenantInfo = { ...tenantInfo, ...formData };
+    
+    printDocument(dummySale, dummyItems, previewTenantInfo, format);
+  };
+
+  return (
+    <div className="glass-panel" style={{ padding: '24px' }}>
+      <h3 style={{ marginBottom: '20px' }}>Configuración de Impresión</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+        <div className="form-group">
+          <label>Encabezado del Ticket (Resolución, Serie, Autorización, Dirección)</label>
+          <textarea className="glass-input" name="ticket_header" value={formData.ticket_header} onChange={handleChange} placeholder="Resolución No. 12345-6&#10;Serie: 0001 a 9999&#10;Dirección de la sucursal..." rows={4} style={{ resize: 'vertical' }} />
+        </div>
+        <div className="form-group">
+          <label>Mensaje al pie del ticket/factura</label>
+          <input className="glass-input" name="receipt_message" value={formData.receipt_message} onChange={handleChange} placeholder="¡Gracias por su compra!" />
+        </div>
+      </div>
+      
+      <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+        <button className="glass-button" onClick={() => onSave(formData)}>
+          <Save size={18} /> Guardar Configuración
+        </button>
+        <button className="glass-button" style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-color)' }} onClick={() => handlePreview('TICKET')}>
+          <Eye size={18} /> Previsualizar Ticket
+        </button>
+        <button className="glass-button" style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-color)' }} onClick={() => handlePreview('PDF')}>
+          <Eye size={18} /> Previsualizar PDF
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const TabSucursales = ({ tenantId }) => {
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ name: '', address: '', establishment_code: '', point_of_sale_code: '' });
+  const [formData, setFormData] = useState({ name: '', address: '', establishment_code: '', point_of_sale_code: '', department_code: '', municipality_code: '', district: '' });
 
   useEffect(() => { fetchBranches(); }, []);
 
@@ -109,9 +250,9 @@ const TabSucursales = ({ tenantId }) => {
     fetchBranches();
   };
 
-  const handleEdit = (b) => {
-    setFormData({ name: b.name, address: b.address || '', establishment_code: b.establishment_code || '', point_of_sale_code: b.point_of_sale_code || '' });
-    setEditingId(b.id);
+  const handleEdit = (branch) => {
+    setFormData({ name: branch.name, address: branch.address || '', establishment_code: branch.establishment_code || '', point_of_sale_code: branch.point_of_sale_code || '', department_code: branch.department_code || '', municipality_code: branch.municipality_code || '', district: branch.district || '' });
+    setEditingId(branch.id);
     setShowModal(true);
   };
 
@@ -163,8 +304,38 @@ const TabSucursales = ({ tenantId }) => {
             <h2>{editingId ? 'Editar Sucursal' : 'Nueva Sucursal'}</h2>
             <form onSubmit={handleSave} style={{ marginTop: '16px' }}>
               <div className="form-group"><label>Nombre</label><input required className="glass-input" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} /></div>
-              <div className="form-group"><label>Dirección</label><input className="glass-input" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} /></div>
-              <div style={{ display: 'flex', gap: '16px' }}>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginTop: '16px' }}>
+                <div className="form-group">
+                  <label>Departamento</label>
+                  <select className="glass-input" value={formData.department_code} onChange={e => setFormData({...formData, department_code: e.target.value, municipality_code: '', district: ''})}>
+                    <option value="">-- Seleccionar --</option>
+                    {DEPARTAMENTOS.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Municipio</label>
+                  <select className="glass-input" value={formData.municipality_code} onChange={e => setFormData({...formData, municipality_code: e.target.value, district: ''})} disabled={!formData.department_code}>
+                    <option value="">-- Seleccionar --</option>
+                    {formData.department_code && MUNICIPIOS_NUEVOS[formData.department_code]?.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Distrito</label>
+                  <select className="glass-input" value={formData.district} onChange={e => setFormData({...formData, district: e.target.value})} disabled={!formData.municipality_code}>
+                    <option value="">-- Seleccionar --</option>
+                    {formData.municipality_code && getDistritosPorMunicipio(formData.municipality_code).map(d => (
+                      <option key={d.code} value={d.name}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginTop: '16px' }}><label>Dirección Específica</label><input className="glass-input" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="Calle, número de local..." /></div>
+              
+              <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
                 <div className="form-group"><label>Cód. Establecimiento MH</label><input className="glass-input" value={formData.establishment_code} onChange={e => setFormData({...formData, establishment_code: e.target.value})} /></div>
                 <div className="form-group"><label>Cód. Punto Venta MH</label><input className="glass-input" value={formData.point_of_sale_code} onChange={e => setFormData({...formData, point_of_sale_code: e.target.value})} /></div>
               </div>
@@ -322,7 +493,8 @@ const Configuracion = () => {
 
   const tabs = [
     { id: 'empresa', label: 'Empresa', icon: <Building2 size={18} /> },
-    { id: 'facturacion', label: 'Facturación', icon: <Receipt size={18} /> },
+    { id: 'facturacion', label: 'Facturación / DTE', icon: <Receipt size={18} /> },
+    { id: 'impresion', label: 'Impresoras y Tickets', icon: <Printer size={18} /> },
     { id: 'sucursales', label: 'Sucursales', icon: <MapPin size={18} /> },
     { id: 'usuarios', label: 'Usuarios', icon: <Users size={18} /> },
     { id: 'apariencia', label: 'Apariencia', icon: <Palette size={18} /> }
@@ -359,6 +531,7 @@ const Configuracion = () => {
           {saving && <p style={{ color: 'var(--primary)', marginBottom: '16px' }}>Guardando...</p>}
           {activeTab === 'empresa' && <TabEmpresa tenantInfo={tenantInfo} onSave={handleUpdateTenant} />}
           {activeTab === 'facturacion' && <TabFacturacion tenantInfo={tenantInfo} onSave={handleUpdateTenant} />}
+          {activeTab === 'impresion' && <TabImpresion tenantInfo={tenantInfo} onSave={handleUpdateTenant} />}
           {activeTab === 'sucursales' && <TabSucursales tenantId={tenantId} />}
           {activeTab === 'usuarios' && <TabUsuarios tenantInfo={tenantInfo} onRegenerateCode={async () => {
             if(window.confirm('¿Seguro que quieres invalidar el código actual? Los que intenten usarlo ya no podrán unirse.')) {

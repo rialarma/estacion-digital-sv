@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Plus, Save, Info } from 'lucide-react';
+import { ShoppingCart, Save, Lock, Monitor, Plus, Info } from 'lucide-react';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
+import ProductSearch from '../components/ProductSearch';
+import { printDocument } from '../utils/printUtils';
 
 // Genera un UUID v4 simple para el código de generación del DTE
 const generarCodigoGeneracion = () => {
@@ -14,28 +17,96 @@ const generarCodigoGeneracion = () => {
 
 const Ventas = () => {
   const { tenantInfo } = useTenantStore();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
   const [products, setProducts] = useState([]);
   const [clients, setClients] = useState([]);
   const [sellers, setSellers] = useState([]);
+  const [drivers, setDrivers] = useState([]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [activeShift, setActiveShift] = useState(null);
   
   // Form state
   const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedSellerId, setSelectedSellerId] = useState('');
-  const [selectedProductId, setSelectedProductId] = useState('');
-  const [quantity, setQuantity] = useState(1);
+  const [selectedDriverId, setSelectedDriverId] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('CONTADO');
+  
+  // Print Modal State
+  const [printModalOpen, setPrintModalOpen] = useState(false);
+  const [lastSaleData, setLastSaleData] = useState(null);
 
   useEffect(() => {
+    fetchActiveShift();
     fetchProducts();
     fetchClients();
     fetchSellers();
+    fetchDrivers();
   }, []);
+
+  useEffect(() => {
+    // If products are loaded and there's a quote ID in URL, load it
+    const quoteId = searchParams.get('quote');
+    if (quoteId && products.length > 0) {
+      loadQuote(quoteId);
+    }
+  }, [searchParams, products]);
+
+  const loadQuote = async (quoteId) => {
+    setLoading(true);
+    try {
+      const { data: quote } = await supabase.from('quotes').select('*').eq('id', quoteId).single();
+      if (quote) {
+        setSelectedClientId(quote.client_id || '');
+        setSelectedSellerId(quote.seller_id || '');
+        
+        const { data: qItems } = await supabase.from('quote_items').select('*').eq('quote_id', quoteId);
+        if (qItems && qItems.length > 0) {
+          const newItems = qItems.map(qi => {
+            const prod = products.find(p => p.id === qi.product_id);
+            return {
+              id: qi.product_id,
+              name: prod ? prod.name : 'Producto Eliminado',
+              price: qi.unit_price,
+              cost: prod ? prod.cost : 0,
+              quantity: qi.quantity,
+              total: qi.subtotal
+            };
+          });
+          setItems(newItems);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    setLoading(false);
+  };
+
+  const fetchActiveShift = async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return;
+    
+    const { data: shift } = await supabase
+      .from('cash_shifts')
+      .select('id')
+      .eq('cashier_id', userData.user.id)
+      .eq('status', 'OPEN')
+      .single();
+      
+    setActiveShift(shift);
+  };
 
   const fetchSellers = async () => {
     const { data } = await supabase.from('sellers').select('*').order('name');
     if (data) setSellers(data);
+  };
+
+  const fetchDrivers = async () => {
+    const { data } = await supabase.from('drivers').select('*').order('name');
+    if (data) setDrivers(data);
   };
 
   const fetchClients = async () => {
@@ -45,47 +116,63 @@ const Ventas = () => {
 
   const fetchProducts = async () => {
     setLoading(true);
-    // Productos ahora sin 'stock' en la tabla - el stock está en 'inventory'
     const { data, error } = await supabase
       .from('products')
-      .select('id, name, price, cost, sku');
+      .select('id, name, price, cost, sku, units_per_box, box_price, is_service');
     if (!error && data) {
       setProducts(data);
     }
     setLoading(false);
   };
 
-  const handleAdd = () => {
-    if (!selectedProductId) return;
+  const handleSelectProduct = (product) => {
+    const existingItem = items.find(i => i.id === product.id && i.sale_type === 'UNIDAD');
     
-    const product = products.find(p => p.id === selectedProductId);
-    if (!product) return;
-
-    // Check if already in list
-    const existingItem = items.find(i => i.id === product.id);
     if (existingItem) {
+      // Increase quantity by 1
+      const newQty = existingItem.quantity + 1;
       setItems(items.map(i => 
-        i.id === product.id 
-          ? { ...i, quantity: i.quantity + quantity, total: (i.quantity + quantity) * i.price }
+        i.id === product.id && i.sale_type === 'UNIDAD'
+          ? { ...i, quantity: newQty, total: newQty * i.price }
           : i
       ));
     } else {
+      // Add new unit
       setItems([...items, {
         id: product.id,
         name: product.name,
-        price: product.price,
-        cost: product.cost,
-        quantity: quantity,
-        total: product.price * quantity
+        price: Number(product.price) || 0,
+        cost: Number(product.cost) || 0,
+        units_per_box: product.units_per_box || 1,
+        box_price: product.box_price || product.price,
+        is_service: product.is_service || false,
+        sale_type: 'UNIDAD',
+        quantity: 1,
+        total: Number(product.price) || 0
       }]);
     }
-
-    setSelectedProductId('');
-    setQuantity(1);
   };
 
-  const removeItem = (id) => {
-    setItems(items.filter(i => i.id !== id));
+  const changeQuantity = (index, qty) => {
+    const newItems = [...items];
+    const item = newItems[index];
+    const numQty = Number(qty) || 0;
+    item.quantity = numQty;
+    item.total = numQty * item.price;
+    setItems(newItems);
+  };
+
+  const changeSaleType = (index, type) => {
+    const newItems = [...items];
+    const item = newItems[index];
+    item.sale_type = type;
+    item.price = type === 'CAJA' ? item.box_price : (products.find(p => p.id === item.id)?.price || 0);
+    item.total = item.quantity * item.price;
+    setItems(newItems);
+  };
+
+  const removeItem = (index) => {
+    setItems(items.filter((_, i) => i !== index));
   };
 
   const totalOrder = items.reduce((acc, curr) => acc + curr.total, 0);
@@ -139,7 +226,11 @@ const Ventas = () => {
           tax_iva,
           total,
           status: 'COMPLETADA',
-          payment_method: 'EFECTIVO',
+          payment_method: paymentMethod,
+          balance: paymentMethod === 'CREDITO' ? total : 0,
+          shift_id: activeShift ? activeShift.id : null,
+          driver_id: selectedDriverId || null,
+          delivery_status: selectedDriverId ? 'PENDIENTE_DE_CARGA' : 'ENTREGADO'
         }])
         .select()
         .single();
@@ -155,12 +246,15 @@ const Ventas = () => {
           dte_type: dteTipo,
           codigo_generacion: codigoGeneracion,
           status: 'PENDIENTE',
-          sello_recepcion: null,
-          json_firmado: null,
-          observaciones: null,
         }]);
 
       if (dteError) throw dteError;
+
+      // 5. Generar partida contable automática
+      const { error: rpcError } = await supabase.rpc('create_sale_journal_entry', {
+        p_sale_id: sale.id
+      });
+      if (rpcError) console.error("Error contabilidad:", rpcError);
 
       // 4.5 Registrar los items de la venta
       const saleItemsData = items.map(item => ({
@@ -176,8 +270,10 @@ const Ventas = () => {
       const { error: itemsError } = await supabase.from('sale_items').insert(saleItemsData);
       if (itemsError) throw itemsError;
 
-      // 4.6 Descontar del inventario
+      // 4.6 Descontar del inventario (Omitir servicios)
       for (const item of items) {
+        if (item.is_service) continue; // No descontar inventario si es servicio
+
         const { data: existing } = await supabase
           .from('inventory')
           .select('id, stock')
@@ -186,19 +282,67 @@ const Ventas = () => {
           .single();
 
         if (existing) {
+          // If CAJA, deduct quantity * units_per_box
+          const deduction = item.sale_type === 'CAJA' ? (item.quantity * item.units_per_box) : item.quantity;
+          const newStock = existing.stock - deduction;
+          
           await supabase
             .from('inventory')
-            .update({ stock: existing.stock - item.quantity, last_updated: new Date().toISOString() })
+            .update({ stock: newStock, last_updated: new Date().toISOString() })
             .eq('id', existing.id);
+
+          // Kardex
+          await supabase.from('inventory_movements').insert([{
+            tenant_id,
+            branch_id,
+            product_id: item.id,
+            movement_type: 'OUT',
+            quantity: deduction,
+            previous_stock: existing.stock,
+            new_stock: newStock,
+            reference_id: sale.id,
+            description: `Venta (POS) - ${item.quantity} ${item.sale_type}`,
+            created_by: userId
+          }]);
         }
       }
 
       // 5. Éxito
       const tipoLabel = dteTipo === '03' ? 'CCF' : 'FCF';
-      alert(`✅ ${tipoLabel} creado con estado PENDIENTE.\nCódigo: ${codigoGeneracion}\n\nVe a Documentos para continuar el flujo de firma.`);
+      
+      const clientObj = selectedClientId ? clients.find(c => c.id === selectedClientId) : null;
+      const sellerObj = selectedSellerId ? sellers.find(s => s.id === selectedSellerId) : null;
+      
+      // Store data for printing
+      setLastSaleData({
+        sale: {
+          id: sale.id,
+          created_at: new Date().toISOString(),
+          dte_code: `DTE-${tipoLabel}-00000${Math.floor(Math.random() * 1000)}`, // Simulate DTE
+          subtotal: subtotal,
+          tax_amount: tax_iva,
+          total: total,
+          clients: clientObj,
+          sellers: sellerObj
+        },
+        items: items.map(item => ({
+          ...item,
+          products: { name: item.name } // Reconstruct product obj
+        }))
+      });
+
+      setPrintModalOpen(true);
+
       setItems([]);
       setSelectedClientId('');
-
+      setSelectedDriverId('');
+      setPaymentMethod('CONTADO');
+      
+      const quoteId = searchParams.get('quote');
+      if (quoteId) {
+        await supabase.from('quotes').update({ status: 'CONVERTED' }).eq('id', quoteId);
+        navigate('/ventas'); // Clear URL
+      }
     } catch (err) {
       console.error('Error al emitir documento:', err);
       alert('Error al emitir: ' + err.message);
@@ -206,6 +350,23 @@ const Ventas = () => {
       setSaving(false);
     }
   };
+
+  if (loading) {
+    return <div style={{ padding: '40px', textAlign: 'center' }}>Cargando inventario y clientes...</div>;
+  }
+
+  if (!activeShift) {
+    return (
+      <div className="page-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '80vh' }}>
+        <Lock size={64} style={{ color: '#ef4444', marginBottom: '20px' }} />
+        <h2 style={{ fontSize: '24px', marginBottom: '10px' }}>Turno de Caja Cerrado</h2>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '30px' }}>Para poder facturar, necesitas realizar la apertura de caja.</p>
+        <Link to="/caja" className="glass-button" style={{ background: '#3b82f6', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Monitor size={18} /> Ir a Gestión de Caja
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">
@@ -247,84 +408,90 @@ const Ventas = () => {
                 </select>
               </div>
             </div>
-          </div>
-
-          <div className="glass-panel" style={{ padding: '24px' }}>
-            <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: 600 }}>2. Agregar Producto</h3>
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end' }}>
-              <div className="form-group" style={{ flex: 2, marginBottom: 0 }}>
-                <label>Producto del Inventario</label>
+            <div style={{ marginTop: '16px' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>Método de Pago</label>
                 <select 
                   className="glass-input"
-                  value={selectedProductId}
-                  onChange={(e) => setSelectedProductId(e.target.value)}
-                  disabled={loading || products.length === 0}
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
                 >
-                  <option value="">Selecciona un producto...</option>
-                  {products.map(p => (
-                    <option key={p.id} value={p.id}>{p.name} - ${Number(p.price).toFixed(2)}</option>
+                  <option value="CONTADO">Contado (Efectivo/Banco)</option>
+                  <option value="CREDITO">Crédito (Cuentas por Cobrar)</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Repartidor / Ruta (Opcional)</label>
+                <select 
+                  className="glass-input" 
+                  value={selectedDriverId} 
+                  onChange={(e) => setSelectedDriverId(e.target.value)}
+                >
+                  <option value="">-- Entregado en tienda --</option>
+                  {drivers.map(d => (
+                    <option key={d.id} value={d.id}>{d.name} {d.plate_number ? `(${d.plate_number})` : ''}</option>
                   ))}
                 </select>
               </div>
-              <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                <label>Cantidad</label>
-                <input 
-                  type="number" 
-                  className="glass-input" 
-                  min="1" 
-                  value={quantity}
-                  onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                />
-              </div>
-              <button className="glass-button" onClick={handleAdd} disabled={!selectedProductId}>
-                <Plus size={18} /> Agregar
-              </button>
             </div>
-            {products.length === 0 && !loading && (
-              <p style={{ marginTop: '12px', fontSize: '14px', color: '#fbbf24' }}>
-                No tienes productos en tu inventario. Ve a "Inventario" a crear algunos.
-              </p>
-            )}
           </div>
 
           <div className="glass-panel" style={{ padding: '24px', flex: 1 }}>
             <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: 600 }}>Detalle del Pedido</h3>
-            <div className="table-responsive">
-              {items.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                  No hay productos en la orden.
-                </div>
-              ) : (
-                <table className="glass-table">
-                  <thead>
-                    <tr>
-                      <th>Producto</th>
-                      <th>Cant.</th>
-                      <th>Precio</th>
-                      <th>Subtotal</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map(item => (
-                      <tr key={item.id}>
-                        <td style={{ fontWeight: 500 }}>{item.name}</td>
-                        <td>{item.quantity}</td>
-                        <td>${Number(item.price).toFixed(2)}</td>
-                        <td>${Number(item.total).toFixed(2)}</td>
-                        <td>
-                          <button 
-                            onClick={() => removeItem(item.id)}
-                            style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontWeight: 'bold' }}>
-                            X
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+            <h2 style={{ fontSize: '18px', marginBottom: '20px' }}>Construir Venta</h2>
+            
+            <div style={{ marginBottom: '24px', zIndex: 10 }}>
+              <ProductSearch products={products} onSelect={handleSelectProduct} />
             </div>
+
+            <table className="glass-table">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Tipo</th>
+                  <th>Cant.</th>
+                  <th>Precio Unit.</th>
+                  <th>Subtotal</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item, index) => (
+                  <tr key={index}>
+                    <td>{item.name}</td>
+                    <td>
+                      <select 
+                        className="glass-input" 
+                        style={{ padding: '4px', fontSize: '12px', minWidth: '100px' }}
+                        value={item.sale_type}
+                        onChange={(e) => changeSaleType(index, e.target.value)}
+                      >
+                        <option value="UNIDAD">Unidad</option>
+                        {item.units_per_box > 1 && (
+                          <option value="CAJA">Caja (x{item.units_per_box})</option>
+                        )}
+                      </select>
+                    </td>
+                    <td>
+                      <input 
+                        type="number" 
+                        min="1" 
+                        className="glass-input" 
+                        style={{ padding: '4px', width: '60px', textAlign: 'center' }}
+                        value={item.quantity} 
+                        onChange={e => changeQuantity(index, e.target.value)} 
+                      />
+                    </td>
+                    <td style={{ fontWeight: 'bold' }}>${item.price.toFixed(2)}</td>
+                    <td style={{ fontWeight: 'bold', color: '#10b981' }}>${item.total.toFixed(2)}</td>
+                    <td>
+                      <button onClick={() => removeItem(index)} style={{ color: '#f87171', background: 'none', border: 'none', cursor: 'pointer' }}>Quitar</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -382,6 +549,37 @@ const Ventas = () => {
           </div>
         </div>
       </div>
+
+      {printModalOpen && (
+        <div className="modal-overlay">
+          <div className="glass-panel" style={{ padding: '24px', width: '400px', textAlign: 'center' }}>
+            <h2 style={{ marginBottom: '16px', color: '#10b981' }}>¡Venta Exitosa!</h2>
+            <p style={{ marginBottom: '24px', color: 'var(--text-muted)' }}>¿Deseas imprimir el comprobante para el cliente?</p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button 
+                className="glass-button" 
+                onClick={() => printDocument(lastSaleData.sale, lastSaleData.items, tenantInfo, 'TICKET')}
+              >
+                Imprimir Ticket (POS)
+              </button>
+              <button 
+                className="glass-button" 
+                onClick={() => printDocument(lastSaleData.sale, lastSaleData.items, tenantInfo, 'PDF')}
+              >
+                Imprimir PDF (Carta)
+              </button>
+              <button 
+                className="glass-button" 
+                style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}
+                onClick={() => setPrintModalOpen(false)}
+              >
+                No Imprimir (Cerrar)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

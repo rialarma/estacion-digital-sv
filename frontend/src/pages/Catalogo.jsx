@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, Package, X } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Package, X, UploadCloud, DownloadCloud } from 'lucide-react';
 import { supabase } from '../supabase';
 
 const Catalogo = () => {
@@ -11,7 +11,8 @@ const Catalogo = () => {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: '', sku: '', description: '', category: '',
-    price: '', cost: '', target_margin: '', is_taxable: true
+    price: '', cost: '', target_margin: '', is_taxable: true,
+    units_per_box: 1, box_price: '', is_service: false
   });
 
   const fetchProducts = async () => {
@@ -34,7 +35,7 @@ const Catalogo = () => {
 
   const openNew = () => {
     setEditingId(null);
-    setFormData({ name: '', sku: '', description: '', category: '', price: '', cost: '', target_margin: '', is_taxable: true });
+    setFormData({ name: '', sku: '', description: '', category: '', price: '', cost: '', target_margin: '', is_taxable: true, units_per_box: 1, box_price: '', is_service: false });
     setShowModal(true);
   };
 
@@ -49,6 +50,9 @@ const Catalogo = () => {
       cost: prod.cost,
       target_margin: prod.target_margin || '',
       is_taxable: prod.is_taxable,
+      units_per_box: prod.units_per_box || 1,
+      box_price: prod.box_price || prod.price,
+      is_service: prod.is_service || false,
     });
     setShowModal(true);
   };
@@ -96,6 +100,9 @@ const Catalogo = () => {
         cost: parseFloat(formData.cost) || 0,
         target_margin: parseFloat(formData.target_margin) || 0,
         is_taxable: formData.is_taxable,
+        units_per_box: parseInt(formData.units_per_box) || 1,
+        box_price: parseFloat(formData.box_price) || parseFloat(formData.price) || 0,
+        is_service: formData.is_service,
       };
 
       if (editingId) {
@@ -110,8 +117,8 @@ const Catalogo = () => {
           .single();
         if (insertError) throw insertError;
 
-        // Crear entrada de inventario en 0 para la sucursal principal
-        if (profile.branch_id) {
+        // Crear entrada de inventario en 0 para la sucursal principal (solo si NO es servicio)
+        if (profile.branch_id && !payload.is_service) {
           await supabase.from('inventory').insert([{
             tenant_id: profile.tenant_id,
             branch_id: profile.branch_id,
@@ -136,13 +143,108 @@ const Catalogo = () => {
     fetchProducts();
   };
 
+  const handleDownloadTemplate = () => {
+    const headers = "SKU,Nombre,Descripcion,Categoria,Precio,Costo,EsGravado\n";
+    const example = "PROD-001,Laptop HP,Laptop empresarial,Tecnologia,1000.00,800.00,SI\n";
+    const blob = new Blob([headers + example], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = "Plantilla_Catalogo.csv";
+    link.click();
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setLoading(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const { data: profile } = await supabase.from('user_profiles').select('tenant_id, branch_id').eq('id', userData.user.id).single();
+      
+      const text = await file.text();
+      const rows = text.split('\n').map(r => r.trim()).filter(r => r);
+      rows.shift(); // Remove header
+
+      const parseCSVRow = (str) => {
+        const result = [];
+        let cur = '';
+        let inQuotes = false;
+        for (let i = 0; i < str.length; i++) {
+          if (str[i] === '"') {
+            inQuotes = !inQuotes;
+          } else if (str[i] === ',' && !inQuotes) {
+            result.push(cur.trim());
+            cur = '';
+          } else {
+            cur += str[i];
+          }
+        }
+        result.push(cur.trim());
+        return result;
+      };
+
+      let insertedCount = 0;
+      for (const row of rows) {
+        const vals = parseCSVRow(row);
+        if (vals.length >= 6) {
+          const sku = vals[0];
+          const name = vals[1];
+          const desc = vals[2] || '';
+          const cat = vals[3] || '';
+          const price = parseFloat(vals[4]) || 0;
+          const cost = parseFloat(vals[5]) || 0;
+          const isTaxable = (vals[6] || '').toUpperCase() === 'SI';
+          
+          let margin = 0;
+          if (cost > 0) margin = (((price / cost) - 1) * 100).toFixed(2);
+
+          const { data: newProd, error: insertError } = await supabase.from('products').insert([{
+            tenant_id: profile.tenant_id,
+            sku, name, description: desc, category: cat, price, cost, target_margin: margin, is_taxable: isTaxable
+          }]).select().single();
+          
+          if (!insertError && profile.branch_id) {
+            await supabase.from('inventory').insert([{
+              tenant_id: profile.tenant_id,
+              branch_id: profile.branch_id,
+              product_id: newProd.id,
+              stock: 0
+            }]);
+          }
+          if(!insertError) insertedCount++;
+        }
+      }
+      
+      alert(`✅ Carga Masiva completada.\nSe insertaron ${insertedCount} productos al catálogo.`);
+      fetchProducts();
+    } catch (error) {
+      console.error(error);
+      alert('Error en la carga masiva: ' + error.message);
+    } finally {
+      setLoading(false);
+      e.target.value = '';
+    }
+  };
+
   return (
     <div className="page-container">
-      <div className="page-header">
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1 className="page-title">Catálogo de Artículos</h1>
-        <button className="glass-button" onClick={openNew}>
-          <Plus size={18} /> Nuevo Artículo
-        </button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button className="glass-button" style={{ background: 'var(--bg-card)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }} onClick={handleDownloadTemplate}>
+            <DownloadCloud size={18} /> Descargar Plantilla
+          </button>
+          
+          <label className="glass-button" style={{ background: '#10b981', cursor: 'pointer', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <UploadCloud size={18} /> Subir CSV
+            <input type="file" accept=".csv" style={{ display: 'none' }} onChange={handleFileUpload} />
+          </label>
+
+          <button className="glass-button" onClick={openNew}>
+            <Plus size={18} /> Nuevo Artículo
+          </button>
+        </div>
       </div>
 
       <div className="glass-panel" style={{ padding: '24px' }}>
@@ -184,7 +286,12 @@ const Catalogo = () => {
               {filteredProducts.map(prod => (
                 <tr key={prod.id}>
                   <td style={{ fontFamily: 'monospace', fontSize: '13px', color: 'var(--text-muted)' }}>{prod.sku}</td>
-                  <td style={{ fontWeight: 500 }}>{prod.name}</td>
+                  <td style={{ fontWeight: 500 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {prod.name}
+                      {prod.is_service && <span style={{ padding: '2px 6px', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)', borderRadius: '4px', fontSize: '10px', fontWeight: 600 }}>Servicio</span>}
+                    </div>
+                  </td>
                   <td>
                     {prod.category ? (
                       <span style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8', padding: '3px 8px', borderRadius: '4px', fontSize: '12px' }}>
@@ -274,13 +381,35 @@ const Catalogo = () => {
                     onChange={e => handlePriceChange(e.target.value)} />
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <input type="checkbox" id="is_taxable" checked={formData.is_taxable}
-                  onChange={e => setFormData({ ...formData, is_taxable: e.target.checked })}
-                  style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-                <label htmlFor="is_taxable" style={{ cursor: 'pointer', marginBottom: 0 }}>
-                  Aplica IVA 13%
-                </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: 'rgba(59, 130, 246, 0.05)', padding: '12px', borderRadius: '8px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ color: 'var(--primary)' }}>Unidades por Caja</label>
+                  <input type="number" min="1" className="glass-input" value={formData.units_per_box}
+                    onChange={e => setFormData({ ...formData, units_per_box: e.target.value })} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ color: 'var(--primary)' }}>Precio de Caja Mayorista ($)</label>
+                  <input type="number" step="0.01" min="0" className="glass-input" value={formData.box_price}
+                    onChange={e => setFormData({ ...formData, box_price: e.target.value })} placeholder="Opcional" />
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <input type="checkbox" id="is_taxable" checked={formData.is_taxable}
+                    onChange={e => setFormData({ ...formData, is_taxable: e.target.checked })}
+                    style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+                  <label htmlFor="is_taxable" style={{ cursor: 'pointer', marginBottom: 0 }}>
+                    Aplica IVA 13%
+                  </label>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <input type="checkbox" id="is_service" checked={formData.is_service}
+                    onChange={e => setFormData({ ...formData, is_service: e.target.checked })}
+                    style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+                  <label htmlFor="is_service" style={{ cursor: 'pointer', marginBottom: 0, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Package size={14} color="var(--primary)"/> Es un Servicio (No lleva inventario)
+                  </label>
+                </div>
               </div>
               <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
                 <button type="button" className="glass-button" style={{ flex: 1, background: 'rgba(255,255,255,0.05)', justifyContent: 'center' }}

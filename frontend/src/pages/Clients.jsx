@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
-import { Users, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Users, Plus, Edit2, Trash2, Search } from 'lucide-react';
+import { DEPARTAMENTOS, MUNICIPIOS_NUEVOS, getDistritosPorMunicipio, ACTIVIDADES_ECONOMICAS } from '../utils/svCatalogs';
 
 const Clients = () => {
   const [clients, setClients] = useState([]);
@@ -13,10 +14,21 @@ const Clients = () => {
     business_name: '',
     email: '',
     phone: '',
-    document_type: 'NIT',
+    document_type: 'DUI',
     document_number: '',
+    nrc: '',
+    economic_activity_code: '',
+    department_code: '',
+    municipality_code: '',
+    district: '',
     address: ''
   });
+
+  const [giroSearch, setGiroSearch] = useState('');
+  const filteredGiros = ACTIVIDADES_ECONOMICAS.filter(act => 
+    act.name.toLowerCase().includes(giroSearch.toLowerCase()) || 
+    act.code.includes(giroSearch)
+  ).slice(0, 50);
 
   useEffect(() => {
     fetchClients();
@@ -63,7 +75,8 @@ const Clients = () => {
       }
       
       setShowModal(false);
-      setFormData({ name: '', business_name: '', email: '', phone: '', document_type: 'NIT', document_number: '', address: '' });
+      setFormData({ name: '', business_name: '', email: '', phone: '', document_type: 'DUI', document_number: '', nrc: '', economic_activity_code: '', department_code: '', municipality_code: '', district: '', address: '' });
+      setGiroSearch('');
       setEditingId(null);
       fetchClients();
     } catch (error) {
@@ -78,10 +91,16 @@ const Clients = () => {
       business_name: client.business_name || '',
       email: client.email || '',
       phone: client.phone || '',
-      document_type: client.document_type || 'NIT',
+      document_type: client.document_type || 'DUI',
       document_number: client.document_number || '',
+      nrc: client.nrc || '',
+      economic_activity_code: client.economic_activity_code || '',
+      department_code: client.department_code || '',
+      municipality_code: client.municipality_code || '',
+      district: client.district || '',
       address: client.address || ''
     });
+    setGiroSearch('');
     setEditingId(client.id);
     setShowModal(true);
   };
@@ -99,7 +118,8 @@ const Clients = () => {
         <h1 className="page-title">Directorio de Clientes</h1>
         <button className="glass-button" onClick={() => {
           setEditingId(null);
-          setFormData({ name: '', business_name: '', email: '', phone: '', document_type: 'NIT', document_number: '', address: '' });
+          setFormData({ name: '', business_name: '', email: '', phone: '', document_type: 'DUI', document_number: '', nrc: '', economic_activity_code: '', department_code: '', municipality_code: '', district: '', address: '' });
+          setGiroSearch('');
           setShowModal(true);
         }}>
           <Plus size={18} /> Nuevo Cliente
@@ -140,6 +160,11 @@ const Clients = () => {
                   <td>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{client.document_type}</span><br/>
                     {client.document_number || 'N/A'}
+                    {client.document_type === 'NIT' && client.nrc && (
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        NRC: {client.nrc}
+                      </div>
+                    )}
                   </td>
                   <td>
                     {client.phone && <div>📞 {client.phone}</div>}
@@ -168,31 +193,69 @@ const Clients = () => {
           <div className="modal-content">
             <h2 style={{ marginBottom: '24px' }}>{editingId ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
             <form onSubmit={handleSave}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', marginBottom: '16px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Tipo de Cliente</label>
+                  <select className="glass-input" name="document_type" value={formData.document_type} onChange={handleInputChange}>
+                    <option value="DUI">Consumidor Final (DUI)</option>
+                    <option value="NIT">Empresa / Crédito Fiscal (NIT + NRC)</option>
+                  </select>
+                </div>
+              </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div className="form-group">
                   <label>Nombre del Cliente *</label>
-                  <input required type="text" className="glass-input" name="name" value={formData.name} onChange={handleInputChange} />
+                  <input required type="text" className="glass-input" name="name" value={formData.name} onChange={handleInputChange} placeholder="Juan Perez..." />
                 </div>
-                <div className="form-group">
-                  <label>Razón Social</label>
-                  <input type="text" className="glass-input" name="business_name" value={formData.business_name} onChange={handleInputChange} />
-                </div>
+                {formData.document_type === 'DUI' ? (
+                  <div className="form-group">
+                    <label>Número de DUI</label>
+                    <input type="text" className="glass-input" name="document_number" value={formData.document_number} onChange={handleInputChange} placeholder="00000000-0" />
+                  </div>
+                ) : (
+                  <div className="form-group">
+                    <label>Número de NIT</label>
+                    <input type="text" className="glass-input" name="document_number" value={formData.document_number} onChange={handleInputChange} placeholder="0000-000000-000-0" />
+                  </div>
+                )}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px' }}>
-                <div className="form-group">
-                  <label>Tipo Doc.</label>
-                  <select className="glass-input" name="document_type" value={formData.document_type} onChange={handleInputChange}>
-                    <option value="NIT">NIT</option>
-                    <option value="DUI">DUI</option>
-                    <option value="NRC">NRC</option>
-                    <option value="PASAPORTE">Pasaporte</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Número de Documento</label>
-                  <input type="text" className="glass-input" name="document_number" value={formData.document_number} onChange={handleInputChange} />
-                </div>
-              </div>
+
+              {formData.document_type === 'NIT' && (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div className="form-group">
+                      <label>Razón Social (Empresa) *</label>
+                      <input required type="text" className="glass-input" name="business_name" value={formData.business_name} onChange={handleInputChange} placeholder="Empresa S.A. de C.V." />
+                    </div>
+                    <div className="form-group">
+                      <label>Número de NRC *</label>
+                      <input required type="text" className="glass-input" name="nrc" value={formData.nrc} onChange={handleInputChange} placeholder="123456-7" />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Giro / Actividad Económica *</label>
+                    <div style={{ position: 'relative', marginBottom: '8px' }}>
+                      <Search size={16} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-muted)' }} />
+                      <input 
+                        type="text" 
+                        className="glass-input" 
+                        style={{ paddingLeft: '36px' }} 
+                        placeholder="Buscar giro (ej. Ropa, Computadoras...)" 
+                        value={giroSearch}
+                        onChange={(e) => setGiroSearch(e.target.value)}
+                      />
+                    </div>
+                    <select required className="glass-input" name="economic_activity_code" value={formData.economic_activity_code} onChange={handleInputChange}>
+                      <option value="">-- Selecciona una actividad --</option>
+                      {filteredGiros.map(act => (
+                        <option key={act.code} value={act.name}>{act.code} - {act.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div className="form-group">
                   <label>Teléfono</label>
@@ -203,9 +266,38 @@ const Clients = () => {
                   <input type="email" className="glass-input" name="email" value={formData.email} onChange={handleInputChange} />
                 </div>
               </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                <div className="form-group">
+                  <label>Departamento</label>
+                  <select className="glass-input" name="department_code" value={formData.department_code} onChange={handleInputChange}>
+                    <option value="">-- Seleccionar --</option>
+                    {DEPARTAMENTOS.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Municipio</label>
+                  <select className="glass-input" name="municipality_code" value={formData.municipality_code} onChange={handleInputChange} disabled={!formData.department_code}>
+                    <option value="">-- Seleccionar --</option>
+                    {formData.department_code && MUNICIPIOS_NUEVOS[formData.department_code]?.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Distrito</label>
+                  <select className="glass-input" name="district" value={formData.district} onChange={handleInputChange} disabled={!formData.municipality_code}>
+                    <option value="">-- Seleccionar --</option>
+                    {formData.municipality_code && getDistritosPorMunicipio(formData.municipality_code).map(d => (
+                      <option key={d.code} value={d.name}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <div className="form-group">
-                <label>Dirección</label>
-                <input type="text" className="glass-input" name="address" value={formData.address} onChange={handleInputChange} />
+                <label>Dirección Específica</label>
+                <input type="text" className="glass-input" name="address" value={formData.address} onChange={handleInputChange} placeholder="Colonia, calle, # de casa..." />
               </div>
               <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
                 <button type="button" className="glass-button" style={{ background: 'rgba(255, 255, 255, 0.05)' }} onClick={() => setShowModal(false)}>

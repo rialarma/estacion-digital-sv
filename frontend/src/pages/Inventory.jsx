@@ -2,28 +2,40 @@ import React, { useState, useEffect } from 'react';
 import { Search, Package } from 'lucide-react';
 import { supabase } from '../supabase';
 
+import { useTenantStore } from '../store/useTenantStore';
+
 const Inventory = () => {
+  const { tenantId } = useTenantStore();
   const [inventory, setInventory] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
   const fetchInventory = async () => {
+    if (!tenantId) return;
     setLoading(true);
-    // Obtener inventario unido con la información del producto
-    const { data, error } = await supabase
+    
+    // Obtener la sucursal del usuario
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: profile } = await supabase.from('user_profiles').select('branch_id').eq('id', user.id).single();
+    
+    let query = supabase
       .from('inventory')
       .select(`
         id,
         stock,
         last_updated,
-        products (
-          id,
-          name,
-          sku,
-          price
-        )
+        branch_id,
+        branches ( name ),
+        products ( id, name, sku, price )
       `)
-      .order('last_updated', { ascending: false });
+      .eq('tenant_id', tenantId);
+
+    // Si el usuario pertenece a una sucursal, filtramos por su sucursal.
+    if (profile && profile.branch_id) {
+       query = query.eq('branch_id', profile.branch_id);
+    }
+      
+    const { data, error } = await query.order('last_updated', { ascending: false });
       
     if (!error && data) {
       setInventory(data);
@@ -35,7 +47,7 @@ const Inventory = () => {
 
   useEffect(() => {
     fetchInventory();
-  }, []);
+  }, [tenantId]);
 
   // Filter products locally for search
   const filteredInventory = inventory.filter(item => {

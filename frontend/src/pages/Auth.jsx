@@ -24,7 +24,10 @@ const Auth = ({ onAuthSuccess }) => {
           password
         });
         if (loginError) throw loginError;
-        if (data.session) onAuthSuccess(data.session);
+        if (data.session) {
+          window.history.replaceState(null, '', '/');
+          if (onAuthSuccess) onAuthSuccess(data.session);
+        }
 
       } else {
         // SIGNUP - Solo crear el usuario en auth.users
@@ -35,9 +38,9 @@ const Auth = ({ onAuthSuccess }) => {
         if (signupError) throw signupError;
 
         if (authData.user) {
-          // Si auto-inició sesión tras el registro
           if (authData.session) {
-            onAuthSuccess(authData.session);
+            window.history.replaceState(null, '', '/');
+            if (onAuthSuccess) onAuthSuccess(authData.session);
           } else {
             setError("Cuenta creada exitosamente. Por favor inicia sesión.");
             setIsLogin(true);
