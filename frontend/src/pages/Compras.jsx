@@ -71,7 +71,8 @@ const Compras = () => {
     item[field] = value;
     
     if (field === 'quantity' || field === 'unit_cost' || field === 'sale_type') {
-      item.subtotal = Number(item.quantity) * Number(item.unit_cost);
+      const multiplier = item.sale_type === 'CAJA' ? (item.units_per_box || 1) : 1;
+      item.subtotal = Number(item.quantity) * Number(item.unit_cost) * multiplier;
     }
     
     setItems(newItems);
@@ -79,7 +80,10 @@ const Compras = () => {
 
   const removeItem = (index) => setItems(items.filter((_, i) => i !== index));
 
-  const total = items.reduce((acc, i) => acc + i.subtotal, 0);
+  const subtotal = items.reduce((acc, i) => acc + i.subtotal, 0);
+  const hasIvaExtra = documentType === 'CCF';
+  const taxAmount = hasIvaExtra ? (subtotal * 0.13) : 0;
+  const total = subtotal + taxAmount;
 
   const handleSave = async () => {
     if (items.length === 0) return;
@@ -116,14 +120,17 @@ const Compras = () => {
       if (purError) throw purError;
 
       // 1.5 Registrar los items de la compra
-      const purchaseItemsData = items.map(item => ({
-        tenant_id,
-        purchase_id: purchase.id,
-        product_id: item.product_id,
-        quantity: item.quantity,
-        unit_cost: item.unit_cost,
-        subtotal: item.subtotal
-      }));
+      const purchaseItemsData = items.map(item => {
+        const totalUnits = item.sale_type === 'CAJA' ? item.quantity * item.units_per_box : item.quantity;
+        return {
+          tenant_id,
+          purchase_id: purchase.id,
+          product_id: item.product_id,
+          quantity: totalUnits, // Guardamos la cantidad real de unidades ingresadas al inventario
+          unit_cost: item.unit_cost, // Es el costo de 1 unidad
+          subtotal: item.subtotal
+        };
+      });
       
       const { error: itemsError } = await supabase
         .from('purchase_items')
@@ -144,7 +151,7 @@ const Compras = () => {
           .single();
 
         const addition = item.sale_type === 'CAJA' ? item.quantity * item.units_per_box : item.quantity;
-        const actualCostPerUnit = item.sale_type === 'CAJA' ? item.unit_cost / item.units_per_box : item.unit_cost;
+        const actualCostPerUnit = Number(item.unit_cost);
 
         if (existing) {
           // Sumar al stock existente
@@ -416,8 +423,20 @@ const Compras = () => {
                     </tr>
                   ))}
                   <tr style={{ borderTop: '1px solid var(--border-color)' }}>
-                    <td colSpan="4" style={{ textAlign: 'right', fontWeight: 700, paddingTop: '12px' }}>TOTAL:</td>
-                    <td style={{ fontWeight: 700, fontSize: '16px', color: 'var(--primary)', paddingTop: '12px' }}>
+                    <td colSpan="4" style={{ textAlign: 'right', fontWeight: 600, paddingTop: '12px' }}>Subtotal:</td>
+                    <td style={{ fontWeight: 600, fontSize: '14px', paddingTop: '12px' }}>${subtotal.toFixed(2)}</td>
+                    <td></td>
+                  </tr>
+                  {hasIvaExtra && (
+                    <tr>
+                      <td colSpan="4" style={{ textAlign: 'right', fontWeight: 600 }}>IVA (13%):</td>
+                      <td style={{ fontWeight: 600, fontSize: '14px' }}>${taxAmount.toFixed(2)}</td>
+                      <td></td>
+                    </tr>
+                  )}
+                  <tr>
+                    <td colSpan="4" style={{ textAlign: 'right', fontWeight: 700 }}>TOTAL A PAGAR:</td>
+                    <td style={{ fontWeight: 700, fontSize: '16px', color: 'var(--primary)' }}>
                       ${total.toFixed(2)}
                     </td>
                     <td></td>

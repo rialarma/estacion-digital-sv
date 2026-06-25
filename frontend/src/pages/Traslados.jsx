@@ -24,7 +24,8 @@ const Traslados = () => {
   }, [tenantId, user]);
 
   const fetchData = async () => {
-    if (!tenantId || !user) return;
+    if (!user) return;
+    if (!tenantId) return;
     setLoading(true);
 
     const { data: prof } = await supabase.from('user_profiles').select('*').eq('id', user.id).single();

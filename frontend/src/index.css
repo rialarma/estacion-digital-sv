@@ -1,4 +1,6 @@
-:root {
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@400;700;900&family=Press+Start+2P&display=swap');
+
+:root, [data-theme="dark"] {
   --bg-dark: #0f172a;
   --bg-card: rgba(30, 41, 59, 0.7);
   --bg-gradient-1: #1e293b;
@@ -14,7 +16,7 @@
   --sidebar-width: 260px;
 }
 
-body.light-theme {
+[data-theme="light"] {
   --bg-dark: #f8fafc;
   --bg-card: rgba(255, 255, 255, 0.8);
   --bg-gradient-1: #ffffff;
@@ -28,11 +30,60 @@ body.light-theme {
   --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
 }
 
+[data-theme="mario"] {
+  --bg-dark: #5C94FC;
+  --bg-card: rgba(255, 255, 255, 0.9);
+  --bg-gradient-1: #5C94FC;
+  --bg-gradient-2: #3E72D6;
+  --primary: #E52521;
+  --primary-hover: #C51511;
+  --text-main: #000000;
+  --text-muted: #555555;
+  --border-color: rgba(0, 0, 0, 0.2);
+  --input-bg: rgba(255, 255, 255, 1);
+  --glass-shadow: 4px 4px 0px rgba(0, 0, 0, 0.2);
+  --theme-font: 'Press Start 2P', monospace;
+  --theme-font-size: 10px;
+}
+
+[data-theme="cyberpunk"] {
+  --bg-dark: #0F0F16;
+  --bg-card: rgba(252, 238, 10, 0.05);
+  --bg-gradient-1: #1A1A24;
+  --bg-gradient-2: #0F0F16;
+  --primary: #FCEE0A;
+  --primary-hover: #DBCF00;
+  --text-main: #00FF41;
+  --text-muted: #FF003C;
+  --border-color: rgba(252, 238, 10, 0.3);
+  --input-bg: rgba(0, 0, 0, 0.8);
+  --glass-shadow: 0 0 15px rgba(252, 238, 10, 0.2);
+  --theme-font: 'Orbitron', sans-serif;
+  --theme-font-size: 14px;
+}
+
+[data-theme="retro"] {
+  --bg-dark: #2A0845;
+  --bg-card: rgba(255, 113, 206, 0.05);
+  --bg-gradient-1: #4A154B;
+  --bg-gradient-2: #2A0845;
+  --primary: #FF71CE;
+  --primary-hover: #E051AF;
+  --text-main: #01CDFE;
+  --text-muted: #B967FF;
+  --border-color: rgba(1, 205, 254, 0.3);
+  --input-bg: rgba(0, 0, 0, 0.5);
+  --glass-shadow: 0 0 20px rgba(255, 113, 206, 0.2);
+  --theme-font: 'Inter', sans-serif;
+  --theme-font-size: 14px;
+}
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--theme-font, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif);
+  font-size: var(--theme-font-size, 14px);
 }
 
 body {

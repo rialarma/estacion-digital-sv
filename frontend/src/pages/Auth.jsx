@@ -19,8 +19,19 @@ const Auth = ({ onAuthSuccess }) => {
     try {
       if (isLogin) {
         // LOGIN
+        let loginEmail = email.trim();
+        
+        // Si no tiene '@', es un nombre de usuario. Consultar el correo real.
+        if (!loginEmail.includes('@')) {
+          const { data: realEmail, error: rpcError } = await supabase.rpc('get_email_by_username', { p_username: loginEmail.toLowerCase() });
+          if (rpcError || !realEmail) {
+            throw new Error('Usuario no encontrado o contraseña incorrecta');
+          }
+          loginEmail = realEmail;
+        }
+
         const { data, error: loginError } = await supabase.auth.signInWithPassword({
-          email,
+          email: loginEmail,
           password
         });
         if (loginError) throw loginError;
@@ -71,8 +82,8 @@ const Auth = ({ onAuthSuccess }) => {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label>Correo Electrónico</label>
-            <input required type="email" className="glass-input" value={email} onChange={e => setEmail(e.target.value)} />
+            <label>{isLogin ? 'Usuario o Correo Electrónico' : 'Correo Electrónico'}</label>
+            <input required type={isLogin ? 'text' : 'email'} className="glass-input" value={email} onChange={e => setEmail(e.target.value)} />
           </div>
 
           <div className="form-group" style={{ marginBottom: 0 }}>

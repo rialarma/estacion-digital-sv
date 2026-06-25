@@ -18,9 +18,13 @@ const Caja = () => {
   // States para cierre
   const [actualBalance, setActualBalance] = useState('');
   const [closingNotes, setClosingNotes] = useState('');
-  const [shiftStats, setShiftStats] = useState({ salesTotal: 0, salesCount: 0 });
+  const [shiftStats, setShiftStats] = useState({ salesTotal: 0, salesCount: 0, cardTotal: 0, transferTotal: 0 });
+  
+  // Historial de Cortes
+  const [closedShifts, setClosedShifts] = useState([]);
 
   const fetchState = async () => {
+    if (!user) return;
     if (!tenantId || !user) return;
     setLoading(true);
 
@@ -44,11 +48,30 @@ const Caja = () => {
         .eq('shift_id', shift.id);
       
       const efecSales = sales?.filter(s => s.payment_method === 'EFECTIVO').reduce((sum, s) => sum + Number(s.total), 0) || 0;
+      const cardSales = sales?.filter(s => s.payment_method === 'TARJETA').reduce((sum, s) => sum + Number(s.total), 0) || 0;
+      const transferSales = sales?.filter(s => s.payment_method === 'TRANSFERENCIA').reduce((sum, s) => sum + Number(s.total), 0) || 0;
+      
       setShiftStats({
         salesTotal: efecSales,
-        salesCount: sales?.length || 0
+        salesCount: sales?.length || 0,
+        cardTotal: cardSales,
+        transferTotal: transferSales
       });
     }
+
+    // Fetch Closed Shifts History
+    const { data: history } = await supabase
+      .from('cash_shifts')
+      .select(`
+        *,
+        user_profiles!cash_shifts_cashier_id_fkey(first_name, last_name)
+      `)
+      .eq('tenant_id', tenantId)
+      .eq('status', 'CLOSED')
+      .order('closed_at', { ascending: false })
+      .limit(10);
+      
+    if (history) setClosedShifts(history);
 
     setLoading(false);
   };
@@ -155,6 +178,25 @@ const Caja = () => {
                 <span style={{ color: 'var(--text-muted)' }}>Ventas en Efectivo</span>
                 <span style={{ fontWeight: 'bold', color: '#10b981' }}>+ ${shiftStats.salesTotal.toFixed(2)}</span>
               </div>
+              
+              {(shiftStats.cardTotal > 0 || shiftStats.transferTotal > 0) && (
+                <div style={{ padding: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', fontSize: '13px' }}>
+                  <div style={{ marginBottom: '4px', color: 'var(--text-muted)' }}>Ingresos No Físicos (Banco):</div>
+                  {shiftStats.cardTotal > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Tarjetas</span>
+                      <span style={{ color: '#eab308' }}>${shiftStats.cardTotal.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {shiftStats.transferTotal > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Transferencias</span>
+                      <span style={{ color: '#a855f7' }}>${shiftStats.transferTotal.toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', marginTop: '10px' }}>
                 <span style={{ paddingLeft: '12px', fontWeight: 'bold' }}>Efectivo Esperado</span>
                 <span style={{ paddingRight: '12px', fontWeight: 'bold', fontSize: '20px', color: '#60a5fa' }}>
@@ -210,6 +252,49 @@ const Caja = () => {
           </div>
         </div>
       )}
+
+      {/* Historial de Cortes Z */}
+      <div className="glass-panel" style={{ padding: '24px', marginTop: '40px' }}>
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px' }}>
+          <FileText size={20} color="var(--primary)" /> Historial de Cortes Z (Últimos 10)
+        </h3>
+        
+        {closedShifts.length === 0 ? (
+          <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No hay cortes registrados aún.</p>
+        ) : (
+          <div className="table-responsive">
+            <table className="glass-table">
+              <thead>
+                <tr>
+                  <th>Fecha de Cierre</th>
+                  <th>Cajero</th>
+                  <th>Apertura</th>
+                  <th>Esperado</th>
+                  <th>Reportado</th>
+                  <th>Diferencia</th>
+                </tr>
+              </thead>
+              <tbody>
+                {closedShifts.map(shift => (
+                  <tr key={shift.id}>
+                    <td>{new Date(shift.closed_at).toLocaleString()}</td>
+                    <td>{shift.user_profiles?.first_name} {shift.user_profiles?.last_name}</td>
+                    <td>${Number(shift.opening_balance).toFixed(2)}</td>
+                    <td>${Number(shift.expected_balance).toFixed(2)}</td>
+                    <td>${Number(shift.actual_balance).toFixed(2)}</td>
+                    <td style={{ 
+                      color: Number(shift.difference) < 0 ? '#ef4444' : '#10b981',
+                      fontWeight: 'bold'
+                    }}>
+                      {Number(shift.difference) > 0 ? '+' : ''}{Number(shift.difference).toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

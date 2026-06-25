@@ -18,6 +18,7 @@ const CuentasPorCobrar = () => {
     if (!tenantId) return;
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
     const { data: profile } = await supabase.from('user_profiles').select('branch_id').eq('id', user.id).single();
 
     let query = supabase

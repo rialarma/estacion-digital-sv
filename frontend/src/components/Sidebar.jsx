@@ -4,26 +4,26 @@ import {
   ShoppingBag, ShoppingCart, FileText, Package, Users, UserCheck, 
   Settings, MonitorDot, LogOut, Store, Truck, ClipboardList, 
   BarChart2, X, BookOpen, ChevronDown, ChevronRight, Briefcase, 
-  Layers, Contact, Calculator, ShieldCheck, DollarSign, Monitor, FileSignature, ArrowRightLeft, Home
+  Layers, Contact, Calculator, ShieldCheck, DollarSign, Monitor, FileSignature, ArrowRightLeft, Home, Clock
 } from 'lucide-react';
 import { useTenantStore } from '../store/useTenantStore';
+import { supabase } from '../supabase';
 
-const SidebarGroup = ({ title, icon: Icon, children, currentPath, activePaths }) => {
-  // Auto-expand if the current path is inside this group
-  const isActiveGroup = activePaths.some(p => currentPath.includes(p));
-  const [isOpen, setIsOpen] = useState(isActiveGroup);
+const SidebarGroup = ({ title, icon: Icon, children, currentPath, activePaths, isOpen, onToggle }) => {
+  // Auto-expand if the current path exactly matches or is a sub-path (e.g. /catalogo or /catalogo/123)
+  const isActiveGroup = activePaths.some(p => currentPath === p || currentPath.startsWith(p + '/'));
   
   // Update state if location changes and enters this group
   useEffect(() => {
     if (isActiveGroup && !isOpen) {
-      setIsOpen(true);
+      onToggle(title, true);
     }
   }, [isActiveGroup]);
 
   return (
     <div style={{ marginBottom: '4px' }}>
       <button 
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => onToggle(title, !isOpen)}
         style={{
           width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           background: isOpen ? 'rgba(59, 130, 246, 0.05)' : 'none', 
@@ -58,6 +58,61 @@ const SidebarGroup = ({ title, icon: Icon, children, currentPath, activePaths })
 const Sidebar = ({ onLogout, isOpen, onClose }) => {
   const { tenantInfo } = useTenantStore();
   const location = useLocation();
+  const [openGroup, setOpenGroup] = useState('');
+  const [role, setRole] = useState(null);
+  const [pendingWebOrders, setPendingWebOrders] = useState(0);
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from('user_profiles').select('role').eq('id', user.id).single();
+        if (data) setRole(data.role);
+      }
+    };
+    fetchRole();
+  }, []);
+
+  useEffect(() => {
+    if (!tenantInfo?.id) return;
+    
+    // Fetch initial count
+    const fetchPendingOrders = async () => {
+      const { count } = await supabase
+        .from('web_orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', tenantInfo.id)
+        .in('status', ['PENDING']);
+      setPendingWebOrders(count || 0);
+    };
+    
+    fetchPendingOrders();
+
+    // Subscribe to changes
+    const subscription = supabase
+      .channel('sidebar-web-orders')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'web_orders',
+        filter: `tenant_id=eq.${tenantInfo.id}`
+      }, () => {
+        fetchPendingOrders();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [tenantInfo?.id]);
+
+  const handleToggleGroup = (title, state) => {
+    if (state) {
+      setOpenGroup(title);
+    } else if (openGroup === title) {
+      setOpenGroup('');
+    }
+  };
 
   return (
     <nav className={`sidebar ${isOpen ? 'open' : ''}`}>
@@ -66,21 +121,37 @@ const Sidebar = ({ onLogout, isOpen, onClose }) => {
       </button>
       
       {/* Branding */}
-      <div className="sidebar-logo" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px', padding: '20px', borderBottom: '1px solid var(--border-color)', marginBottom: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', fontWeight: 'bold', color: '#fff', width: '100%' }}>
-          <Store size={24} style={{ color: 'var(--primary)' }} />
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {tenantInfo?.name || 'Mi Empresa'}
+      <div className="sidebar-logo" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px', padding: '20px', borderBottom: '1px solid var(--border-color)', marginBottom: '16px', width: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.2em', fontWeight: 'bold', color: 'var(--text-main)', width: '100%' }}>
+          {tenantInfo?.logo_url ? (
+            <img src={tenantInfo.logo_url} alt="Logo" style={{ width: '32px', height: '32px', objectFit: 'contain', borderRadius: '4px', flexShrink: 0 }} />
+          ) : (
+            <Store size={24} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+          )}
+          <span style={{ display: 'block', wordBreak: 'break-word', lineHeight: '1.2' }}>
+            {tenantInfo?.company_name || tenantInfo?.name || 'Mi Empresa'}
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 'normal', paddingLeft: '34px' }}>
-          <MonitorDot size={12} /> Estación Digital SV
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.8em', color: 'var(--text-muted)', fontWeight: 'normal', paddingLeft: tenantInfo?.logo_url ? '42px' : '34px', width: '100%' }}>
+          <MonitorDot size={12} style={{ flexShrink: 0, marginTop: '2px' }} /> 
+          <span style={{ display: 'block', wordBreak: 'break-word', lineHeight: '1.4' }}>
+            Estación Digital SV
+          </span>
         </div>
       </div>
       
       {/* Links Container */}
       <div className="sidebar-links">
-        <NavLink to="/" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} style={{ marginBottom: '16px' }} onClick={onClose} end>
+        <NavLink 
+          to="/" 
+          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} 
+          style={{ marginBottom: '16px' }} 
+          onClick={() => {
+            setOpenGroup('');
+            onClose();
+          }} 
+          end
+        >
           <Home size={18} /> Inicio
         </NavLink>
 
@@ -88,17 +159,36 @@ const Sidebar = ({ onLogout, isOpen, onClose }) => {
           title="Operaciones" 
           icon={Briefcase} 
           currentPath={location.pathname} 
-          activePaths={['/caja', '/ventas', '/compras', '/historial', '/cotizaciones', '/firmador']}
+          activePaths={['/caja', '/ventas', '/preventa', '/compras', '/historial', '/cotizaciones', '/firmador']}
+          isOpen={openGroup === 'Operaciones'}
+          onToggle={handleToggleGroup}
         >
           <NavLink to="/caja" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
             <Monitor size={18} /> Turnos de Caja
           </NavLink>
           <NavLink to="/cotizaciones" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-            <FileSignature size={18} /> Cotizaciones
+            <FileSignature size={18} /> Docs. Pendientes
           </NavLink>
           <NavLink to="/ventas" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
             <ShoppingCart size={18} /> Ventas (POS)
           </NavLink>
+          {role !== 'CAJERO' && (
+            <NavLink to="/preventa" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose} style={{ background: location.pathname === '/preventa' ? '' : 'rgba(16, 185, 129, 0.05)', borderLeft: '2px solid #10b981' }}>
+              <ShoppingCart size={18} color="#10b981" /> Preventa Móvil
+            </NavLink>
+          )}
+          
+          <NavLink to="/pedidos-web" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose} style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <ShoppingBag size={18} color={pendingWebOrders > 0 ? '#3b82f6' : 'currentColor'} /> Pedidos Web
+            </div>
+            {pendingWebOrders > 0 && (
+              <span style={{ background: '#ef4444', color: 'white', fontSize: '11px', padding: '2px 6px', borderRadius: '10px', fontWeight: 'bold' }}>
+                {pendingWebOrders}
+              </span>
+            )}
+          </NavLink>
+
           <NavLink to="/compras" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
             <ShoppingBag size={18} /> Compras
           </NavLink>
@@ -110,11 +200,14 @@ const Sidebar = ({ onLogout, isOpen, onClose }) => {
           </NavLink>
         </SidebarGroup>
 
-        <SidebarGroup 
-          title="Inventario" 
+        {tenantInfo?.module_inventory !== false && (
+          <SidebarGroup 
+            title="Inventario" 
           icon={Layers} 
           currentPath={location.pathname} 
           activePaths={['/catalogo', '/inventario', '/kardex', '/traslados']}
+          isOpen={openGroup === 'Inventario'}
+          onToggle={handleToggleGroup}
         >
           <NavLink to="/catalogo" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
             <Package size={18} /> Catálogo
@@ -128,36 +221,51 @@ const Sidebar = ({ onLogout, isOpen, onClose }) => {
           <NavLink to="/traslados" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
             <ArrowRightLeft size={18} /> Traslados
           </NavLink>
-        </SidebarGroup>
+          </SidebarGroup>
+        )}
 
-        <SidebarGroup 
-          title="Logística" 
+        {tenantInfo?.module_logistics !== false && (
+          <SidebarGroup 
+            title="Logística" 
           icon={Truck} 
           currentPath={location.pathname} 
-          activePaths={['/bodega/revision-cargas', '/despachos']}
+          activePaths={['/asignacion-rutas', '/bodega/revision-cargas', '/despachos']}
+          isOpen={openGroup === 'Logística'}
+          onToggle={handleToggleGroup}
         >
+          <NavLink to="/asignacion-rutas" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+            <Truck size={18} /> Asignación de Rutas
+          </NavLink>
           <NavLink to="/bodega/revision-cargas" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
             <Package size={18} /> Revisión de Cargas
           </NavLink>
           <NavLink to="/despachos" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
             <Truck size={18} /> Entregas en Ruta
           </NavLink>
-        </SidebarGroup>
+          </SidebarGroup>
+        )}
 
         <SidebarGroup 
-          title="Contactos" 
-          icon={Contact} 
+          title="Directorio" 
+          icon={Users} 
           currentPath={location.pathname} 
-          activePaths={['/clientes', '/proveedores', '/vendedores']}
+          activePaths={['/clientes', '/checkin', '/proveedores', '/empleados']}
+          isOpen={openGroup === 'Directorio'}
+          onToggle={handleToggleGroup}
         >
           <NavLink to="/clientes" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-            <Users size={18} /> Clientes
+            <Contact size={18} /> Clientes
           </NavLink>
+          {tenantInfo?.module_memberships !== false && (
+            <NavLink to="/checkin" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <UserCheck size={18} /> Control de Acceso
+            </NavLink>
+          )}
           <NavLink to="/proveedores" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
             <Truck size={18} /> Proveedores
           </NavLink>
-          <NavLink to="/vendedores" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-            <UserCheck size={18} /> Vendedores
+          <NavLink to="/empleados" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+            <UserCheck size={18} /> Empleados
           </NavLink>
           <NavLink to="/repartidores" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
             <Truck size={18} /> Repartidores
@@ -165,10 +273,12 @@ const Sidebar = ({ onLogout, isOpen, onClose }) => {
         </SidebarGroup>
 
         <SidebarGroup 
-          title="Cartera" 
+          title="Finanzas" 
           icon={DollarSign} 
           currentPath={location.pathname} 
           activePaths={['/cartera/cxc', '/cartera/cxp']}
+          isOpen={openGroup === 'Finanzas'}
+          onToggle={handleToggleGroup}
         >
           <NavLink to="/cartera/cxc" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
             <UserCheck size={18} /> Cuentas por Cobrar
@@ -176,13 +286,16 @@ const Sidebar = ({ onLogout, isOpen, onClose }) => {
           <NavLink to="/cartera/cxp" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
             <Truck size={18} /> Cuentas por Pagar
           </NavLink>
-        </SidebarGroup>
+          </SidebarGroup>
 
-        <SidebarGroup 
-          title="Contabilidad" 
+        {tenantInfo?.module_accounting !== false && (
+          <SidebarGroup 
+            title="Contabilidad" 
           icon={Calculator} 
           currentPath={location.pathname} 
           activePaths={['/contabilidad/catalogo', '/contabilidad/partidas', '/contabilidad/estados-financieros', '/contabilidad/libros-iva']}
+          isOpen={openGroup === 'Contabilidad'}
+          onToggle={handleToggleGroup}
         >
           <NavLink to="/contabilidad/catalogo" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
             <BookOpen size={18} /> Catálogo Cuentas
@@ -197,13 +310,35 @@ const Sidebar = ({ onLogout, isOpen, onClose }) => {
             <BookOpen size={18} /> Libros de IVA
           </NavLink>
         </SidebarGroup>
+        )}
 
         <SidebarGroup 
-          title="Sistema" 
-          icon={ShieldCheck} 
+          title="Enlaces Públicos" 
+          icon={Monitor} 
           currentPath={location.pathname} 
-          activePaths={['/reportes', '/configuracion']}
+          activePaths={[]}
+          isOpen={openGroup === 'Enlaces Públicos'}
+          onToggle={handleToggleGroup}
         >
+          <a href={`/tienda/${tenantInfo?.id}`} target="_blank" rel="noopener noreferrer" className="nav-link" style={{ textDecoration: 'none' }}>
+            <ShoppingCart size={18} /> Tienda Virtual
+          </a>
+          <a href={`/kiosko/${tenantInfo?.id}`} target="_blank" rel="noopener noreferrer" className="nav-link" style={{ textDecoration: 'none' }}>
+            <Clock size={18} /> Kiosko Asistencia
+          </a>
+        </SidebarGroup>
+
+        <SidebarGroup 
+          title="Administración" 
+          icon={Settings} 
+          currentPath={location.pathname} 
+          activePaths={['/reportes', '/configuracion', '/asistencia']}
+          isOpen={openGroup === 'Administración'}
+          onToggle={handleToggleGroup}
+        >
+          <NavLink to="/asistencia" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+            <Clock size={18} /> Asistencia
+          </NavLink>
           <NavLink to="/reportes" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
             <BarChart2 size={18} /> Reportes
           </NavLink>

@@ -33,7 +33,7 @@ const Ventas = () => {
   const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedSellerId, setSelectedSellerId] = useState('');
   const [selectedDriverId, setSelectedDriverId] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('CONTADO');
+  const [paymentMethod, setPaymentMethod] = useState('EFECTIVO');
   
   // Print Modal State
   const [printModalOpen, setPrintModalOpen] = useState(false);
@@ -100,8 +100,14 @@ const Ventas = () => {
   };
 
   const fetchSellers = async () => {
-    const { data } = await supabase.from('sellers').select('*').order('name');
+    const { data } = await supabase.from('user_profiles').select('*').order('first_name');
     if (data) setSellers(data);
+
+    // Autoseleccionar al usuario actual como vendedor por defecto
+    const { data: userData } = await supabase.auth.getUser();
+    if (userData?.user) {
+      setSelectedSellerId(userData.user.id);
+    }
   };
 
   const fetchDrivers = async () => {
@@ -116,17 +122,85 @@ const Ventas = () => {
 
   const fetchProducts = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data: prodData, error } = await supabase
       .from('products')
-      .select('id, name, price, cost, sku, units_per_box, box_price, is_service');
-    if (!error && data) {
-      setProducts(data);
+      .select('id, name, price, cost, sku, barcode, units_per_box, box_price, is_service, is_subscription, subscription_days');
+      
+    const { data: invData } = await supabase.from('inventory').select('product_id, stock');
+
+    if (!error && prodData) {
+      const merged = prodData.map(p => {
+        const inv = invData?.find(i => i.product_id === p.id);
+        return { ...p, stock: inv ? inv.stock : 0 };
+      });
+      setProducts(merged);
     }
     setLoading(false);
   };
 
+  useEffect(() => {
+    let barcodeBuffer = '';
+    let barcodeTimeout;
+
+    const handleKeyDown = (e) => {
+      // Atajos de teclado globales
+      if (e.key === 'F2') {
+        e.preventDefault();
+        const searchInput = document.querySelector('input[placeholder*="Buscar"]');
+        if (searchInput) searchInput.focus();
+        return;
+      }
+      
+      if (e.key === 'F4') {
+        e.preventDefault();
+        const btnEmitir = document.getElementById('btn-emitir');
+        if (btnEmitir && !btnEmitir.disabled) btnEmitir.click();
+        return;
+      }
+
+      // Ignorar lectura de escáner si está escribiendo en un input, textarea o select
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        if (barcodeBuffer.length > 0) {
+          const product = products.find(p => p.barcode === barcodeBuffer || p.sku === barcodeBuffer);
+          if (product) {
+            handleSelectProduct(product);
+          } else {
+            console.warn('Barcode no encontrado:', barcodeBuffer);
+          }
+          barcodeBuffer = '';
+        }
+        return;
+      }
+
+      // Si es un caracter imprimible, agregarlo al buffer
+      if (e.key.length === 1) {
+        barcodeBuffer += e.key;
+        clearTimeout(barcodeTimeout);
+        // Los lectores de códigos de barras escriben muy rápido, 100ms es suficiente
+        barcodeTimeout = setTimeout(() => {
+          barcodeBuffer = '';
+        }, 100);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [products, items]); // items está incluido porque handleSelectProduct usa items del state actual
+
   const handleSelectProduct = (product) => {
     const existingItem = items.find(i => i.id === product.id && i.sale_type === 'UNIDAD');
+    const currentQty = existingItem ? existingItem.quantity : 0;
+    
+    const isStockRestricted = !product.is_service && !product.is_subscription && tenantInfo?.allow_negative_stock === false;
+    
+    if (isStockRestricted && currentQty >= product.stock) {
+      alert(`No hay stock suficiente. Stock actual: ${product.stock}`);
+      return;
+    }
     
     if (existingItem) {
       // Increase quantity by 1
@@ -146,6 +220,9 @@ const Ventas = () => {
         units_per_box: product.units_per_box || 1,
         box_price: product.box_price || product.price,
         is_service: product.is_service || false,
+        is_subscription: product.is_subscription || false,
+        subscription_days: product.subscription_days || 30,
+        is_taxable: product.is_taxable !== false,
         sale_type: 'UNIDAD',
         quantity: 1,
         total: Number(product.price) || 0
@@ -153,12 +230,58 @@ const Ventas = () => {
     }
   };
 
+  const updateItemQuantity = (index, delta, type = 'UNIDAD') => {
+    const newItems = [...items];
+    const item = newItems[index];
+    const product = products.find(p => p.id === item.id) || {};
+    
+    const newQty = item.quantity + delta;
+    
+    if (delta > 0) { // Si está incrementando
+      const isStockRestricted = !product.is_service && !product.is_subscription && tenantInfo?.allow_negative_stock === false;
+      const currentStock = product.stock || 0;
+      
+      let unitsToAdd = delta;
+      if (type === 'CAJA') {
+        unitsToAdd = delta * (product.units_per_box || 1);
+      }
+      
+      const totalUnitsRequested = (item.quantity * (type === 'CAJA' ? (product.units_per_box || 1) : 1)) + unitsToAdd;
+      
+      if (isStockRestricted && totalUnitsRequested > currentStock) {
+        alert(`No hay stock suficiente. Stock actual: ${currentStock}`);
+        return;
+      }
+    }
+
+    if (newQty < 1) {
+      newItems.splice(index, 1);
+    } else {
+      item.quantity = newQty;
+      item.total = newQty * (type === 'CAJA' ? item.box_price : item.price);
+    }
+    setItems(newItems);
+  };
+
   const changeQuantity = (index, qty) => {
     const newItems = [...items];
     const item = newItems[index];
+    const product = products.find(p => p.id === item.id) || {};
     const numQty = Number(qty) || 0;
+    
+    if (numQty > item.quantity) { // Solo si aumenta
+      const isStockRestricted = !product.is_service && !product.is_subscription && tenantInfo?.allow_negative_stock === false;
+      const currentStock = product.stock || 0;
+      const totalUnitsRequested = numQty * (item.sale_type === 'CAJA' ? (product.units_per_box || 1) : 1);
+      
+      if (isStockRestricted && totalUnitsRequested > currentStock) {
+        alert(`No hay stock suficiente. Stock actual: ${currentStock}`);
+        return;
+      }
+    }
+    
     item.quantity = numQty;
-    item.total = numQty * item.price;
+    item.total = numQty * (item.sale_type === 'CAJA' ? item.box_price : item.price);
     setItems(newItems);
   };
 
@@ -176,14 +299,61 @@ const Ventas = () => {
   };
 
   const totalOrder = items.reduce((acc, curr) => acc + curr.total, 0);
-  const totalConIva = totalOrder * 1.13;
+  
+  // Calcular IVA hacia atrás (Desglose)
+  const taxRate = tenantInfo?.tax_iva ? (tenantInfo.tax_iva / 100) : 0.13;
+  const tax_iva = items.reduce((acc, curr) => {
+    if (curr.is_taxable) {
+      return acc + (curr.total - (curr.total / (1 + taxRate)));
+    }
+    return acc;
+  }, 0);
+  const subtotal = totalOrder - tax_iva;
 
   const handleSaveOrder = async () => {
     if (items.length === 0) return;
+    
+    // Validar membresías vs consumidor final
+    const hasSubscription = items.some(i => i.is_subscription);
+    if (hasSubscription && !selectedClientId) {
+      alert("La venta contiene suscripciones o membresías. Es obligatorio seleccionar un Cliente válido.");
+      return;
+    }
+
     if (!selectedSellerId) {
       alert("Debes seleccionar un Vendedor para registrar la venta.");
       return;
     }
+
+    // Validar Límite de Crédito
+    if (paymentMethod === 'CREDITO') {
+      if (!selectedClientId) {
+        alert("Debes seleccionar un cliente para facturar al crédito.");
+        return;
+      }
+
+      const client = clients.find(c => c.id === selectedClientId);
+      const creditLimit = Number(client?.credit_limit || 0);
+
+      if (creditLimit > 0) {
+        // TotalOrder ya tiene IVA incluido según los precios.
+        const totalCalc = parseFloat(totalOrder.toFixed(2));
+
+        const { data: accounts } = await supabase
+          .from('accounts_receivable')
+          .select('balance')
+          .eq('client_id', selectedClientId)
+          .gt('balance', 0);
+          
+        const currentDebt = accounts ? accounts.reduce((acc, a) => acc + Number(a.balance), 0) : 0;
+
+        if (currentDebt + totalCalc > creditLimit) {
+          alert(`❌ CRÉDITO RECHAZADO: El cliente tiene un límite de $${creditLimit.toFixed(2)}.\n\nDeuda actual: $${currentDebt.toFixed(2)}\nVenta actual: $${totalCalc.toFixed(2)}\nTotal proyectado: $${(currentDebt + totalCalc).toFixed(2)}\n\nOperación bloqueada para proteger la liquidez.`);
+          return;
+        }
+      }
+    }
+
     setSaving(true);
 
     try {
@@ -205,11 +375,10 @@ const Ventas = () => {
 
       const { tenant_id, branch_id } = profile;
 
-      // 2. Calcular totales
-      const subtotal = totalOrder;
-      const taxRate = tenantInfo?.tax_iva ? (tenantInfo.tax_iva / 100) : 0.13;
-      const tax_iva = parseFloat((subtotal * taxRate).toFixed(2));
-      const total = parseFloat((subtotal + tax_iva).toFixed(2));
+      // 2. Calcular totales (Reutilizamos el desglose hacia atrás)
+      const subtotalDb = parseFloat(subtotal.toFixed(2));
+      const tax_ivaDb = parseFloat(tax_iva.toFixed(2));
+      const totalDb = parseFloat(totalOrder.toFixed(2));
       const dteTipo = selectedClientId ? '03' : '01'; // 03=CCF, 01=FCF
       const codigoGeneracion = crypto.randomUUID();
 
@@ -222,14 +391,14 @@ const Ventas = () => {
           client_id: selectedClientId || null,
           seller_id: selectedSellerId,
           cashier_id: userId,
-          subtotal,
-          tax_iva,
-          total,
+          subtotal: subtotalDb,
+          tax_iva: tax_ivaDb,
+          total: totalDb,
           status: 'COMPLETADA',
           payment_method: paymentMethod,
-          balance: paymentMethod === 'CREDITO' ? total : 0,
+          balance: paymentMethod === 'CREDITO' ? totalDb : 0,
           shift_id: activeShift ? activeShift.id : null,
-          driver_id: selectedDriverId || null,
+          driver_id: (selectedDriverId && selectedDriverId !== 'PENDING') ? selectedDriverId : null,
           delivery_status: selectedDriverId ? 'PENDIENTE_DE_CARGA' : 'ENTREGADO'
         }])
         .select()
@@ -270,9 +439,19 @@ const Ventas = () => {
       const { error: itemsError } = await supabase.from('sale_items').insert(saleItemsData);
       if (itemsError) throw itemsError;
 
-      // 4.6 Descontar del inventario (Omitir servicios)
+      // 4.6 Descontar del inventario (Omitir servicios y suscripciones)
       for (const item of items) {
-        if (item.is_service) continue; // No descontar inventario si es servicio
+        if (item.is_subscription && selectedClientId) {
+          // Procesar suscripción si es membresía
+          const { error: subError } = await supabase.rpc('process_subscription_sale', {
+            p_client_id: selectedClientId,
+            p_product_id: item.id,
+            p_days: item.subscription_days
+          });
+          if (subError) console.error("Error al procesar suscripción:", subError);
+        }
+
+        if (item.is_service || item.is_subscription) continue; // No descontar inventario si es servicio o suscripcion
 
         const { data: existing } = await supabase
           .from('inventory')
@@ -321,7 +500,7 @@ const Ventas = () => {
           dte_code: `DTE-${tipoLabel}-00000${Math.floor(Math.random() * 1000)}`, // Simulate DTE
           subtotal: subtotal,
           tax_amount: tax_iva,
-          total: total,
+          total: totalOrder,
           clients: clientObj,
           sellers: sellerObj
         },
@@ -403,7 +582,7 @@ const Ventas = () => {
                 >
                   <option value="">-- Selecciona Vendedor --</option>
                   {sellers.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
+                    <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>
                   ))}
                 </select>
               </div>
@@ -416,24 +595,29 @@ const Ventas = () => {
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                 >
-                  <option value="CONTADO">Contado (Efectivo/Banco)</option>
-                  <option value="CREDITO">Crédito (Cuentas por Cobrar)</option>
+                  <option value="EFECTIVO">Efectivo</option>
+                  <option value="TARJETA">Tarjeta (Crédito/Débito)</option>
+                  <option value="TRANSFERENCIA">Transferencia Bancaria</option>
+                  <option value="CREDITO">Crédito (Cuenta por Cobrar)</option>
                 </select>
               </div>
 
-              <div className="form-group">
-                <label>Repartidor / Ruta (Opcional)</label>
-                <select 
-                  className="glass-input" 
-                  value={selectedDriverId} 
-                  onChange={(e) => setSelectedDriverId(e.target.value)}
-                >
-                  <option value="">-- Entregado en tienda --</option>
-                  {drivers.map(d => (
-                    <option key={d.id} value={d.id}>{d.name} {d.plate_number ? `(${d.plate_number})` : ''}</option>
-                  ))}
-                </select>
-              </div>
+              {tenantInfo?.module_logistics !== false && (
+                <div className="form-group">
+                  <label>Repartidor / Ruta (Opcional)</label>
+                  <select 
+                    className="glass-input" 
+                    value={selectedDriverId} 
+                    onChange={(e) => setSelectedDriverId(e.target.value)}
+                  >
+                    <option value="">-- Entregado en tienda --</option>
+                    <option value="PENDING">-- Enviar luego (Asignar después) --</option>
+                    {drivers.map(d => (
+                      <option key={d.id} value={d.id}>{d.name} {d.plate_number ? `(${d.plate_number})` : ''}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           </div>
 
@@ -499,12 +683,12 @@ const Ventas = () => {
         <div className="glass-panel" style={{ padding: '24px', height: 'fit-content' }}>
           <h3 style={{ marginBottom: '24px', fontSize: '18px', fontWeight: 600 }}>Resumen</h3>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <span style={{ color: 'var(--text-muted)' }}>Subtotal:</span>
-            <span>${totalOrder.toFixed(2)}</span>
+            <span style={{ color: 'var(--text-muted)' }}>Subtotal (Sin IVA):</span>
+            <span>${subtotal.toFixed(2)}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
             <span style={{ color: 'var(--text-muted)' }}>IVA ({(tenantInfo?.tax_iva || 13)}%):</span>
-            <span>${(totalOrder * (tenantInfo?.tax_iva ? tenantInfo.tax_iva/100 : 0.13)).toFixed(2)}</span>
+            <span>${tax_iva.toFixed(2)}</span>
           </div>
           <div style={{ 
             display: 'flex', 
@@ -514,18 +698,19 @@ const Ventas = () => {
             borderTop: '1px solid var(--border-color)',
             marginBottom: '24px'
           }}>
-            <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--primary)' }}>Total:</span>
+            <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--primary)' }}>Total a Cobrar:</span>
             <span style={{ fontSize: '24px', fontWeight: 800, color: 'var(--primary)' }}>
-              ${(totalOrder * (1 + (tenantInfo?.tax_iva ? tenantInfo.tax_iva/100 : 0.13))).toFixed(2)}
+              ${totalOrder.toFixed(2)}
             </span>
           </div>
           <button
+            id="btn-emitir"
             className="glass-button"
             style={{ width: '100%', justifyContent: 'center' }}
             disabled={items.length === 0 || saving || !selectedSellerId}
             onClick={handleSaveOrder}
           >
-            <Save size={18} /> {saving ? 'Enviando...' : 'Emitir Documento'}
+            <Save size={18} /> {saving ? 'Enviando...' : 'Emitir Documento (F4)'}
           </button>
 
           {/* Nota sobre el estado inicial del DTE */}

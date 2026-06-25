@@ -29,7 +29,7 @@ DECLARE
     acc_inventario UUID;
 BEGIN
     -- Obtener datos de la venta
-    SELECT tenant_id, total_amount, payment_method 
+    SELECT tenant_id, total, payment_method 
     INTO v_tenant_id, v_total_sale, v_payment_method
     FROM public.sales WHERE id = p_sale_id;
 

@@ -1,546 +1,420 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
+import { useAuth } from '../hooks/useAuth';
 import { useTenantStore } from '../store/useTenantStore';
-import { Building2, Receipt, MapPin, Users, Palette, Save, Plus, Edit2, Trash2, Printer, Eye } from 'lucide-react';
-import { ACTIVIDADES_ECONOMICAS, DEPARTAMENTOS, MUNICIPIOS_NUEVOS, getDistritosPorMunicipio } from '../utils/svCatalogs';
-import { printDocument } from '../utils/printUtils';
-
-const TabEmpresa = ({ tenantInfo, onSave }) => {
-  const [formData, setFormData] = useState({
-    name: tenantInfo?.name || '',
-    nit: tenantInfo?.nit || '',
-    nrc: tenantInfo?.nrc || '',
-    activity_desc: tenantInfo?.activity_desc || '',
-    logo_url: tenantInfo?.logo_url || '',
-    department_code: tenantInfo?.department_code || '',
-    municipality_code: tenantInfo?.municipality_code || '',
-    district: tenantInfo?.district || '',
-    address: tenantInfo?.address || ''
-  });
-
-  const [searchGiro, setSearchGiro] = useState(tenantInfo?.activity_desc || '');
-  const [showGiros, setShowGiros] = useState(false);
-
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
-
-  const filteredGiros = ACTIVIDADES_ECONOMICAS.filter(act => 
-    act.name.toLowerCase().includes(searchGiro.toLowerCase()) || 
-    act.code.includes(searchGiro)
-  ).slice(0, 50);
-
-  const handleSelectGiro = (giro) => {
-    const text = `[${giro.code}] ${giro.name}`;
-    setSearchGiro(text);
-    setFormData({ ...formData, activity_desc: text });
-    setShowGiros(false);
-  };
-
-  return (
-    <div className="glass-panel" style={{ padding: '24px' }}>
-      <h3 style={{ marginBottom: '20px' }}>Datos de la Empresa</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-        <div className="form-group">
-          <label>Nombre Comercial / Razón Social</label>
-          <input className="glass-input" name="name" value={formData.name} onChange={handleChange} />
-        </div>
-        <div className="form-group" style={{ position: 'relative' }}>
-          <label>Giro o Actividad Económica</label>
-          <input 
-            type="text" 
-            className="glass-input" 
-            placeholder="Buscar por código o nombre..."
-            value={searchGiro}
-            onChange={(e) => {
-              setSearchGiro(e.target.value);
-              setFormData({ ...formData, activity_desc: e.target.value });
-              setShowGiros(true);
-            }}
-            onFocus={() => setShowGiros(true)}
-            onBlur={() => setTimeout(() => setShowGiros(false), 200)}
-          />
-          {showGiros && searchGiro && (
-            <div style={{
-              position: 'absolute', top: '100%', left: 0, right: 0,
-              background: 'var(--bg-color)', border: '1px solid var(--border-color)',
-              borderRadius: '8px', maxHeight: '200px', overflowY: 'auto', zIndex: 10
-            }}>
-              {filteredGiros.length > 0 ? filteredGiros.map(g => (
-                <div 
-                  key={g.code} 
-                  style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '12px' }}
-                  onClick={() => handleSelectGiro(g)}
-                  onMouseEnter={(e) => e.target.style.background = 'var(--glass-bg)'}
-                  onMouseLeave={(e) => e.target.style.background = 'transparent'}
-                >
-                  <strong>{g.code}</strong> - {g.name}
-                </div>
-              )) : (
-                <div style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--text-muted)' }}>No se encontraron giros</div>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="form-group">
-          <label>NIT</label>
-          <input className="glass-input" name="nit" value={formData.nit} onChange={handleChange} />
-        </div>
-        <div className="form-group">
-          <label>NRC</label>
-          <input className="glass-input" name="nrc" value={formData.nrc} onChange={handleChange} />
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginTop: '16px' }}>
-          <div className="form-group">
-            <label>Departamento</label>
-            <select className="glass-input" name="department_code" value={formData.department_code} onChange={handleChange}>
-              <option value="">-- Seleccionar --</option>
-              {DEPARTAMENTOS.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Municipio</label>
-            <select className="glass-input" name="municipality_code" value={formData.municipality_code} onChange={handleChange} disabled={!formData.department_code}>
-              <option value="">-- Seleccionar --</option>
-              {formData.department_code && MUNICIPIOS_NUEVOS[formData.department_code]?.map(m => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Distrito</label>
-            <select className="glass-input" name="district" value={formData.district} onChange={handleChange} disabled={!formData.municipality_code}>
-              <option value="">-- Seleccionar --</option>
-              {formData.municipality_code && getDistritosPorMunicipio(formData.municipality_code).map(d => (
-                <option key={d.code} value={d.name}>{d.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="form-group" style={{ marginTop: '16px' }}>
-          <label>Dirección Específica</label>
-          <input className="glass-input" name="address" value={formData.address} onChange={handleChange} placeholder="Calle, número de local..." />
-        </div>
-        <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-          <label>URL del Logo</label>
-          <input className="glass-input" name="logo_url" value={formData.logo_url} onChange={handleChange} placeholder="https://ejemplo.com/logo.png" />
-        </div>
-      </div>
-      
-      <button className="glass-button" style={{ marginTop: '16px' }} onClick={() => onSave(formData)}>
-        <Save size={18} /> Guardar Datos
-      </button>
-    </div>
-  );
-};
-
-const TabFacturacion = ({ tenantInfo, onSave }) => {
-  const [formData, setFormData] = useState({
-    tax_iva: tenantInfo?.tax_iva || 13.00,
-    tax_retention: tenantInfo?.tax_retention || 1.00
-  });
-
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
-
-  return (
-    <div className="glass-panel" style={{ padding: '24px' }}>
-      <h3 style={{ marginBottom: '20px' }}>Parámetros de Facturación</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-        <div className="form-group">
-          <label>Porcentaje de IVA (%)</label>
-          <input type="number" step="0.01" className="glass-input" name="tax_iva" value={formData.tax_iva} onChange={handleChange} />
-        </div>
-        <div className="form-group">
-          <label>Porcentaje de Retención (%)</label>
-          <input type="number" step="0.01" className="glass-input" name="tax_retention" value={formData.tax_retention} onChange={handleChange} />
-        </div>
-      </div>
-      <button className="glass-button" style={{ marginTop: '16px' }} onClick={() => onSave({
-        tax_iva: parseFloat(formData.tax_iva),
-        tax_retention: parseFloat(formData.tax_retention)
-      })}>
-        <Save size={18} /> Guardar Impuestos
-      </button>
-    </div>
-  );
-};
-
-const TabImpresion = ({ tenantInfo, onSave }) => {
-  const [formData, setFormData] = useState({
-    ticket_header: tenantInfo?.ticket_header || 'Resolución No. 15044-RES-CR-54321-2023\nSerie Autorizada: 12AS0000001 al 12AS0000500\nFecha de Autorización: 01/01/2023\nSucursal Principal - San Salvador',
-    receipt_message: tenantInfo?.receipt_message || '¡Gracias por su compra!\nVuelva pronto.'
-  });
-
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
-
-  const handlePreview = (format) => {
-    const dummySale = {
-      id: 'preview-123',
-      created_at: new Date().toISOString(),
-      dte_code: format === 'PDF' ? 'DTE-CCF-00000123' : 'DTE-FCF-00000123',
-      subtotal: 100.00,
-      tax_amount: 13.00,
-      total: 113.00,
-      clients: { name: 'Cliente de Prueba S.A. de C.V.', document_number: '0614-010190-101-1', address: 'San Salvador, El Salvador' },
-      sellers: { name: 'Cajero Principal' }
-    };
-
-    const dummyItems = [
-      { quantity: 2, products: { name: 'Producto de Prueba A' }, unit_price: 25.00, subtotal: 50.00 },
-      { quantity: 1, products: { name: 'Servicio de Prueba B' }, unit_price: 50.00, subtotal: 50.00 }
-    ];
-
-    // Merge actual tenantInfo with edited form data so preview reflects unsaved changes
-    const previewTenantInfo = { ...tenantInfo, ...formData };
-    
-    printDocument(dummySale, dummyItems, previewTenantInfo, format);
-  };
-
-  return (
-    <div className="glass-panel" style={{ padding: '24px' }}>
-      <h3 style={{ marginBottom: '20px' }}>Configuración de Impresión</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
-        <div className="form-group">
-          <label>Encabezado del Ticket (Resolución, Serie, Autorización, Dirección)</label>
-          <textarea className="glass-input" name="ticket_header" value={formData.ticket_header} onChange={handleChange} placeholder="Resolución No. 12345-6&#10;Serie: 0001 a 9999&#10;Dirección de la sucursal..." rows={4} style={{ resize: 'vertical' }} />
-        </div>
-        <div className="form-group">
-          <label>Mensaje al pie del ticket/factura</label>
-          <input className="glass-input" name="receipt_message" value={formData.receipt_message} onChange={handleChange} placeholder="¡Gracias por su compra!" />
-        </div>
-      </div>
-      
-      <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-        <button className="glass-button" onClick={() => onSave(formData)}>
-          <Save size={18} /> Guardar Configuración
-        </button>
-        <button className="glass-button" style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-color)' }} onClick={() => handlePreview('TICKET')}>
-          <Eye size={18} /> Previsualizar Ticket
-        </button>
-        <button className="glass-button" style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-color)' }} onClick={() => handlePreview('PDF')}>
-          <Eye size={18} /> Previsualizar PDF
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const TabSucursales = ({ tenantId }) => {
-  const [branches, setBranches] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ name: '', address: '', establishment_code: '', point_of_sale_code: '', department_code: '', municipality_code: '', district: '' });
-
-  useEffect(() => { fetchBranches(); }, []);
-
-  const fetchBranches = async () => {
-    setLoading(true);
-    const { data } = await supabase.from('branches').select('*').order('created_at');
-    if (data) setBranches(data);
-    setLoading(false);
-  };
-
-  const handleSave = async (e) => {
-    e.preventDefault();
-    if (editingId) {
-      await supabase.from('branches').update(formData).eq('id', editingId);
-    } else {
-      await supabase.from('branches').insert([{ ...formData, tenant_id: tenantId }]);
-    }
-    setShowModal(false);
-    fetchBranches();
-  };
-
-  const handleEdit = (branch) => {
-    setFormData({ name: branch.name, address: branch.address || '', establishment_code: branch.establishment_code || '', point_of_sale_code: branch.point_of_sale_code || '', department_code: branch.department_code || '', municipality_code: branch.municipality_code || '', district: branch.district || '' });
-    setEditingId(branch.id);
-    setShowModal(true);
-  };
-
-  const handleDelete = async (id) => {
-    if (window.confirm('¿Seguro que deseas eliminar esta sucursal?')) {
-      await supabase.from('branches').delete().eq('id', id);
-      fetchBranches();
-    }
-  };
-
-  return (
-    <div className="glass-panel" style={{ padding: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <h3>Sucursales</h3>
-        <button className="glass-button" style={{ padding: '6px 12px', fontSize: '14px' }} onClick={() => {
-          setEditingId(null); setFormData({ name: '', address: '', establishment_code: '', point_of_sale_code: '' }); setShowModal(true);
-        }}>
-          <Plus size={16} /> Añadir Sucursal
-        </button>
-      </div>
-      
-      {loading ? <p>Cargando...</p> : (
-        <table className="glass-table">
-          <thead>
-            <tr><th>Nombre</th><th>Dirección</th><th>Cód. Establecimiento</th><th>Punto Venta</th><th>Acciones</th></tr>
-          </thead>
-          <tbody>
-            {branches.map(b => (
-              <tr key={b.id}>
-                <td>{b.name}</td>
-                <td>{b.address || '-'}</td>
-                <td>{b.establishment_code || '-'}</td>
-                <td>{b.point_of_sale_code || '-'}</td>
-                <td>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={() => handleEdit(b)} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer' }}><Edit2 size={16} /></button>
-                    <button onClick={() => handleDelete(b.id)} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer' }}><Trash2 size={16} /></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      {showModal && (
-        <div className="modal-backdrop" onClick={() => setShowModal(false)}>
-          <div className="modal-content glass-panel" onClick={e => e.stopPropagation()}>
-            <h2>{editingId ? 'Editar Sucursal' : 'Nueva Sucursal'}</h2>
-            <form onSubmit={handleSave} style={{ marginTop: '16px' }}>
-              <div className="form-group"><label>Nombre</label><input required className="glass-input" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} /></div>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginTop: '16px' }}>
-                <div className="form-group">
-                  <label>Departamento</label>
-                  <select className="glass-input" value={formData.department_code} onChange={e => setFormData({...formData, department_code: e.target.value, municipality_code: '', district: ''})}>
-                    <option value="">-- Seleccionar --</option>
-                    {DEPARTAMENTOS.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Municipio</label>
-                  <select className="glass-input" value={formData.municipality_code} onChange={e => setFormData({...formData, municipality_code: e.target.value, district: ''})} disabled={!formData.department_code}>
-                    <option value="">-- Seleccionar --</option>
-                    {formData.department_code && MUNICIPIOS_NUEVOS[formData.department_code]?.map(m => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Distrito</label>
-                  <select className="glass-input" value={formData.district} onChange={e => setFormData({...formData, district: e.target.value})} disabled={!formData.municipality_code}>
-                    <option value="">-- Seleccionar --</option>
-                    {formData.municipality_code && getDistritosPorMunicipio(formData.municipality_code).map(d => (
-                      <option key={d.code} value={d.name}>{d.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-group" style={{ marginTop: '16px' }}><label>Dirección Específica</label><input className="glass-input" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="Calle, número de local..." /></div>
-              
-              <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
-                <div className="form-group"><label>Cód. Establecimiento MH</label><input className="glass-input" value={formData.establishment_code} onChange={e => setFormData({...formData, establishment_code: e.target.value})} /></div>
-                <div className="form-group"><label>Cód. Punto Venta MH</label><input className="glass-input" value={formData.point_of_sale_code} onChange={e => setFormData({...formData, point_of_sale_code: e.target.value})} /></div>
-              </div>
-              <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                <button type="button" className="glass-button" style={{ background: 'transparent', border: '1px solid var(--border-color)' }} onClick={() => setShowModal(false)}>Cancelar</button>
-                <button type="submit" className="glass-button">Guardar</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const TabUsuarios = ({ tenantInfo, onRegenerateCode }) => {
-  const [users, setUsers] = useState([]);
-  const [branches, setBranches] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const { data: bData } = await supabase.from('branches').select('id, name');
-      if (bData) setBranches(bData);
-      
-      const { data: uData } = await supabase.from('user_profiles').select('*, branches(name)');
-      if (uData) setUsers(uData);
-      
-      setLoading(false);
-    };
-    fetchData();
-  }, []);
-
-  const handleRoleChange = async (userId, newRole, newBranch) => {
-    try {
-      const { error } = await supabase.rpc('update_user_role', {
-        p_user_id: userId,
-        p_new_role: newRole,
-        p_new_branch: newBranch
-      });
-      if (error) throw error;
-      alert('Rol actualizado exitosamente');
-      // Refresh
-      const { data } = await supabase.from('user_profiles').select('*, branches(name)');
-      if (data) setUsers(data);
-    } catch (err) {
-      alert('Error actualizando: ' + err.message);
-    }
-  };
-
-  return (
-    <div className="glass-panel" style={{ padding: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h3>Usuarios Registrados</h3>
-        <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '12px 16px', borderRadius: '8px', border: '1px dashed var(--primary)', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Código de Invitación</div>
-            <div style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '2px', color: 'var(--primary)' }}>{tenantInfo?.invite_code || '------'}</div>
-          </div>
-          <button className="glass-button" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={onRegenerateCode}>Regenerar</button>
-        </div>
-      </div>
-      
-      {loading ? <p>Cargando...</p> : (
-        <table className="glass-table">
-          <thead>
-            <tr><th>Nombre</th><th>Rol</th><th>Sucursal</th></tr>
-          </thead>
-          <tbody>
-            {users.map(u => (
-              <tr key={u.id}>
-                <td>{u.first_name} {u.last_name}</td>
-                <td>
-                  <select 
-                    className="glass-input" 
-                    style={{ padding: '4px', fontSize: '13px' }}
-                    value={u.role}
-                    onChange={(e) => handleRoleChange(u.id, e.target.value, u.branch_id)}
-                  >
-                    <option value="ADMIN">Administrador</option>
-                    <option value="GERENTE">Gerente</option>
-                    <option value="CAJERO">Cajero</option>
-                    <option value="BODEGUERO">Bodeguero</option>
-                  </select>
-                </td>
-                <td>
-                  <select 
-                    className="glass-input" 
-                    style={{ padding: '4px', fontSize: '13px' }}
-                    value={u.branch_id || ''}
-                    onChange={(e) => handleRoleChange(u.id, u.role, e.target.value || null)}
-                  >
-                    <option value="">Todas (Sin sucursal)</option>
-                    {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                  </select>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      <p style={{ marginTop: '16px', fontSize: '13px', color: 'var(--text-muted)' }}>
-        * Pasa el Código de Invitación a tus empleados para que se unan a la empresa al registrarse en el sistema.
-      </p>
-    </div>
-  );
-};
-
-const TabApariencia = ({ tenantInfo, onSave }) => {
-  return (
-    <div className="glass-panel" style={{ padding: '24px' }}>
-      <h3 style={{ marginBottom: '20px' }}>Preferencia Visual</h3>
-      <div style={{ display: 'flex', gap: '20px' }}>
-        <div 
-          onClick={() => onSave({ theme: 'dark' })}
-          style={{ 
-            padding: '20px', borderRadius: '12px', cursor: 'pointer', flex: 1, textAlign: 'center',
-            border: tenantInfo?.theme !== 'light' ? '2px solid var(--primary)' : '1px solid var(--border-color)',
-            background: '#0f172a', color: '#f8fafc'
-          }}
-        >
-          <h4>Modo Oscuro</h4>
-        </div>
-        <div 
-          onClick={() => onSave({ theme: 'light' })}
-          style={{ 
-            padding: '20px', borderRadius: '12px', cursor: 'pointer', flex: 1, textAlign: 'center',
-            border: tenantInfo?.theme === 'light' ? '2px solid var(--primary)' : '1px solid rgba(0,0,0,0.1)',
-            background: '#f8fafc', color: '#0f172a'
-          }}
-        >
-          <h4>Modo Claro</h4>
-        </div>
-      </div>
-    </div>
-  );
-};
+import { Save, Upload, Building2, Receipt, Image as ImageIcon, Package, Palette } from 'lucide-react';
 
 const Configuracion = () => {
-  const { tenantId, tenantInfo, updateTenantInfo } = useTenantStore();
-  const [activeTab, setActiveTab] = useState('empresa');
+  const { user } = useAuth();
+  const { tenantInfo, updateTenantInfo } = useTenantStore();
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    name: '',
+    nrc: '',
+    nit: '',
+    activity_desc: '',
+    tax_iva: 13,
+    receipt_message: '',
+    logo_url: '',
+    whatsapp_number: '',
+    facebook_url: '',
+    instagram_url: '',
+    instagram_url: '',
+    about_us: '',
+    allow_negative_stock: true,
+    primary_color: '#0f172a',
+    store_slogan: ''
+  });
 
-  const handleUpdateTenant = async (updates) => {
-    setSaving(true);
-    const { error } = await supabase.from('tenants').update(updates).eq('id', tenantId);
-    if (!error) {
-      updateTenantInfo(updates);
-      alert('Configuración actualizada.');
-    } else {
-      alert('Error: ' + error.message);
+  const [logoFile, setLogoFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState('');
+
+  const [bannerFile, setBannerFile] = useState(null);
+  const [previewBannerUrl, setPreviewBannerUrl] = useState('');
+
+  useEffect(() => {
+    if (tenantInfo) {
+      setFormData({
+        name: tenantInfo.company_name || tenantInfo.name || '',
+        nrc: tenantInfo.nrc || '',
+        nit: tenantInfo.nit || '',
+        activity_desc: tenantInfo.activity_desc || '',
+        tax_iva: tenantInfo.tax_iva || 13,
+        receipt_message: tenantInfo.receipt_message || '',
+        logo_url: tenantInfo.logo_url || '',
+        whatsapp_number: tenantInfo.whatsapp_number || '',
+        facebook_url: tenantInfo.facebook_url || '',
+        instagram_url: tenantInfo.instagram_url || '',
+        about_us: tenantInfo.about_us || '',
+        allow_negative_stock: tenantInfo.allow_negative_stock !== false,
+        primary_color: tenantInfo.primary_color || '#0f172a',
+        store_slogan: tenantInfo.store_slogan || ''
+      });
+      setPreviewUrl(tenantInfo.logo_url || '');
+      setPreviewBannerUrl(tenantInfo.hero_banner_url || '');
     }
-    setSaving(false);
+  }, [tenantInfo]);
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const tabs = [
-    { id: 'empresa', label: 'Empresa', icon: <Building2 size={18} /> },
-    { id: 'facturacion', label: 'Facturación / DTE', icon: <Receipt size={18} /> },
-    { id: 'impresion', label: 'Impresoras y Tickets', icon: <Printer size={18} /> },
-    { id: 'sucursales', label: 'Sucursales', icon: <MapPin size={18} /> },
-    { id: 'usuarios', label: 'Usuarios', icon: <Users size={18} /> },
-    { id: 'apariencia', label: 'Apariencia', icon: <Palette size={18} /> }
-  ];
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setLogoFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const uploadLogo = async () => {
+    if (!logoFile) return formData.logo_url;
+    
+    const fileExt = logoFile.name.split('.').pop();
+    const fileName = `${tenantInfo.id}_${Date.now()}.${fileExt}`;
+    const filePath = `logos/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('tenant_logos')
+      .upload(filePath, logoFile, { upsert: true });
+
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('tenant_logos')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  };
+
+  const uploadBanner = async () => {
+    if (!bannerFile) return tenantInfo.hero_banner_url || '';
+    
+    const fileExt = bannerFile.name.split('.').pop();
+    const fileName = `banner_${tenantInfo.id}_${Date.now()}.${fileExt}`;
+    const filePath = `banners/${fileName}`;
+
+    // Reutilizaremos el bucket tenant_logos para los banners también por simplicidad, o product_images.
+    const { error: uploadError } = await supabase.storage
+      .from('tenant_logos')
+      .upload(filePath, bannerFile, { upsert: true });
+
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('tenant_logos')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const newLogoUrl = await uploadLogo();
+      
+      const { error } = await supabase
+        .from('tenants')
+        .update({
+          name: formData.name,
+          nrc: formData.nrc,
+          nit: formData.nit,
+          activity_desc: formData.activity_desc,
+          tax_iva: formData.tax_iva,
+          receipt_message: formData.receipt_message,
+          logo_url: newLogoUrl,
+          whatsapp_number: formData.whatsapp_number,
+          facebook_url: formData.facebook_url,
+          instagram_url: formData.instagram_url,
+          about_us: formData.about_us,
+          allow_negative_stock: formData.allow_negative_stock,
+          primary_color: formData.primary_color,
+          store_slogan: formData.store_slogan,
+          hero_banner_url: await uploadBanner()
+        })
+        .eq('id', tenantInfo.id);
+
+      if (error) throw error;
+
+      updateTenantInfo({
+        company_name: formData.name,
+        nrc: formData.nrc,
+        nit: formData.nit,
+        activity_desc: formData.activity_desc,
+        tax_iva: formData.tax_iva,
+        receipt_message: formData.receipt_message,
+        logo_url: newLogoUrl,
+        whatsapp_number: formData.whatsapp_number,
+        facebook_url: formData.facebook_url,
+        instagram_url: formData.instagram_url,
+        about_us: formData.about_us,
+        allow_negative_stock: formData.allow_negative_stock,
+        primary_color: formData.primary_color,
+        store_slogan: formData.store_slogan,
+        hero_banner_url: previewBannerUrl || tenantInfo.hero_banner_url
+      });
+
+      alert('Configuración guardada exitosamente.');
+    } catch (err) {
+      console.error(err);
+      alert('Error al guardar configuración: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!tenantInfo) return <div style={{ padding: '40px', textAlign: 'center' }}>Cargando...</div>;
 
   return (
-    <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title">Configuración</h1>
+    <div className="page-container" style={{ maxWidth: '800px', margin: '0 auto' }}>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 className="page-title">Configuración de Empresa</h1>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px', fontFamily: 'monospace' }}>
+            Tenant ID: {tenantInfo.id}
+          </p>
+        </div>
+        <button 
+          className="glass-button" 
+          onClick={handleSave} 
+          disabled={saving}
+          style={{ background: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '8px' }}
+        >
+          <Save size={18} />
+          {saving ? 'Guardando...' : 'Guardar Cambios'}
+        </button>
       </div>
 
-      <div style={{ display: 'flex', gap: '24px' }}>
-        {/* Sidebar Menu inside Config */}
-        <div style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
-                background: activeTab === tab.id ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-                color: activeTab === tab.id ? 'var(--primary)' : 'var(--text-muted)',
-                border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 500, textAlign: 'left',
-                transition: 'all 0.2s'
-              }}
-            >
-              {tab.icon} {tab.label}
-            </button>
-          ))}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        
+        {/* Panel de Logo */}
+        <div className="glass-panel" style={{ padding: '24px' }}>
+          <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ImageIcon size={20} color="var(--primary)" /> Logo de la Empresa
+          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+            <div style={{ 
+              width: '120px', height: '120px', 
+              background: 'rgba(255,255,255,0.05)', 
+              border: '1px dashed var(--border-color)',
+              borderRadius: '12px',
+              display: 'flex', justifyContent: 'center', alignItems: 'center',
+              overflow: 'hidden'
+            }}>
+              {previewUrl ? (
+                <img src={previewUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              ) : (
+                <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Sin Logo</span>
+              )}
+            </div>
+            <div>
+              <input 
+                type="file" 
+                accept="image/*" 
+                id="logo-upload" 
+                style={{ display: 'none' }} 
+                onChange={handleFileChange}
+              />
+              <label 
+                htmlFor="logo-upload" 
+                className="glass-button" 
+                style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+              >
+                <Upload size={16} /> Subir Imagen
+              </label>
+              <p style={{ marginTop: '12px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                Sube un logo en formato PNG o JPG.<br/>Se recomienda un fondo transparente.
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Content Area */}
-        <div style={{ flex: 1 }}>
-          {saving && <p style={{ color: 'var(--primary)', marginBottom: '16px' }}>Guardando...</p>}
-          {activeTab === 'empresa' && <TabEmpresa tenantInfo={tenantInfo} onSave={handleUpdateTenant} />}
-          {activeTab === 'facturacion' && <TabFacturacion tenantInfo={tenantInfo} onSave={handleUpdateTenant} />}
-          {activeTab === 'impresion' && <TabImpresion tenantInfo={tenantInfo} onSave={handleUpdateTenant} />}
-          {activeTab === 'sucursales' && <TabSucursales tenantId={tenantId} />}
-          {activeTab === 'usuarios' && <TabUsuarios tenantInfo={tenantInfo} onRegenerateCode={async () => {
-            if(window.confirm('¿Seguro que quieres invalidar el código actual? Los que intenten usarlo ya no podrán unirse.')) {
-              const { data, error } = await supabase.rpc('regenerate_invite_code');
-              if(!error && data) updateTenantInfo({ invite_code: data });
-            }
-          }} />}
-          {activeTab === 'apariencia' && <TabApariencia tenantInfo={tenantInfo} onSave={handleUpdateTenant} />}
+        {/* Diseño de Tienda Virtual */}
+        <div className="glass-panel" style={{ padding: '24px' }}>
+          <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Palette size={20} color="var(--primary)" /> Diseño de la Tienda Virtual
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
+            
+            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div>
+                <label>Color Principal del Tema</label>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>Elige el color corporativo que pintará la tienda</p>
+              </div>
+              <input 
+                type="color" 
+                name="primary_color" 
+                value={formData.primary_color} 
+                onChange={handleInputChange} 
+                style={{ width: '60px', height: '40px', border: 'none', cursor: 'pointer', padding: 0, borderRadius: '4px' }}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Slogan de la Tienda (Banner Principal)</label>
+              <input 
+                type="text" 
+                className="glass-input" 
+                name="store_slogan" 
+                value={formData.store_slogan} 
+                onChange={handleInputChange} 
+                placeholder="Ej. Todo tiene solución"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Imagen del Banner Principal (Hero)</label>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '24px', marginTop: '12px' }}>
+                <div style={{ 
+                  width: '300px', height: '120px', 
+                  background: 'rgba(255,255,255,0.05)', 
+                  border: '1px dashed var(--border-color)',
+                  borderRadius: '12px',
+                  display: 'flex', justifyContent: 'center', alignItems: 'center',
+                  overflow: 'hidden'
+                }}>
+                  {previewBannerUrl ? (
+                    <img src={previewBannerUrl} alt="Banner" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Sin Banner</span>
+                  )}
+                </div>
+                <div>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    id="banner-upload" 
+                    style={{ display: 'none' }} 
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        const file = e.target.files[0];
+                        setBannerFile(file);
+                        setPreviewBannerUrl(URL.createObjectURL(file));
+                      }
+                    }}
+                  />
+                  <label 
+                    htmlFor="banner-upload" 
+                    className="glass-button" 
+                    style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                  >
+                    <Upload size={16} /> Cambiar Banner
+                  </label>
+                  <p style={{ marginTop: '12px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Recomendado: 1920x600 px (Horizontal).
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          </div>
         </div>
+
+        {/* Datos Legales */}
+        <div className="glass-panel" style={{ padding: '24px' }}>
+          <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Building2 size={20} color="var(--primary)" /> Datos Comerciales
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="form-group">
+              <label>Nombre Comercial</label>
+              <input type="text" className="glass-input" name="name" value={formData.name} onChange={handleInputChange} />
+            </div>
+            <div className="form-group">
+              <label>Actividad Económica</label>
+              <input type="text" className="glass-input" name="activity_desc" value={formData.activity_desc} onChange={handleInputChange} />
+            </div>
+            <div className="form-group">
+              <label>NRC (Número de Registro)</label>
+              <input type="text" className="glass-input" name="nrc" value={formData.nrc} onChange={handleInputChange} />
+            </div>
+            <div className="form-group">
+              <label>NIT</label>
+              <input type="text" className="glass-input" name="nit" value={formData.nit} onChange={handleInputChange} />
+            </div>
+          </div>
+        </div>
+
+        {/* Facturación */}
+        <div className="glass-panel" style={{ padding: '24px' }}>
+          <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Receipt size={20} color="var(--primary)" /> Ajustes de Facturación
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+            <div className="form-group">
+              <label>Porcentaje de IVA (%)</label>
+              <input type="number" className="glass-input" name="tax_iva" value={formData.tax_iva} onChange={handleInputChange} style={{ width: '150px' }} />
+            </div>
+            <div className="form-group">
+              <label>Mensaje al pie del Ticket</label>
+              <textarea 
+                className="glass-input" 
+                name="receipt_message" 
+                value={formData.receipt_message} 
+                onChange={handleInputChange} 
+                rows={3}
+                placeholder="Ej. ¡Gracias por su compra, vuelva pronto!"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Inventario */}
+        <div className="glass-panel" style={{ padding: '24px' }}>
+          <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Package size={20} color="var(--primary)" /> Ajustes de Inventario
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <input 
+                type="checkbox" 
+                id="allow_negative_stock" 
+                checked={formData.allow_negative_stock} 
+                onChange={(e) => setFormData({...formData, allow_negative_stock: e.target.checked})}
+                style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+              />
+              <label htmlFor="allow_negative_stock" style={{ margin: 0, cursor: 'pointer' }}>
+                <span style={{ fontWeight: 600, display: 'block' }}>Permitir vender sin stock (Ventas en Negativo)</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Si está activo, el sistema permitirá facturar aunque el inventario llegue a cero.</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Tienda Virtual / Storefront */}
+        <div className="glass-panel" style={{ padding: '24px' }}>
+          <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Building2 size={20} color="var(--primary)" /> Tienda Virtual
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="form-group">
+              <label>WhatsApp de Ventas</label>
+              <input type="text" className="glass-input" name="whatsapp_number" value={formData.whatsapp_number} onChange={handleInputChange} placeholder="+503 7777-7777" />
+            </div>
+            <div className="form-group">
+              <label>Link de Facebook</label>
+              <input type="text" className="glass-input" name="facebook_url" value={formData.facebook_url} onChange={handleInputChange} placeholder="https://facebook.com/..." />
+            </div>
+            <div className="form-group">
+              <label>Link de Instagram</label>
+              <input type="text" className="glass-input" name="instagram_url" value={formData.instagram_url} onChange={handleInputChange} placeholder="https://instagram.com/..." />
+            </div>
+          </div>
+          <div className="form-group" style={{ marginTop: '16px' }}>
+            <label>Acerca de Nosotros (Aparecerá en el pie de página de la tienda)</label>
+            <textarea 
+              className="glass-input" 
+              name="about_us" 
+              value={formData.about_us} 
+              onChange={handleInputChange} 
+              rows={3}
+              placeholder="Ej. Somos una empresa salvadoreña dedicada a..."
+            />
+          </div>
+        </div>
+
       </div>
     </div>
   );

@@ -31,7 +31,7 @@ const Historial = () => {
     // 1. Fetch Sales
     const { data: salesData, error: salesError } = await supabase
       .from('sales')
-      .select('*, clients(name), sellers(name)');
+      .select('*, clients(name), seller:user_profiles!sales_seller_id_fkey(first_name, last_name)');
       
     // 2. Fetch Purchases
     const { data: purchasesData, error: purchasesError } = await supabase
@@ -249,6 +249,7 @@ const Historial = () => {
             <div style={{ marginBottom: '20px', padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '13px' }}>
                 <div><span style={{ color: 'var(--text-muted)' }}>{selectedTx.tipo_transaccion === 'VENTA' ? 'Cliente:' : 'Proveedor:'}</span> {selectedTx.entidad_nombre}</div>
+                <div><span style={{ color: 'var(--text-muted)' }}>Vendedor:</span> {selectedTx.seller ? `${selectedTx.seller.first_name} ${selectedTx.seller.last_name}` : <span style={{ color: 'var(--text-muted)' }}>Sin Asignar</span>}</div>
                 <div><span style={{ color: 'var(--text-muted)' }}>Fecha:</span> {new Date(selectedTx.created_at).toLocaleString('es-SV')}</div>
                 <div><span style={{ color: 'var(--text-muted)' }}>Documento:</span> {selectedTx.documento_ref}</div>
                 <div><span style={{ color: 'var(--text-muted)' }}>Estado:</span> {selectedTx.status}</div>

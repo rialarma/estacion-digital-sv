@@ -55,7 +55,7 @@ const Reportes = () => {
           created_at, 
           payment_method,
           seller_id,
-          sellers ( name ),
+          user_profiles:user_profiles!sales_seller_id_fkey ( first_name, last_name ),
           sale_items ( quantity, unit_price, unit_cost, product_id, products ( name ) )
         `)
         .eq('tenant_id', tenantId)
@@ -87,7 +87,7 @@ const Reportes = () => {
         dailyData[dateStr].ingresos += saleTotal;
 
         // --- 2. Vendedores ---
-        const sName = sale.sellers?.name || 'Vendedor General';
+        const sName = sale.user_profiles ? `${sale.user_profiles.first_name} ${sale.user_profiles.last_name}` : 'Vendedor General';
         if (!sellersCount[sName]) {
           sellersCount[sName] = { name: sName, revenue: 0, transactions: 0 };
         }

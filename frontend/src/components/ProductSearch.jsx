@@ -20,15 +20,16 @@ const ProductSearch = ({ products, onSelect, placeholder = "Buscar por nombre o 
 
   useEffect(() => {
     if (searchTerm.trim() === '') {
-      setFiltered([]);
+      setFiltered(products.slice(0, 50));
       return;
     }
 
     const term = searchTerm.toLowerCase();
     const results = products.filter(p => 
       (p.name && p.name.toLowerCase().includes(term)) || 
-      (p.sku && p.sku.toLowerCase().includes(term))
-    ).slice(0, 20); // Limitar a 20 resultados para rendimiento
+      (p.sku && p.sku.toLowerCase().includes(term)) ||
+      (p.barcode && p.barcode.toLowerCase().includes(term))
+    ).slice(0, 50); // Limitar a 50 resultados para rendimiento
 
     setFiltered(results);
   }, [searchTerm, products]);
@@ -67,7 +68,7 @@ const ProductSearch = ({ products, onSelect, placeholder = "Buscar por nombre o 
         />
       </div>
 
-      {showDropdown && searchTerm.trim() !== '' && (
+      {showDropdown && (
         <div style={{
           position: 'absolute',
           top: '100%',
