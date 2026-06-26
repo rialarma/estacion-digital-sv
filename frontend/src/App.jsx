@@ -14,8 +14,6 @@ import Inventory from './pages/Inventory';
 import Catalogo from './pages/Catalogo';
 import Clients from './pages/Clients';
 import Proveedores from './pages/Proveedores';
-import Empleados from './pages/Empleados';
-import Repartidores from './pages/Repartidores';
 import Despachos from './pages/Despachos';
 import CheckIn from './pages/CheckIn';
 import AsignacionRutas from './pages/AsignacionRutas';
@@ -45,6 +43,15 @@ import Home from './pages/Home';
 import Asistencia from './pages/Asistencia';
 import StorefrontHome from './pages/Storefront/Home';
 import StorefrontCheckout from './pages/Storefront/Checkout';
+
+// Módulo HR
+import Departamentos from './pages/hr/Departamentos';
+import Cargos from './pages/hr/Cargos';
+import DirectorioRRHH from './pages/hr/DirectorioRRHH';
+import Planilla from './pages/hr/Planilla';
+import AsistenciaHR from './pages/hr/AsistenciaHR';
+import Vacaciones from './pages/hr/Vacaciones';
+import ReportesHR from './pages/hr/ReportesHR';
 
 function App() {
   const { user, loading } = useAuth();
@@ -220,8 +227,6 @@ function App() {
             <Route path="/clientes" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Clients /></ProtectedRoute>} />
             <Route path="/checkin" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><CheckIn /></ProtectedRoute>} />
             <Route path="/proveedores" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Proveedores /></ProtectedRoute>} />
-            <Route path="/empleados" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Empleados /></ProtectedRoute>} />
-            <Route path="/repartidores" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Repartidores /></ProtectedRoute>} />
             <Route path="/asignacion-rutas" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><AsignacionRutas /></ProtectedRoute>} />
             <Route path="/despachos" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Despachos /></ProtectedRoute>} />
             <Route path="/bodega/revision-cargas" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><RevisionCargas /></ProtectedRoute>} />
@@ -230,6 +235,15 @@ function App() {
             
             {/* Control de Asistencia */}
             <Route path="/asistencia" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO', 'BODEGUERO']}><Asistencia /></ProtectedRoute>} />
+            
+            {/* Recursos Humanos (RRHH) */}
+            <Route path="/rrhh/departamentos" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Departamentos /></ProtectedRoute>} />
+            <Route path="/rrhh/cargos" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Cargos /></ProtectedRoute>} />
+            <Route path="/rrhh/empleados" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><DirectorioRRHH /></ProtectedRoute>} />
+            <Route path="/rrhh/asistencia" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><AsistenciaHR /></ProtectedRoute>} />
+            <Route path="/rrhh/vacaciones" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Vacaciones /></ProtectedRoute>} />
+            <Route path="/rrhh/planilla" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Planilla /></ProtectedRoute>} />
+            <Route path="/rrhh/reportes" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><ReportesHR /></ProtectedRoute>} />
             
             {/* Contabilidad y Configuración (Solo ADMIN) */}
             <Route path="/configuracion" element={<ProtectedRoute allowedRoles={['ADMIN']}><Configuracion /></ProtectedRoute>} />

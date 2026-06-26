@@ -25,7 +25,8 @@ const Configuracion = () => {
     about_us: '',
     allow_negative_stock: true,
     primary_color: '#0f172a',
-    store_slogan: ''
+    store_slogan: '',
+    theme: 'dark'
   });
 
   const [logoFile, setLogoFile] = useState(null);
@@ -50,7 +51,8 @@ const Configuracion = () => {
         about_us: tenantInfo.about_us || '',
         allow_negative_stock: tenantInfo.allow_negative_stock !== false,
         primary_color: tenantInfo.primary_color || '#0f172a',
-        store_slogan: tenantInfo.store_slogan || ''
+        store_slogan: tenantInfo.store_slogan || '',
+        theme: tenantInfo.theme || 'dark'
       });
       setPreviewUrl(tenantInfo.logo_url || '');
       setPreviewBannerUrl(tenantInfo.hero_banner_url || '');
@@ -132,6 +134,7 @@ const Configuracion = () => {
           allow_negative_stock: formData.allow_negative_stock,
           primary_color: formData.primary_color,
           store_slogan: formData.store_slogan,
+          theme: formData.theme,
           hero_banner_url: await uploadBanner()
         })
         .eq('id', tenantInfo.id);
@@ -153,10 +156,15 @@ const Configuracion = () => {
         allow_negative_stock: formData.allow_negative_stock,
         primary_color: formData.primary_color,
         store_slogan: formData.store_slogan,
+        theme: formData.theme,
         hero_banner_url: previewBannerUrl || tenantInfo.hero_banner_url
       });
 
-      alert('Configuración guardada exitosamente.');
+      alert('Configuración guardada exitosamente. Si cambiaste el tema, recarga la página para ver los cambios completos.');
+      
+      if (formData.theme !== tenantInfo.theme) {
+        window.location.reload();
+      }
     } catch (err) {
       console.error(err);
       alert('Error al guardar configuración: ' + err.message);
@@ -228,6 +236,34 @@ const Configuracion = () => {
                 Sube un logo en formato PNG o JPG.<br/>Se recomienda un fondo transparente.
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Apariencia del Sistema ERP */}
+        <div className="glass-panel" style={{ padding: '24px' }}>
+          <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Palette size={20} color="var(--primary)" /> Apariencia del Sistema ERP
+          </h2>
+          <div className="form-group">
+            <label>Tema Visual</label>
+            <select 
+              className="glass-input" 
+              name="theme" 
+              value={formData.theme} 
+              onChange={handleInputChange}
+            >
+              <option value="dark">Oscuro (Elegante y Moderno)</option>
+              <option value="light">Claro (Limpio y Brillante)</option>
+              <option value="mario">Mario Bros (Retro 8-bit)</option>
+              <option value="cyberpunk">Cyberpunk (Neón)</option>
+              <option value="retro">Terminal (Hacker Verde)</option>
+              <option value="ocean">Océano (Azules Profundos)</option>
+              <option value="forest">Bosque (Verdes y Naturaleza)</option>
+              <option value="sunset">Atardecer (Cálido y Naranja)</option>
+              <option value="dracula">Drácula (Morado y Oscuro)</option>
+              <option value="cupcake">Cupcake (Pastel y Claro)</option>
+            </select>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>El cambio de tema se aplicará a todas las pantallas de tu sistema operativo comercial.</p>
           </div>
         </div>
 

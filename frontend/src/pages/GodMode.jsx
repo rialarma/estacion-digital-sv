@@ -189,6 +189,22 @@ const GodMode = () => {
                   </label>
                 </div>
 
+                {/* Modulo Recursos Humanos */}
+                <div style={{ background: 'var(--bg-app)', padding: '16px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Users size={18} color="var(--text-muted)" />
+                    <span style={{ fontWeight: 500 }}>Recursos Humanos</span>
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={tenant.module_hr !== false} 
+                      onChange={() => handleToggleModule(tenant.id, 'module_hr', tenant.module_hr !== false)}
+                      style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#10b981' }}
+                    />
+                  </label>
+                </div>
+
               </div>
             </div>
           ))}
