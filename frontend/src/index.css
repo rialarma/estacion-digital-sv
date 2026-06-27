@@ -412,8 +412,8 @@ body {
 .mobile-menu-btn:hover { background: rgba(255,255,255,0.1); }
 .mobile-close-btn { display: none; }
 
-/* Mobile Overrides */
-@media (max-width: 768px) {
+/* Mobile & Tablet Overrides */
+@media (max-width: 1024px) {
   .app-container { flex-direction: column; }
   .mobile-topbar { display: flex; }
   

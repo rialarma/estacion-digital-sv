@@ -159,7 +159,9 @@ function App() {
   }
 
   // 2. Si el usuario está autenticado pero no tiene Empresa (Tenant) -> Onboarding
-  if (user && !tenantId) {
+  // Excepto si está intentando acceder a God Mode
+  const isGodModeRoute = window.location.pathname === '/godmode';
+  if (user && !tenantId && !isGodModeRoute) {
     return <Onboarding onComplete={() => window.location.reload()} />;
   }
 
