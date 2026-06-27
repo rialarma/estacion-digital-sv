@@ -166,24 +166,26 @@ const Home = () => {
     return <div style={{ padding: '40px', textAlign: 'center' }}>Cargando inicio...</div>;
   }
 
+  const isPageActive = (pageId) => tenantInfo?.active_pages?.[pageId] !== false;
+
   const getQuickActions = (role) => {
     const actions = [];
     if (['CAJERO', 'GERENTE', 'ADMIN'].includes(role)) {
-      actions.push({ title: 'Abrir / Cerrar Caja', desc: 'Gestiona tu turno de efectivo', icon: <Monitor size={32} color="#3b82f6" />, link: '/caja', color: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.3)' });
-      actions.push({ title: 'Punto de Venta (POS)', desc: 'Facturar e imprimir tickets', icon: <ShoppingCart size={32} color="#10b981" />, link: '/ventas', color: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.3)' });
-      actions.push({ title: 'Docs. Pendientes', desc: 'Proformas y Preventas', icon: <FileSignature size={32} color="#eab308" />, link: '/cotizaciones', color: 'rgba(234, 179, 8, 0.1)', borderColor: 'rgba(234, 179, 8, 0.3)' });
+      if (isPageActive('caja')) actions.push({ title: 'Abrir / Cerrar Caja', desc: 'Gestiona tu turno de efectivo', icon: <Monitor size={32} color="#3b82f6" />, link: '/caja', color: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.3)' });
+      if (isPageActive('ventas')) actions.push({ title: 'Punto de Venta (POS)', desc: 'Facturar e imprimir tickets', icon: <ShoppingCart size={32} color="#10b981" />, link: '/ventas', color: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.3)' });
+      if (isPageActive('cotizaciones')) actions.push({ title: 'Docs. Pendientes', desc: 'Proformas y Preventas', icon: <FileSignature size={32} color="#eab308" />, link: '/cotizaciones', color: 'rgba(234, 179, 8, 0.1)', borderColor: 'rgba(234, 179, 8, 0.3)' });
     }
     if (['BODEGUERO', 'GERENTE', 'ADMIN'].includes(role)) {
-      actions.push({ title: 'Existencias', desc: 'Ver stock actual', icon: <Layers size={32} color="#f59e0b" />, link: '/inventario', color: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.3)' });
-      actions.push({ title: 'Kardex', desc: 'Historial de movimientos', icon: <ClipboardList size={32} color="#8b5cf6" />, link: '/kardex', color: 'rgba(139, 92, 246, 0.1)', borderColor: 'rgba(139, 92, 246, 0.3)' });
-      actions.push({ title: 'Traslados', desc: 'Mover mercancía entre sucursales', icon: <ArrowRightLeft size={32} color="#ec4899" />, link: '/traslados', color: 'rgba(236, 72, 153, 0.1)', borderColor: 'rgba(236, 72, 153, 0.3)' });
+      if (isPageActive('existencias')) actions.push({ title: 'Existencias', desc: 'Ver stock actual', icon: <Layers size={32} color="#f59e0b" />, link: '/inventario', color: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.3)' });
+      if (isPageActive('kardex')) actions.push({ title: 'Kardex', desc: 'Historial de movimientos', icon: <ClipboardList size={32} color="#8b5cf6" />, link: '/kardex', color: 'rgba(139, 92, 246, 0.1)', borderColor: 'rgba(139, 92, 246, 0.3)' });
+      if (isPageActive('traslados')) actions.push({ title: 'Traslados', desc: 'Mover mercancía entre sucursales', icon: <ArrowRightLeft size={32} color="#ec4899" />, link: '/traslados', color: 'rgba(236, 72, 153, 0.1)', borderColor: 'rgba(236, 72, 153, 0.3)' });
     }
     if (['CONTADOR', 'GERENTE', 'ADMIN'].includes(role)) {
-      actions.push({ title: 'Cuentas por Cobrar', desc: 'Créditos otorgados a clientes', icon: <DollarSign size={32} color="#14b8a6" />, link: '/cartera/cxc', color: 'rgba(20, 184, 166, 0.1)', borderColor: 'rgba(20, 184, 166, 0.3)' });
-      actions.push({ title: 'Cuentas por Pagar', desc: 'Créditos con proveedores', icon: <Briefcase size={32} color="#ef4444" />, link: '/cartera/cxp', color: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.3)' });
+      if (isPageActive('cxc')) actions.push({ title: 'Cuentas por Cobrar', desc: 'Créditos otorgados a clientes', icon: <DollarSign size={32} color="#14b8a6" />, link: '/cartera/cxc', color: 'rgba(20, 184, 166, 0.1)', borderColor: 'rgba(20, 184, 166, 0.3)' });
+      if (isPageActive('cxp')) actions.push({ title: 'Cuentas por Pagar', desc: 'Créditos con proveedores', icon: <Briefcase size={32} color="#ef4444" />, link: '/cartera/cxp', color: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.3)' });
     }
     if (['ADMIN'].includes(role)) {
-      actions.push({ title: 'Configuración', desc: 'Ajustes del sistema', icon: <Settings size={32} color="#94a3b8" />, link: '/configuracion', color: 'rgba(148, 163, 184, 0.1)', borderColor: 'rgba(148, 163, 184, 0.3)' });
+      if (isPageActive('configuracion')) actions.push({ title: 'Configuración', desc: 'Ajustes del sistema', icon: <Settings size={32} color="#94a3b8" />, link: '/configuracion', color: 'rgba(148, 163, 184, 0.1)', borderColor: 'rgba(148, 163, 184, 0.3)' });
     }
     return actions;
   };

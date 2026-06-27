@@ -223,71 +223,67 @@ const Sidebar = ({ onLogout, isOpen, onClose }) => {
               <Truck size={18} /> Proveedores
             </NavLink>
           )}
-          {tenantInfo?.module_memberships !== false && isPageActive(tenantInfo, 'checkin') && (
+          {isPageActive(tenantInfo, 'checkin') && (
             <NavLink to="/checkin" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
               <UserCheck size={18} /> Control de Acceso
             </NavLink>
           )}
         </SidebarGroup>
 
-        {tenantInfo?.module_inventory !== false && (
-          <SidebarGroup 
-            title="Inventario" 
-            icon={Layers} 
-            currentPath={location.pathname} 
-            activePaths={['/catalogo', '/inventario', '/kardex', '/traslados']}
-            isOpen={openGroup === 'Inventario'}
-            onToggle={handleToggleGroup}
-          >
-            {isPageActive(tenantInfo, 'catalogo') && (
-              <NavLink to="/catalogo" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-                <Package size={18} /> Catálogo
-              </NavLink>
-            )}
-            {isPageActive(tenantInfo, 'existencias') && (
-              <NavLink to="/inventario" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-                <Package size={18} /> Existencias
-              </NavLink>
-            )}
-            {isPageActive(tenantInfo, 'kardex') && (
-              <NavLink to="/kardex" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-                <ClipboardList size={18} /> Historial (Kardex)
-              </NavLink>
-            )}
-            {isPageActive(tenantInfo, 'traslados') && (
-              <NavLink to="/traslados" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-                <ArrowRightLeft size={18} /> Traslados
-              </NavLink>
-            )}
-          </SidebarGroup>
-        )}
+        <SidebarGroup 
+          title="Inventario" 
+          icon={Layers} 
+          currentPath={location.pathname} 
+          activePaths={['/catalogo', '/inventario', '/kardex', '/traslados']}
+          isOpen={openGroup === 'Inventario'}
+          onToggle={handleToggleGroup}
+        >
+          {isPageActive(tenantInfo, 'catalogo') && (
+            <NavLink to="/catalogo" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <Package size={18} /> Catálogo
+            </NavLink>
+          )}
+          {isPageActive(tenantInfo, 'existencias') && (
+            <NavLink to="/inventario" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <Package size={18} /> Existencias
+            </NavLink>
+          )}
+          {isPageActive(tenantInfo, 'kardex') && (
+            <NavLink to="/kardex" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <ClipboardList size={18} /> Historial (Kardex)
+            </NavLink>
+          )}
+          {isPageActive(tenantInfo, 'traslados') && (
+            <NavLink to="/traslados" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <ArrowRightLeft size={18} /> Traslados
+            </NavLink>
+          )}
+        </SidebarGroup>
 
-        {tenantInfo?.module_logistics !== false && (
-          <SidebarGroup 
-            title="Logística" 
-            icon={Truck} 
-            currentPath={location.pathname} 
-            activePaths={['/asignacion-rutas', '/bodega/revision-cargas', '/despachos']}
-            isOpen={openGroup === 'Logística'}
-            onToggle={handleToggleGroup}
-          >
-            {isPageActive(tenantInfo, 'asignacion_rutas') && (
-              <NavLink to="/asignacion-rutas" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-                <Truck size={18} /> Asignación de Rutas
-              </NavLink>
-            )}
-            {isPageActive(tenantInfo, 'revision_cargas') && (
-              <NavLink to="/bodega/revision-cargas" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-                <Package size={18} /> Revisión de Cargas
-              </NavLink>
-            )}
-            {isPageActive(tenantInfo, 'despachos') && (
-              <NavLink to="/despachos" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-                <Truck size={18} /> Entregas en Ruta
-              </NavLink>
-            )}
-          </SidebarGroup>
-        )}
+        <SidebarGroup 
+          title="Logística" 
+          icon={Truck} 
+          currentPath={location.pathname} 
+          activePaths={['/asignacion-rutas', '/bodega/revision-cargas', '/despachos']}
+          isOpen={openGroup === 'Logística'}
+          onToggle={handleToggleGroup}
+        >
+          {isPageActive(tenantInfo, 'asignacion_rutas') && (
+            <NavLink to="/asignacion-rutas" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <Truck size={18} /> Asignación de Rutas
+            </NavLink>
+          )}
+          {isPageActive(tenantInfo, 'revision_cargas') && (
+            <NavLink to="/bodega/revision-cargas" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <Package size={18} /> Revisión de Cargas
+            </NavLink>
+          )}
+          {isPageActive(tenantInfo, 'despachos') && (
+            <NavLink to="/despachos" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <Truck size={18} /> Entregas en Ruta
+            </NavLink>
+          )}
+        </SidebarGroup>
 
 
         <SidebarGroup 
@@ -310,89 +306,85 @@ const Sidebar = ({ onLogout, isOpen, onClose }) => {
           )}
         </SidebarGroup>
 
-        {tenantInfo?.module_hr !== false && (
-          <SidebarGroup 
-            title="Recursos Humanos" 
-            icon={Users} 
-            currentPath={location.pathname} 
-            activePaths={['/rrhh/departamentos', '/rrhh/cargos', '/rrhh/empleados', '/rrhh/asistencia', '/rrhh/vacaciones', '/rrhh/planilla', '/rrhh/reportes']}
-            isOpen={openGroup === 'Recursos Humanos'}
-            onToggle={handleToggleGroup}
-          >
-            {isPageActive(tenantInfo, 'departamentos') && (
-              <NavLink to="/rrhh/departamentos" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-                <Briefcase size={18} /> Departamentos
-              </NavLink>
-            )}
-            {isPageActive(tenantInfo, 'cargos') && (
-              <NavLink to="/rrhh/cargos" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-                <Contact size={18} /> Cargos (Roles)
-              </NavLink>
-            )}
-            {isPageActive(tenantInfo, 'empleados') && (
-              <NavLink to="/rrhh/empleados" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-                <Users size={18} /> Directorio RRHH
-              </NavLink>
-            )}
-            {isPageActive(tenantInfo, 'asistencia_hr') && (
-              <NavLink to="/rrhh/asistencia" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-                <Clock size={18} /> Control de Asistencia
-              </NavLink>
-            )}
-            {isPageActive(tenantInfo, 'vacaciones') && (
-              <NavLink to="/rrhh/vacaciones" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-                <Calendar size={18} /> Vacaciones
-              </NavLink>
-            )}
-            {isPageActive(tenantInfo, 'planilla') && (
-              <NavLink to="/rrhh/planilla" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-                <FileText size={18} /> Planilla / Nómina
-              </NavLink>
-            )}
-            {isPageActive(tenantInfo, 'reportes_hr') && (
-              <NavLink to="/rrhh/reportes" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-                <PieChart size={18} /> Reportes Ley
-              </NavLink>
-            )}
-          </SidebarGroup>
-        )}
+        <SidebarGroup 
+          title="Recursos Humanos" 
+          icon={Users} 
+          currentPath={location.pathname} 
+          activePaths={['/rrhh/departamentos', '/rrhh/cargos', '/rrhh/empleados', '/rrhh/asistencia', '/rrhh/vacaciones', '/rrhh/planilla', '/rrhh/reportes']}
+          isOpen={openGroup === 'Recursos Humanos'}
+          onToggle={handleToggleGroup}
+        >
+          {isPageActive(tenantInfo, 'departamentos') && (
+            <NavLink to="/rrhh/departamentos" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <Briefcase size={18} /> Departamentos
+            </NavLink>
+          )}
+          {isPageActive(tenantInfo, 'cargos') && (
+            <NavLink to="/rrhh/cargos" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <Contact size={18} /> Cargos (Roles)
+            </NavLink>
+          )}
+          {isPageActive(tenantInfo, 'empleados') && (
+            <NavLink to="/rrhh/empleados" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <Users size={18} /> Directorio RRHH
+            </NavLink>
+          )}
+          {isPageActive(tenantInfo, 'asistencia_hr') && (
+            <NavLink to="/rrhh/asistencia" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <Clock size={18} /> Control de Asistencia
+            </NavLink>
+          )}
+          {isPageActive(tenantInfo, 'vacaciones') && (
+            <NavLink to="/rrhh/vacaciones" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <Calendar size={18} /> Vacaciones
+            </NavLink>
+          )}
+          {isPageActive(tenantInfo, 'planilla') && (
+            <NavLink to="/rrhh/planilla" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <FileText size={18} /> Planilla / Nómina
+            </NavLink>
+          )}
+          {isPageActive(tenantInfo, 'reportes_hr') && (
+            <NavLink to="/rrhh/reportes" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <PieChart size={18} /> Reportes Ley
+            </NavLink>
+          )}
+        </SidebarGroup>
 
-        {tenantInfo?.module_accounting !== false && (
-          <SidebarGroup 
-            title="Contabilidad" 
-            icon={Calculator} 
-            currentPath={location.pathname} 
-            activePaths={['/contabilidad/catalogo', '/contabilidad/partidas', '/contabilidad/estados-financieros', '/contabilidad/libros-iva', '/firmador']}
-            isOpen={openGroup === 'Contabilidad'}
-            onToggle={handleToggleGroup}
-          >
-            {isPageActive(tenantInfo, 'firmador') && (
-              <NavLink to="/firmador" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-                <FileText size={18} /> Firmador DTE
-              </NavLink>
-            )}
-            {isPageActive(tenantInfo, 'catalogo_cuentas') && (
-              <NavLink to="/contabilidad/catalogo" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-                <BookOpen size={18} /> Catálogo Cuentas
-              </NavLink>
-            )}
-            {isPageActive(tenantInfo, 'libro_diario') && (
-              <NavLink to="/contabilidad/partidas" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-                <FileText size={18} /> Libro Diario
-              </NavLink>
-            )}
-            {isPageActive(tenantInfo, 'estados_financieros') && (
-              <NavLink to="/contabilidad/estados-financieros" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-                <BarChart2 size={18} /> Est. Financieros
-              </NavLink>
-            )}
-            {isPageActive(tenantInfo, 'libros_iva') && (
-              <NavLink to="/contabilidad/libros-iva" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-                <BookOpen size={18} /> Libros de IVA
-              </NavLink>
-            )}
-          </SidebarGroup>
-        )}
+        <SidebarGroup 
+          title="Contabilidad" 
+          icon={Calculator} 
+          currentPath={location.pathname} 
+          activePaths={['/contabilidad/catalogo', '/contabilidad/partidas', '/contabilidad/estados-financieros', '/contabilidad/libros-iva', '/firmador']}
+          isOpen={openGroup === 'Contabilidad'}
+          onToggle={handleToggleGroup}
+        >
+          {isPageActive(tenantInfo, 'firmador') && (
+            <NavLink to="/firmador" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <FileText size={18} /> Firmador DTE
+            </NavLink>
+          )}
+          {isPageActive(tenantInfo, 'catalogo_cuentas') && (
+            <NavLink to="/contabilidad/catalogo" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <BookOpen size={18} /> Catálogo Cuentas
+            </NavLink>
+          )}
+          {isPageActive(tenantInfo, 'libro_diario') && (
+            <NavLink to="/contabilidad/partidas" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <FileText size={18} /> Libro Diario
+            </NavLink>
+          )}
+          {isPageActive(tenantInfo, 'estados_financieros') && (
+            <NavLink to="/contabilidad/estados-financieros" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <BarChart2 size={18} /> Est. Financieros
+            </NavLink>
+          )}
+          {isPageActive(tenantInfo, 'libros_iva') && (
+            <NavLink to="/contabilidad/libros-iva" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <BookOpen size={18} /> Libros de IVA
+            </NavLink>
+          )}
+        </SidebarGroup>
 
         <SidebarGroup 
           title="Enlaces Públicos" 

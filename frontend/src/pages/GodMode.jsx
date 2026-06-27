@@ -31,7 +31,7 @@ const SYSTEM_MODULES = [
     id: 'inventario',
     name: 'Inventario',
     icon: Layers,
-    dbFlag: 'module_inventory',
+    dbFlag: null,
     pages: [
       { id: 'catalogo', name: 'Catálogo' },
       { id: 'existencias', name: 'Existencias' },
@@ -43,7 +43,7 @@ const SYSTEM_MODULES = [
     id: 'logistica',
     name: 'Logística',
     icon: Truck,
-    dbFlag: 'module_logistics',
+    dbFlag: null,
     pages: [
       { id: 'asignacion_rutas', name: 'Asignación de Rutas' },
       { id: 'revision_cargas', name: 'Revisión de Cargas' },
@@ -64,7 +64,7 @@ const SYSTEM_MODULES = [
     id: 'rrhh',
     name: 'Recursos Humanos',
     icon: Users,
-    dbFlag: 'module_hr',
+    dbFlag: null,
     pages: [
       { id: 'departamentos', name: 'Departamentos' },
       { id: 'cargos', name: 'Cargos (Roles)' },
@@ -79,7 +79,7 @@ const SYSTEM_MODULES = [
     id: 'contabilidad',
     name: 'Contabilidad',
     icon: Calculator,
-    dbFlag: 'module_accounting',
+    dbFlag: null,
     pages: [
       { id: 'firmador', name: 'Firmador DTE' },
       { id: 'catalogo_cuentas', name: 'Catálogo Cuentas' },
@@ -112,7 +112,7 @@ const SYSTEM_MODULES = [
     id: 'membresias',
     name: 'Membresías',
     icon: Contact,
-    dbFlag: 'module_memberships',
+    dbFlag: null,
     pages: [
       { id: 'checkin', name: 'Control de Acceso' }
     ]
