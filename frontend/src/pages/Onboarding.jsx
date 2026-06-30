@@ -27,7 +27,7 @@ const Onboarding = ({ onComplete }) => {
 
     try {
       if (isJoining) {
-        console.log('Uniendo a empresa con código...');
+
         const { data, error: rpcError } = await supabase.rpc('join_tenant_by_code', {
           p_invite_code: formData.inviteCode,
           p_first_name: formData.firstName,
@@ -36,10 +36,10 @@ const Onboarding = ({ onComplete }) => {
 
         if (rpcError) throw rpcError;
         
-        console.log('Unión exitosa, recargando...');
+
         window.location.reload();
       } else {
-        console.log('Enviando registro de empresa...');
+
         const { data, error: rpcError } = await supabase.rpc('register_tenant', {
           p_company_name: formData.companyName,
           p_company_nit: formData.companyNit,
@@ -50,7 +50,7 @@ const Onboarding = ({ onComplete }) => {
 
         if (rpcError) throw rpcError;
         
-        console.log('Registro exitoso, recargando...');
+
         window.location.reload();
       }
     } catch (err) {

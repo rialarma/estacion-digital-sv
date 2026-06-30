@@ -8,8 +8,12 @@ const Catalogo = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const ITEMS_PER_PAGE = 50;
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -21,24 +25,58 @@ const Catalogo = () => {
     name: '', sku: '', barcode: '', description: '', category: '', brand: '',
     price: '', cost: '', target_margin: '', is_taxable: true,
     units_per_box: 1, box_price: '', is_service: false,
-    is_subscription: false, subscription_days: 30,
-    show_on_web: false, image_url: '', parent_id: null, variant_name: ''
+    is_subscription: false, subscription_days: 30, min_stock: 1,
+    show_on_web: false, image_url: '', parent_id: null, variant_name: '', supplier_id: ''
   });
 
-  const fetchProducts = async () => {
-    setLoading(true);
-    const [prodRes, catRes, brandRes] = await Promise.all([
-      supabase.from('products').select('*').order('name'),
+  const fetchProducts = async (currentPage = 0, currentSearch = '') => {
+    if (currentPage === 0) setLoading(true);
+    let query = supabase.from('products').select('*', { count: 'exact' }).order('name');
+    
+    if (currentSearch) {
+      query = query.or(`name.ilike.%${currentSearch}%,sku.ilike.%${currentSearch}%,category.ilike.%${currentSearch}%`);
+    }
+
+    const from = currentPage * ITEMS_PER_PAGE;
+    const to = from + ITEMS_PER_PAGE - 1;
+    query = query.range(from, to);
+
+    const [prodRes, catRes, brandRes, suppRes] = await Promise.all([
+      query,
       supabase.from('product_categories').select('*').order('name'),
-      supabase.from('product_brands').select('*').order('name')
+      supabase.from('product_brands').select('*').order('name'),
+      supabase.from('suppliers').select('*').order('name')
     ]);
-    if (!prodRes.error && prodRes.data) setProducts(prodRes.data);
-    if (!catRes.error && catRes.data) setCategories(catRes.data);
-    if (!brandRes.error && brandRes.data) setBrands(brandRes.data);
+
+    if (!prodRes.error && prodRes.data) {
+      if (currentPage === 0) {
+        setProducts(prodRes.data);
+      } else {
+        setProducts(prev => [...prev, ...prodRes.data]);
+      }
+      setHasMore(prodRes.data.length === ITEMS_PER_PAGE);
+    }
+    
+    if (!catRes.error && catRes.data && currentPage === 0) setCategories(catRes.data);
+    if (!brandRes.error && brandRes.data && currentPage === 0) setBrands(brandRes.data);
+    if (!suppRes.error && suppRes.data && currentPage === 0) setSuppliers(suppRes.data);
+    
     setLoading(false);
   };
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(0);
+      fetchProducts(0, search);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    if (page > 0) {
+      fetchProducts(page, search);
+    }
+  }, [page]);
 
   const handleAddCategory = async () => {
     const name = window.prompt("Nueva Categoría:");
@@ -90,15 +128,11 @@ const Catalogo = () => {
     }
   };
 
-  const filteredProducts = products.filter(p =>
-    p.name?.toLowerCase().includes(search.toLowerCase()) ||
-    p.sku?.toLowerCase().includes(search.toLowerCase()) ||
-    p.category?.toLowerCase().includes(search.toLowerCase())
-  );
+  // Búsqueda manejada desde el backend
 
   const openNew = () => {
     setEditingId(null);
-    setFormData({ name: '', sku: '', barcode: '', description: '', category: '', brand: '', price: '', cost: '', target_margin: '', is_taxable: true, units_per_box: 1, box_price: '', is_service: false, is_subscription: false, subscription_days: 30, show_on_web: false, image_url: '', parent_id: null, variant_name: '' });
+    setFormData({ name: '', sku: '', barcode: '', description: '', category: '', brand: '', price: '', cost: '', target_margin: '', is_taxable: true, units_per_box: 1, box_price: '', is_service: false, is_subscription: false, subscription_days: 30, min_stock: 1, show_on_web: false, image_url: '', parent_id: null, variant_name: '', supplier_id: '' });
     setShowModal(true);
   };
 
@@ -120,10 +154,12 @@ const Catalogo = () => {
       is_service: prod.is_service || false,
       is_subscription: prod.is_subscription || false,
       subscription_days: prod.subscription_days || 30,
+      min_stock: prod.min_stock !== undefined ? prod.min_stock : 1,
       show_on_web: prod.show_on_web || false,
       image_url: prod.image_url || '',
       parent_id: prod.parent_id || null,
       variant_name: prod.variant_name || '',
+      supplier_id: prod.supplier_id || ''
     });
     setShowModal(true);
   };
@@ -246,10 +282,12 @@ const Catalogo = () => {
         is_service: formData.is_service,
         is_subscription: formData.is_subscription,
         subscription_days: parseInt(formData.subscription_days) || 30,
+        min_stock: parseInt(formData.min_stock) || 0,
         show_on_web: formData.show_on_web,
         image_url: formData.image_url,
         parent_id: formData.parent_id,
-        variant_name: formData.variant_name
+        variant_name: formData.variant_name,
+        supplier_id: formData.supplier_id || null
       };
 
       if (editingId) {
@@ -274,7 +312,7 @@ const Catalogo = () => {
       }
 
       setShowModal(false);
-      fetchProducts();
+      setPage(0); fetchProducts(0, search);
     } catch (err) {
       alert('Error al guardar: ' + err.message);
     } finally {
@@ -285,7 +323,7 @@ const Catalogo = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('¿Eliminar este artículo del catálogo? Esto también eliminará su registro de inventario.')) return;
     await supabase.from('products').delete().eq('id', id);
-    fetchProducts();
+    setPage(0); fetchProducts(0, search);
   };
 
   const handleDownloadTemplate = () => {
@@ -363,7 +401,7 @@ const Catalogo = () => {
       }
       
       alert(`✅ Carga Masiva completada.\nSe insertaron ${insertedCount} productos al catálogo.`);
-      fetchProducts();
+      setPage(0); fetchProducts(0, search);
     } catch (error) {
       console.error(error);
       alert('Error en la carga masiva: ' + error.message);
@@ -408,7 +446,7 @@ const Catalogo = () => {
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Cargando catálogo...</div>
-        ) : filteredProducts.length === 0 ? (
+        ) : products.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
             <Package size={48} style={{ margin: '0 auto 16px', opacity: 0.3 }} />
             <p>No hay artículos en el catálogo.</p>
@@ -429,7 +467,7 @@ const Catalogo = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredProducts.map(prod => (
+              {products.map(prod => (
                 <tr key={prod.id}>
                   <td style={{ fontFamily: 'monospace', fontSize: '13px', color: 'var(--text-muted)' }}>
                     <div>{prod.sku}</div>
@@ -486,6 +524,11 @@ const Catalogo = () => {
               ))}
             </tbody>
           </table>
+        )}
+        {hasMore && !loading && (
+          <div style={{ textAlign: 'center', marginTop: '20px' }}>
+            <button className="glass-button" onClick={() => setPage(p => p + 1)}>Cargar más artículos...</button>
+          </div>
         )}
       </div>
 
@@ -550,10 +593,19 @@ const Catalogo = () => {
                   </div>
                 </div>
               </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Descripción</label>
-                <input type="text" className="glass-input" value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Proveedor Sugerido (Compras)</label>
+                  <select className="glass-input" value={formData.supplier_id} onChange={e => setFormData({ ...formData, supplier_id: e.target.value })}>
+                    <option value="">-- Ninguno --</option>
+                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Descripción</label>
+                  <input type="text" className="glass-input" value={formData.description}
+                    onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                </div>
               </div>
               
               <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
@@ -608,6 +660,18 @@ const Catalogo = () => {
                     onChange={e => handlePriceChange(e.target.value)} />
                 </div>
               </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', background: 'rgba(245, 158, 11, 0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    Alerta de Stock Mínimo
+                  </label>
+                  <input type="number" min="0" className="glass-input" value={formData.min_stock}
+                    onChange={e => setFormData({ ...formData, min_stock: e.target.value })} />
+                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', marginBottom: 0 }}>Cuando tu inventario llegue a este número o baje de él, aparecerá en el panel de Productos Críticos.</p>
+                </div>
+              </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: 'rgba(59, 130, 246, 0.05)', padding: '12px', borderRadius: '8px' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label style={{ color: 'var(--primary)' }}>Unidades por Caja</label>

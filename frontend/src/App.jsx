@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './supabase';
 import { useAuth } from './hooks/useAuth';
@@ -8,50 +8,50 @@ import { Menu, UserCheck, Truck, FileText } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Compras from './pages/Compras';
 import Ventas from './pages/Ventas';
-import Historial from './pages/Historial';
-import Documents from './pages/Documents';
-import Inventory from './pages/Inventory';
+const Historial = lazy(() => import('./pages/Historial'));
+const Documents = lazy(() => import('./pages/Documents'));
+const Inventory = lazy(() => import('./pages/Inventory'));
 import Catalogo from './pages/Catalogo';
-import Clients from './pages/Clients';
-import Proveedores from './pages/Proveedores';
-import Despachos from './pages/Despachos';
-import CheckIn from './pages/CheckIn';
-import AsignacionRutas from './pages/AsignacionRutas';
-import RevisionCargas from './pages/RevisionCargas';
-import Configuracion from './pages/Configuracion';
-import Reportes from './pages/Reportes';
-import ConfigCatalogo from './pages/CatalogoCuentas';
-import LibroDiario from './pages/LibroDiario';
-import EstadosFinancieros from './pages/EstadosFinancieros';
-import KioskoAsistencia from './pages/KioskoAsistencia';
+const Clients = lazy(() => import('./pages/Clients'));
+const Proveedores = lazy(() => import('./pages/Proveedores'));
+const Despachos = lazy(() => import('./pages/Despachos'));
+const CheckIn = lazy(() => import('./pages/CheckIn'));
+const AsignacionRutas = lazy(() => import('./pages/AsignacionRutas'));
+const RevisionCargas = lazy(() => import('./pages/RevisionCargas'));
+const Configuracion = lazy(() => import('./pages/Configuracion'));
+const Reportes = lazy(() => import('./pages/Reportes'));
+const ConfigCatalogo = lazy(() => import('./pages/CatalogoCuentas'));
+const LibroDiario = lazy(() => import('./pages/LibroDiario'));
+const EstadosFinancieros = lazy(() => import('./pages/EstadosFinancieros'));
+const KioskoAsistencia = lazy(() => import('./pages/KioskoAsistencia'));
 import Auth from './pages/Auth';
 import Onboarding from './pages/Onboarding';
-import GodMode from './pages/GodMode';
-import Preventa from './pages/Preventa';
-import WebOrders from './pages/WebOrders';
+const GodMode = lazy(() => import('./pages/GodMode'));
+const Preventa = lazy(() => import('./pages/Preventa'));
+const WebOrders = lazy(() => import('./pages/WebOrders'));
 
-import LibrosIva from './pages/LibrosIva';
-import CuentasPorCobrar from './pages/CuentasPorCobrar';
-import CuentasPorPagar from './pages/CuentasPorPagar';
-import SuspendedSaaS from './pages/SuspendedSaaS';
+const LibrosIva = lazy(() => import('./pages/LibrosIva'));
+const CuentasPorCobrar = lazy(() => import('./pages/CuentasPorCobrar'));
+const CuentasPorPagar = lazy(() => import('./pages/CuentasPorPagar'));
+const SuspendedSaaS = lazy(() => import('./pages/SuspendedSaaS'));
 import ProtectedRoute from './components/ProtectedRoute';
-import Caja from './pages/Caja';
-import Cotizaciones from './pages/Cotizaciones';
-import Kardex from './pages/Kardex';
-import Traslados from './pages/Traslados';
+const Caja = lazy(() => import('./pages/Caja'));
+const Cotizaciones = lazy(() => import('./pages/Cotizaciones'));
+const Kardex = lazy(() => import('./pages/Kardex'));
+const Traslados = lazy(() => import('./pages/Traslados'));
 import Home from './pages/Home';
-import Asistencia from './pages/Asistencia';
-import StorefrontHome from './pages/Storefront/Home';
-import StorefrontCheckout from './pages/Storefront/Checkout';
+const Asistencia = lazy(() => import('./pages/Asistencia'));
+const StorefrontHome = lazy(() => import('./pages/Storefront/Home'));
+const StorefrontCheckout = lazy(() => import('./pages/Storefront/Checkout'));
 
 // Módulo HR
-import Departamentos from './pages/hr/Departamentos';
-import Cargos from './pages/hr/Cargos';
-import DirectorioRRHH from './pages/hr/DirectorioRRHH';
-import Planilla from './pages/hr/Planilla';
-import AsistenciaHR from './pages/hr/AsistenciaHR';
-import Vacaciones from './pages/hr/Vacaciones';
-import ReportesHR from './pages/hr/ReportesHR';
+const Departamentos = lazy(() => import('./pages/hr/Departamentos'));
+const Cargos = lazy(() => import('./pages/hr/Cargos'));
+const DirectorioRRHH = lazy(() => import('./pages/hr/DirectorioRRHH'));
+const Planilla = lazy(() => import('./pages/hr/Planilla'));
+const AsistenciaHR = lazy(() => import('./pages/hr/AsistenciaHR'));
+const Vacaciones = lazy(() => import('./pages/hr/Vacaciones'));
+const ReportesHR = lazy(() => import('./pages/hr/ReportesHR'));
 
 function App() {
   const { user, loading } = useAuth();
@@ -97,7 +97,7 @@ function App() {
       document.documentElement.setAttribute('data-theme', 'light');
     }
 
-    // 2. Configurar Pestaña (Título y Favicon)
+    // 2. Configurar Pestaña (Título y Favicon) y PWA Manifest
     if (tenantInfo) {
       document.title = tenantInfo.name || "Estación Digital SV";
       if (tenantInfo.logo_url) {
@@ -108,6 +108,35 @@ function App() {
           document.head.appendChild(link);
         }
         link.href = tenantInfo.logo_url;
+
+        // Inyectar Manifest dinámico para PWA
+        let manifestLink = document.querySelector("link[rel='manifest']");
+        if (!manifestLink) {
+          manifestLink = document.createElement('link');
+          manifestLink.rel = 'manifest';
+          document.head.appendChild(manifestLink);
+        }
+        const manifest = {
+          name: tenantInfo.name || "Estación Digital",
+          short_name: tenantInfo.name || "ED",
+          start_url: "/",
+          display: "standalone",
+          background_color: "#0f172a",
+          theme_color: "#10b981",
+          icons: [
+            {
+              src: tenantInfo.logo_url,
+              sizes: "192x192",
+              type: "image/png"
+            },
+            {
+              src: tenantInfo.logo_url,
+              sizes: "512x512",
+              type: "image/png"
+            }
+          ]
+        };
+        manifestLink.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest));
       }
     } else {
       document.title = "Estación Digital SV";
@@ -126,11 +155,13 @@ function App() {
     if (!isLoginPath) {
       return (
         <Router>
-          <Routes>
-            <Route path="/" element={<StorefrontHome customTenantId={customDomainTenantId} />} />
-            <Route path="/checkout" element={<StorefrontCheckout customTenantId={customDomainTenantId} />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <Suspense fallback={<div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center' }}>Cargando tienda...</div>}>
+            <Routes>
+              <Route path="/" element={<StorefrontHome customTenantId={customDomainTenantId} />} />
+              <Route path="/checkout" element={<StorefrontCheckout customTenantId={customDomainTenantId} />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </Router>
       );
     }
@@ -140,11 +171,13 @@ function App() {
   if (isPublicStoreRoute || isPublicKioskRoute) {
     return (
       <Router>
-        <Routes>
-          <Route path="/tienda/:tenantId" element={<StorefrontHome />} />
-          <Route path="/tienda/:tenantId/checkout" element={<StorefrontCheckout />} />
-          <Route path="/kiosko/:tenantId" element={<KioskoAsistencia />} />
-        </Routes>
+        <Suspense fallback={<div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center' }}>Cargando tienda...</div>}>
+          <Routes>
+            <Route path="/tienda/:tenantId" element={<StorefrontHome />} />
+            <Route path="/tienda/:tenantId/checkout" element={<StorefrontCheckout />} />
+            <Route path="/kiosko/:tenantId" element={<KioskoAsistencia />} />
+          </Routes>
+        </Suspense>
       </Router>
     );
   }
@@ -201,65 +234,67 @@ function App() {
         />
         
         <main className="main-content">
-          <Routes>
-            {/* Ruta Principal / Dashboard */}
-            <Route path="/" element={<Home />} />
-            
-            {/* Rutas de Operaciones (Disponibles para Cajeros y superiores) */}
-            <Route path="/caja" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Caja /></ProtectedRoute>} />
-            <Route path="/ventas" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Ventas /></ProtectedRoute>} />
-            <Route path="/preventa" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'VENDEDOR']}><Preventa /></ProtectedRoute>} />
-            <Route path="/pedidos-web" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO', 'BODEGUERO']}><WebOrders /></ProtectedRoute>} />
-            <Route path="/cotizaciones" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Cotizaciones /></ProtectedRoute>} />
+          <Suspense fallback={<div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center' }}>Cargando pantalla...</div>}>
+            <Routes>
+              {/* Ruta Principal / Dashboard */}
+              <Route path="/" element={<Home />} />
+              
+              {/* Rutas de Operaciones (Disponibles para Cajeros y superiores) */}
+              <Route path="/caja" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Caja /></ProtectedRoute>} />
+              <Route path="/ventas" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Ventas /></ProtectedRoute>} />
+              <Route path="/preventa" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'VENDEDOR']}><Preventa /></ProtectedRoute>} />
+              <Route path="/pedidos-web" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO', 'BODEGUERO']}><WebOrders /></ProtectedRoute>} />
+              <Route path="/cotizaciones" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Cotizaciones /></ProtectedRoute>} />
 
-            
-            {/* Rutas de Compras e Inventario (Disponibles para Bodegueros y superiores) */}
-            <Route path="/compras" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Compras /></ProtectedRoute>} />
-            <Route path="/catalogo" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Catalogo /></ProtectedRoute>} />
-            <Route path="/inventario" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO', 'CAJERO']}><Inventory /></ProtectedRoute>} />
-            <Route path="/kardex" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Kardex /></ProtectedRoute>} />
-            <Route path="/traslados" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Traslados /></ProtectedRoute>} />
-            
-            {/* Cartera (Cobros y Pagos) */}
-            <Route path="/cartera/cxc" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><CuentasPorCobrar /></ProtectedRoute>} />
-            <Route path="/cartera/cxp" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><CuentasPorPagar /></ProtectedRoute>} />
+              
+              {/* Rutas de Compras e Inventario (Disponibles para Bodegueros y superiores) */}
+              <Route path="/compras" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Compras /></ProtectedRoute>} />
+              <Route path="/catalogo" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Catalogo /></ProtectedRoute>} />
+              <Route path="/inventario" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO', 'CAJERO']}><Inventory /></ProtectedRoute>} />
+              <Route path="/kardex" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Kardex /></ProtectedRoute>} />
+              <Route path="/traslados" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Traslados /></ProtectedRoute>} />
+              
+              {/* Cartera (Cobros y Pagos) */}
+              <Route path="/cartera/cxc" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><CuentasPorCobrar /></ProtectedRoute>} />
+              <Route path="/cartera/cxp" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><CuentasPorPagar /></ProtectedRoute>} />
 
-            {/* Administracion y Reportes (Solo Admin y Gerente) */}
-            <Route path="/firmador" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Documents /></ProtectedRoute>} />
-            <Route path="/clientes" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Clients /></ProtectedRoute>} />
-            <Route path="/checkin" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><CheckIn /></ProtectedRoute>} />
-            <Route path="/proveedores" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Proveedores /></ProtectedRoute>} />
-            <Route path="/asignacion-rutas" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><AsignacionRutas /></ProtectedRoute>} />
-            <Route path="/despachos" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Despachos /></ProtectedRoute>} />
-            <Route path="/bodega/revision-cargas" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><RevisionCargas /></ProtectedRoute>} />
-            <Route path="/historial" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Historial /></ProtectedRoute>} />
-            <Route path="/reportes" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Reportes /></ProtectedRoute>} />
-            
-            {/* Control de Asistencia */}
-            <Route path="/asistencia" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO', 'BODEGUERO']}><Asistencia /></ProtectedRoute>} />
-            
-            {/* Recursos Humanos (RRHH) */}
-            <Route path="/rrhh/departamentos" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Departamentos /></ProtectedRoute>} />
-            <Route path="/rrhh/cargos" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Cargos /></ProtectedRoute>} />
-            <Route path="/rrhh/empleados" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><DirectorioRRHH /></ProtectedRoute>} />
-            <Route path="/rrhh/asistencia" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><AsistenciaHR /></ProtectedRoute>} />
-            <Route path="/rrhh/vacaciones" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Vacaciones /></ProtectedRoute>} />
-            <Route path="/rrhh/planilla" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Planilla /></ProtectedRoute>} />
-            <Route path="/rrhh/reportes" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><ReportesHR /></ProtectedRoute>} />
-            
-            {/* Contabilidad y Configuración (Solo ADMIN) */}
-            <Route path="/configuracion" element={<ProtectedRoute allowedRoles={['ADMIN']}><Configuracion /></ProtectedRoute>} />
-            <Route path="/contabilidad/catalogo" element={<ProtectedRoute allowedRoles={['ADMIN']}><ConfigCatalogo /></ProtectedRoute>} />
-            <Route path="/contabilidad/partidas" element={<ProtectedRoute allowedRoles={['ADMIN']}><LibroDiario /></ProtectedRoute>} />
-            <Route path="/contabilidad/estados-financieros" element={<ProtectedRoute allowedRoles={['ADMIN']}><EstadosFinancieros /></ProtectedRoute>} />
-            <Route path="/contabilidad/libros-iva" element={<ProtectedRoute allowedRoles={['ADMIN']}><LibrosIva /></ProtectedRoute>} />
-            
-            {/* Super Admin God Mode (Ruta Oculta) */}
-            <Route path="/godmode" element={<GodMode />} />
+              {/* Administracion y Reportes (Solo Admin y Gerente) */}
+              <Route path="/firmador" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Documents /></ProtectedRoute>} />
+              <Route path="/clientes" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Clients /></ProtectedRoute>} />
+              <Route path="/checkin" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><CheckIn /></ProtectedRoute>} />
+              <Route path="/proveedores" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Proveedores /></ProtectedRoute>} />
+              <Route path="/asignacion-rutas" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><AsignacionRutas /></ProtectedRoute>} />
+              <Route path="/despachos" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Despachos /></ProtectedRoute>} />
+              <Route path="/bodega/revision-cargas" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><RevisionCargas /></ProtectedRoute>} />
+              <Route path="/historial" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Historial /></ProtectedRoute>} />
+              <Route path="/reportes" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Reportes /></ProtectedRoute>} />
+              
+              {/* Control de Asistencia */}
+              <Route path="/asistencia" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO', 'BODEGUERO']}><Asistencia /></ProtectedRoute>} />
+              
+              {/* Recursos Humanos (RRHH) */}
+              <Route path="/rrhh/departamentos" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Departamentos /></ProtectedRoute>} />
+              <Route path="/rrhh/cargos" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Cargos /></ProtectedRoute>} />
+              <Route path="/rrhh/empleados" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><DirectorioRRHH /></ProtectedRoute>} />
+              <Route path="/rrhh/asistencia" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><AsistenciaHR /></ProtectedRoute>} />
+              <Route path="/rrhh/vacaciones" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Vacaciones /></ProtectedRoute>} />
+              <Route path="/rrhh/planilla" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Planilla /></ProtectedRoute>} />
+              <Route path="/rrhh/reportes" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><ReportesHR /></ProtectedRoute>} />
+              
+              {/* Contabilidad y Configuración (Solo ADMIN) */}
+              <Route path="/configuracion" element={<ProtectedRoute allowedRoles={['ADMIN']}><Configuracion /></ProtectedRoute>} />
+              <Route path="/contabilidad/catalogo" element={<ProtectedRoute allowedRoles={['ADMIN']}><ConfigCatalogo /></ProtectedRoute>} />
+              <Route path="/contabilidad/partidas" element={<ProtectedRoute allowedRoles={['ADMIN']}><LibroDiario /></ProtectedRoute>} />
+              <Route path="/contabilidad/estados-financieros" element={<ProtectedRoute allowedRoles={['ADMIN']}><EstadosFinancieros /></ProtectedRoute>} />
+              <Route path="/contabilidad/libros-iva" element={<ProtectedRoute allowedRoles={['ADMIN']}><LibrosIva /></ProtectedRoute>} />
+              
+              {/* Super Admin God Mode (Ruta Oculta) */}
+              <Route path="/godmode" element={<GodMode />} />
 
-            {/* Catch-all route */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              {/* Catch-all route */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </main>
       </div>
     </Router>

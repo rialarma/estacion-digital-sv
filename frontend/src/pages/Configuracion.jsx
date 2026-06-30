@@ -23,6 +23,7 @@ const Configuracion = () => {
     instagram_url: '',
     instagram_url: '',
     about_us: '',
+    monthly_sales_goal: 15000,
     allow_negative_stock: true,
     primary_color: '#0f172a',
     store_slogan: '',
@@ -49,6 +50,7 @@ const Configuracion = () => {
         facebook_url: tenantInfo.facebook_url || '',
         instagram_url: tenantInfo.instagram_url || '',
         about_us: tenantInfo.about_us || '',
+        monthly_sales_goal: tenantInfo.monthly_sales_goal || 15000,
         allow_negative_stock: tenantInfo.allow_negative_stock !== false,
         primary_color: tenantInfo.primary_color || '#0f172a',
         store_slogan: tenantInfo.store_slogan || '',
@@ -131,6 +133,7 @@ const Configuracion = () => {
           facebook_url: formData.facebook_url,
           instagram_url: formData.instagram_url,
           about_us: formData.about_us,
+          monthly_sales_goal: Number(formData.monthly_sales_goal),
           allow_negative_stock: formData.allow_negative_stock,
           primary_color: formData.primary_color,
           store_slogan: formData.store_slogan,
@@ -153,6 +156,7 @@ const Configuracion = () => {
         facebook_url: formData.facebook_url,
         instagram_url: formData.instagram_url,
         about_us: formData.about_us,
+        monthly_sales_goal: Number(formData.monthly_sales_goal),
         allow_negative_stock: formData.allow_negative_stock,
         primary_color: formData.primary_color,
         store_slogan: formData.store_slogan,
@@ -369,6 +373,27 @@ const Configuracion = () => {
             <div className="form-group">
               <label>NIT</label>
               <input type="text" className="glass-input" name="nit" value={formData.nit} onChange={handleInputChange} />
+            </div>
+          </div>
+        </div>
+
+        {/* Metas y Objetivos */}
+        <div className="glass-panel" style={{ padding: '24px' }}>
+          <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Receipt size={20} color="var(--primary)" /> Metas y Objetivos
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+            <div className="form-group">
+              <label>Meta de Ventas Mensual ($)</label>
+              <input 
+                type="number" 
+                className="glass-input" 
+                name="monthly_sales_goal" 
+                value={formData.monthly_sales_goal} 
+                onChange={handleInputChange} 
+                style={{ width: '200px' }} 
+              />
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>Esta meta alimentará el medidor de progreso en el Dashboard Comercial.</p>
             </div>
           </div>
         </div>

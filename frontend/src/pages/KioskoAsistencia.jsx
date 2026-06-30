@@ -29,7 +29,7 @@ const KioskoAsistencia = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        (err) => console.log('Error de GPS:', err)
+        (err) => { /* GPS no disponible */ }
       );
     }
   }, [paramTenantId]);
@@ -60,7 +60,7 @@ const KioskoAsistencia = () => {
         setCameraActive(true);
       }
     } catch (err) {
-      console.log('Error al acceder a la cámara:', err);
+      // Cámara no disponible
       setCameraActive(false);
     }
   };
