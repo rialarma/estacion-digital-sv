@@ -5,7 +5,7 @@ const TicketTemplate = ({ sale, items, tenant }) => {
   const date = new Date(sale.created_at).toLocaleString('es-SV');
   
   return (
-    <div style={{ fontFamily: 'monospace', fontSize: '12px', width: '280px', margin: '0 auto', color: '#000', background: '#fff', padding: '10px' }}>
+    <div style={{ fontFamily: 'monospace', fontSize: '12px', width: '74mm', margin: '0 auto', color: '#000', background: '#fff', padding: '2mm' }}>
       <div style={{ textAlign: 'center', marginBottom: '10px' }}>
         {tenant?.logo_url && <img src={tenant.logo_url} alt="Logo" style={{ maxWidth: '120px', marginBottom: '10px' }} />}
         <h2 style={{ fontSize: '16px', margin: '0 0 5px 0' }}>{tenant?.name || 'EMPRESA'}</h2>

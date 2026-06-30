@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, ShoppingBag, X, Search, Printer, FileText, ArrowRightLeft } from 'lucide-react';
+import { ShoppingCart, ShoppingBag, X, Search, Printer, FileText, ArrowRightLeft, Undo2 } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
 import { printDocument } from '../utils/printUtils';
@@ -14,6 +14,13 @@ const Historial = () => {
   const [selectedTx, setSelectedTx] = useState(null);
   const [txDetails, setTxDetails] = useState([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  
+  // Return Modal State
+  const [returnModalOpen, setReturnModalOpen] = useState(false);
+  const [returnTx, setReturnTx] = useState(null);
+  const [returnItems, setReturnItems] = useState([]);
+  const [returnReason, setReturnReason] = useState('');
+  const [processingReturn, setProcessingReturn] = useState(false);
   
   // Filters
   const [search, setSearch] = useState('');
@@ -86,6 +93,63 @@ const Historial = () => {
     }
 
     setLoadingDetails(false);
+  };
+
+  const handleOpenReturn = async (tx) => {
+    setReturnTx(tx);
+    setReturnReason('');
+    setReturnModalOpen(true);
+    setLoadingDetails(true);
+    
+    const { data, error } = await supabase
+      .from('sale_items')
+      .select('*, products(name, sku)')
+      .eq('sale_id', tx.id);
+      
+    if (!error && data) {
+      setReturnItems(data.map(item => ({ ...item, quantity_to_return: 0 })));
+    }
+    setLoadingDetails(false);
+  };
+
+  const handleProcessReturn = async () => {
+    const itemsToReturn = returnItems.filter(item => item.quantity_to_return > 0);
+    if (itemsToReturn.length === 0) {
+      alert("Debe seleccionar al menos un producto para devolver.");
+      return;
+    }
+    
+    setProcessingReturn(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const payloadItems = itemsToReturn.map(item => ({
+        product_id: item.product_id,
+        quantity: item.quantity_to_return,
+        unit_price: item.unit_price,
+        subtotal: item.quantity_to_return * item.unit_price,
+        is_service: false // Por simplicidad asumimos false.
+      }));
+      
+      const { error } = await supabase.rpc('process_return', {
+        p_tenant_id: returnTx.tenant_id,
+        p_branch_id: returnTx.branch_id,
+        p_sale_id: returnTx.id,
+        p_cashier_id: user.id,
+        p_shift_id: returnTx.shift_id,
+        p_reason: returnReason,
+        p_items: payloadItems
+      });
+      
+      if (error) throw error;
+      
+      alert("Devolución procesada con éxito.");
+      setReturnModalOpen(false);
+      fetchTransactions();
+    } catch (err) {
+      console.error(err);
+      alert("Error procesando devolución: " + err.message);
+    }
+    setProcessingReturn(false);
   };
 
   const handlePrint = async (sale, format) => {
@@ -224,6 +288,11 @@ const Historial = () => {
                           <button className="glass-button" style={{ padding: '4px 8px', fontSize: '12px', background: 'transparent', border: '1px solid var(--border-color)', color: '#ef4444' }} onClick={() => handlePrint(tx, 'PDF')} title="Imprimir PDF (Carta)">
                             <FileText size={14} />
                           </button>
+                          {tx.status !== 'DEVUELTA' && (
+                            <button className="glass-button" style={{ padding: '4px 8px', fontSize: '12px', background: 'transparent', border: '1px solid var(--border-color)', color: '#f59e0b' }} onClick={() => handleOpenReturn(tx)} title="Devolver / Nota de Crédito">
+                              <Undo2 size={14} />
+                            </button>
+                          )}
                         </>
                       )}
                     </div>
@@ -291,6 +360,89 @@ const Historial = () => {
                   <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '4px' }}>Subtotal: ${Number(selectedTx.subtotal || 0).toFixed(2)}</div>
                   <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>IVA (13%): ${Number(selectedTx.tax_iva || 0).toFixed(2)}</div>
                   <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--primary)' }}>Total: ${Number(selectedTx.total || 0).toFixed(2)}</div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+      {/* Modal Devolución */}
+      {returnModalOpen && returnTx && (
+        <div className="modal-backdrop" onClick={() => !processingReturn && setReturnModalOpen(false)}>
+          <div className="modal-content glass-panel" onClick={e => e.stopPropagation()} style={{ maxWidth: '650px', width: '95%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h2>Devolución / Nota de Crédito</h2>
+              <button onClick={() => !processingReturn && setReturnModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div style={{ marginBottom: '20px', padding: '16px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '8px' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: '#f59e0b' }}>
+                Estás procesando una devolución para la Venta <strong>{returnTx.documento_ref}</strong> de <strong>{returnTx.entidad_nombre}</strong>.
+              </p>
+            </div>
+
+            {loadingDetails ? (
+              <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>Cargando detalles de la venta...</div>
+            ) : (
+              <>
+                <table className="glass-table" style={{ marginBottom: '20px' }}>
+                  <thead>
+                    <tr>
+                      <th>Producto</th>
+                      <th>Cant. Comprada</th>
+                      <th>Precio Unit.</th>
+                      <th>Cant. a Devolver</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {returnItems.map((item, index) => (
+                      <tr key={item.id}>
+                        <td>{item.products?.name}</td>
+                        <td style={{ textAlign: 'center' }}>{item.quantity}</td>
+                        <td>${Number(item.unit_price || 0).toFixed(2)}</td>
+                        <td style={{ width: '120px' }}>
+                          <input 
+                            type="number" 
+                            className="glass-input" 
+                            min="0" 
+                            max={item.quantity} 
+                            style={{ padding: '4px 8px', height: '30px', textAlign: 'center' }}
+                            value={item.quantity_to_return === 0 ? '' : item.quantity_to_return}
+                            onChange={(e) => {
+                              let val = Number(e.target.value);
+                              if (val > item.quantity) val = item.quantity;
+                              if (val < 0) val = 0;
+                              const newItems = [...returnItems];
+                              newItems[index].quantity_to_return = val;
+                              setReturnItems(newItems);
+                            }}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                
+                <div className="form-group">
+                  <label>Motivo de la Devolución</label>
+                  <input 
+                    type="text" 
+                    className="glass-input" 
+                    placeholder="Ej. Producto dañado, cliente se arrepintió..."
+                    value={returnReason}
+                    onChange={(e) => setReturnReason(e.target.value)}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
+                  <button type="button" className="glass-button" style={{ background: 'rgba(255,255,255,0.05)' }} onClick={() => setReturnModalOpen(false)} disabled={processingReturn}>
+                    Cancelar
+                  </button>
+                  <button type="button" className="glass-button" style={{ background: '#f59e0b', color: '#000', fontWeight: 'bold' }} onClick={handleProcessReturn} disabled={processingReturn}>
+                    {processingReturn ? 'Procesando...' : 'Confirmar Devolución'}
+                  </button>
                 </div>
               </>
             )}
