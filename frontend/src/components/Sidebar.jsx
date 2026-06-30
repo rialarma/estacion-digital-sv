@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { 
   ShoppingBag, ShoppingCart, FileText, Package, Users, UserCheck, 
   Settings, MonitorDot, LogOut, Store, Truck, ClipboardList, 
   BarChart2, X, BookOpen, ChevronDown, ChevronRight, Briefcase, 
-  Layers, Contact, Calculator, ShieldCheck, DollarSign, Monitor, FileSignature, ArrowRightLeft, Home, Clock, Calendar, PieChart
+  Layers, Contact, Calculator, ShieldCheck, DollarSign, Monitor, FileSignature, ArrowRightLeft, Home, Clock, Calendar, PieChart, Wrench
 } from 'lucide-react';
 import { useTenantStore } from '../store/useTenantStore';
 import { supabase } from '../supabase';
@@ -167,7 +166,7 @@ const Sidebar = ({ onLogout, isOpen, onClose }) => {
           title="Operaciones" 
           icon={Briefcase} 
           currentPath={location.pathname} 
-          activePaths={['/caja', '/ventas', '/preventa', '/compras', '/historial', '/cotizaciones', '/clientes', '/proveedores', '/checkin']}
+          activePaths={['/caja', '/ventas', '/preventa', '/compras', '/historial', '/cotizaciones', '/clientes', '/proveedores', '/checkin', '/taller']}
           isOpen={openGroup === 'Operaciones'}
           onToggle={handleToggleGroup}
         >
@@ -189,6 +188,11 @@ const Sidebar = ({ onLogout, isOpen, onClose }) => {
           {isPageActive(tenantInfo, 'preventa') && role !== 'CAJERO' && (
             <NavLink to="/preventa" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose} style={{ background: location.pathname === '/preventa' ? '' : 'rgba(16, 185, 129, 0.05)', borderLeft: '2px solid #10b981' }}>
               <ShoppingCart size={18} color="#10b981" /> Preventa Móvil
+            </NavLink>
+          )}
+          {isPageActive(tenantInfo, 'taller') && (
+            <NavLink to="/taller" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <Wrench size={18} /> Taller / Servicio Técnico
             </NavLink>
           )}
           {isPageActive(tenantInfo, 'pedidos_web') && (

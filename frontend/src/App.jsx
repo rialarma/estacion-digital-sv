@@ -20,6 +20,7 @@ const AsignacionRutas = lazy(() => import('./pages/AsignacionRutas'));
 const RevisionCargas = lazy(() => import('./pages/RevisionCargas'));
 const Configuracion = lazy(() => import('./pages/Configuracion'));
 const Reportes = lazy(() => import('./pages/Reportes'));
+const Taller = lazy(() => import('./pages/Taller'));
 const ConfigCatalogo = lazy(() => import('./pages/CatalogoCuentas'));
 const LibroDiario = lazy(() => import('./pages/LibroDiario'));
 const EstadosFinancieros = lazy(() => import('./pages/EstadosFinancieros'));
@@ -245,6 +246,7 @@ function App() {
               <Route path="/preventa" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'VENDEDOR']}><Preventa /></ProtectedRoute>} />
               <Route path="/pedidos-web" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO', 'BODEGUERO']}><WebOrders /></ProtectedRoute>} />
               <Route path="/cotizaciones" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Cotizaciones /></ProtectedRoute>} />
+              <Route path="/taller" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO', 'TECNICO']}><Taller /></ProtectedRoute>} />
 
               
               {/* Rutas de Compras e Inventario (Disponibles para Bodegueros y superiores) */}
