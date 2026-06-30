@@ -853,6 +853,18 @@ const Catalogo = () => {
           </div>
         </div>
       )}
+
+      {showScanner && (
+        <div className="modal-backdrop" style={{ zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <CameraScanner 
+            onScan={(code) => {
+              setFormData({ ...formData, barcode: code });
+              setShowScanner(false);
+            }} 
+            onClose={() => setShowScanner(false)} 
+          />
+        </div>
+      )}
     </div>
   );
 };
