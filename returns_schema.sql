@@ -96,14 +96,15 @@ BEGIN
   -- Actualizar el monto total de la devolución
   UPDATE public.returns SET total_amount = v_total_amount WHERE id = v_return_id;
 
-  -- Actualizar el estado de la venta (Opcional, la marcamos como DEVUELTA)
-  UPDATE public.sales SET status = 'DEVUELTA' WHERE id = p_sale_id;
-
-  -- Registrar la salida de dinero en caja
-  IF p_shift_id IS NOT NULL AND v_total_amount > 0 THEN
-    INSERT INTO public.cash_register_transactions (tenant_id, branch_id, shift_id, transaction_type, amount, reason, created_by)
-    VALUES (p_tenant_id, p_branch_id, p_shift_id, 'EGRESO', v_total_amount, 'Devolución de Venta #' || substr(p_sale_id::text, 1, 8), p_cashier_id);
-  END IF;
+  -- Actualizar el total de la venta original para que los cortes de caja y reportes cuadren
+  UPDATE public.sales 
+  SET 
+    total = total - v_total_amount,
+    status = CASE 
+      WHEN (total - v_total_amount) <= 0 THEN 'DEVUELTA'
+      ELSE 'PARCIALMENTE_DEVUELTA'
+    END
+  WHERE id = p_sale_id;
 
   RETURN v_return_id;
 END;
