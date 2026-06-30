@@ -61,6 +61,8 @@ const Compras = () => {
         quantity: 1,
         unit_cost: Number(prod.cost) || 0,
         subtotal: Number(prod.cost) || 0,
+        batch_number: '',
+        expiration_date: ''
       }]);
     }
   };
@@ -128,7 +130,9 @@ const Compras = () => {
           product_id: item.product_id,
           quantity: totalUnits, // Guardamos la cantidad real de unidades ingresadas al inventario
           unit_cost: item.unit_cost, // Es el costo de 1 unidad
-          subtotal: item.subtotal
+          subtotal: item.subtotal,
+          batch_number: item.batch_number || null,
+          expiration_date: item.expiration_date || null
         };
       });
       
@@ -189,6 +193,20 @@ const Compras = () => {
             created_by: userData.user.id
           }]);
         }
+
+        // 2.2 Insertar en product_batches (Lotes)
+        if (!item.is_service && (item.batch_number || item.expiration_date)) {
+          await supabase.from('product_batches').insert([{
+            tenant_id,
+            branch_id,
+            product_id: item.product_id,
+            purchase_id: purchase.id,
+            batch_number: item.batch_number || null,
+            expiration_date: item.expiration_date || null,
+            current_stock: addition
+          }]);
+        }
+
         // 2.5 Actualizar el costo en el catálogo y recalcular precio según margen
         const { error: rpcError } = await supabase.rpc('update_cost_and_price', {
           p_product_id: item.product_id,
@@ -384,6 +402,8 @@ const Compras = () => {
                     <th>Tipo</th>
                     <th>Cant.</th>
                     <th>Costo Unit.</th>
+                    <th>Lote</th>
+                    <th>Vencimiento</th>
                     <th>Subtotal</th>
                     <th></th>
                   </tr>
@@ -413,6 +433,14 @@ const Compras = () => {
                         <input type="number" min="0" step="0.01" className="glass-input" style={{ width: '80px', padding: '4px' }} 
                           value={item.unit_cost} onChange={(e) => changeItem(index, 'unit_cost', e.target.value)} />
                       </td>
+                      <td>
+                        <input type="text" className="glass-input" style={{ width: '80px', padding: '4px', fontSize: '11px' }} 
+                          placeholder="Lote (opc)" value={item.batch_number} onChange={(e) => changeItem(index, 'batch_number', e.target.value)} />
+                      </td>
+                      <td>
+                        <input type="date" className="glass-input" style={{ width: '100px', padding: '4px', fontSize: '11px' }} 
+                          value={item.expiration_date} onChange={(e) => changeItem(index, 'expiration_date', e.target.value)} />
+                      </td>
                       <td style={{ fontWeight: 600 }}>${item.subtotal.toFixed(2)}</td>
                       <td>
                         <button onClick={() => removeItem(index)}
@@ -423,19 +451,19 @@ const Compras = () => {
                     </tr>
                   ))}
                   <tr style={{ borderTop: '1px solid var(--border-color)' }}>
-                    <td colSpan="4" style={{ textAlign: 'right', fontWeight: 600, paddingTop: '12px' }}>Subtotal:</td>
+                    <td colSpan="6" style={{ textAlign: 'right', fontWeight: 600, paddingTop: '12px' }}>Subtotal:</td>
                     <td style={{ fontWeight: 600, fontSize: '14px', paddingTop: '12px' }}>${subtotal.toFixed(2)}</td>
                     <td></td>
                   </tr>
                   {hasIvaExtra && (
                     <tr>
-                      <td colSpan="4" style={{ textAlign: 'right', fontWeight: 600 }}>IVA (13%):</td>
+                      <td colSpan="6" style={{ textAlign: 'right', fontWeight: 600 }}>IVA (13%):</td>
                       <td style={{ fontWeight: 600, fontSize: '14px' }}>${taxAmount.toFixed(2)}</td>
                       <td></td>
                     </tr>
                   )}
                   <tr>
-                    <td colSpan="4" style={{ textAlign: 'right', fontWeight: 700 }}>TOTAL A PAGAR:</td>
+                    <td colSpan="6" style={{ textAlign: 'right', fontWeight: 700 }}>TOTAL A PAGAR:</td>
                     <td style={{ fontWeight: 700, fontSize: '16px', color: 'var(--primary)' }}>
                       ${total.toFixed(2)}
                     </td>
@@ -489,6 +517,8 @@ const Compras = () => {
                     <th>Producto</th>
                     <th>Cant.</th>
                     <th>Costo</th>
+                    <th>Lote</th>
+                    <th>Vencimiento</th>
                     <th>Subtotal</th>
                   </tr>
                 </thead>
@@ -499,6 +529,8 @@ const Compras = () => {
                       <td>{item.products?.name}</td>
                       <td>{item.quantity}</td>
                       <td>${Number(item.unit_cost).toFixed(2)}</td>
+                      <td style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{item.batch_number || '—'}</td>
+                      <td style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{item.expiration_date ? new Date(item.expiration_date).toLocaleDateString() : '—'}</td>
                       <td style={{ fontWeight: 600 }}>${Number(item.subtotal).toFixed(2)}</td>
                     </tr>
                   ))}

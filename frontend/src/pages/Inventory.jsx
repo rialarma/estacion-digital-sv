@@ -7,6 +7,7 @@ import { useTenantStore } from '../store/useTenantStore';
 const Inventory = () => {
   const { tenantId } = useTenantStore();
   const [inventory, setInventory] = useState([]);
+  const [batches, setBatches] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -44,6 +45,25 @@ const Inventory = () => {
     } else if (error) {
       console.error("Error fetching inventory:", error);
     }
+
+    // Fetch batches
+    let bQuery = supabase
+      .from('product_batches')
+      .select('*, products(name)')
+      .eq('tenant_id', tenantId)
+      .gt('current_stock', 0)
+      .not('expiration_date', 'is', null)
+      .order('expiration_date', { ascending: true });
+
+    if (profile && profile.branch_id) {
+      bQuery = bQuery.eq('branch_id', profile.branch_id);
+    }
+
+    const { data: bData } = await bQuery;
+    if (bData) {
+      setBatches(bData);
+    }
+
     setLoading(false);
   };
 
@@ -64,6 +84,57 @@ const Inventory = () => {
       <div className="page-header">
         <h1 className="page-title">Inventario de Sucursal</h1>
       </div>
+
+      {(() => {
+        const today = new Date();
+        const thirtyDaysFromNow = new Date();
+        thirtyDaysFromNow.setDate(today.getDate() + 30);
+
+        const expiringBatches = batches.filter(b => {
+          if (!b.expiration_date) return false;
+          const expDate = new Date(b.expiration_date);
+          return expDate <= thirtyDaysFromNow;
+        });
+
+        if (expiringBatches.length > 0) {
+          return (
+            <div style={{ 
+              background: 'rgba(239, 68, 68, 0.1)', 
+              border: '1px solid rgba(239, 68, 68, 0.3)', 
+              padding: '16px', 
+              borderRadius: '8px', 
+              marginBottom: '24px' 
+            }}>
+              <h3 style={{ color: '#ef4444', marginBottom: '12px', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                ⚠️ Alertas de Vencimiento ({expiringBatches.length})
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '12px' }}>
+                {expiringBatches.map(b => {
+                  const isExpired = new Date(b.expiration_date) < today;
+                  return (
+                    <div key={b.id} style={{ 
+                      background: 'rgba(255, 255, 255, 0.05)', 
+                      padding: '12px', 
+                      borderRadius: '6px',
+                      borderLeft: `4px solid ${isExpired ? '#ef4444' : '#fbbf24'}`
+                    }}>
+                      <div style={{ fontWeight: 600 }}>{b.products?.name}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Lote: {b.batch_number || 'S/N'} | Queda: {b.current_stock}
+                      </div>
+                      <div style={{ fontSize: '12px', color: isExpired ? '#ef4444' : '#fbbf24', marginTop: '4px', fontWeight: 600 }}>
+                        {isExpired ? 'Vencido el: ' : 'Vence el: '}
+                        {new Date(b.expiration_date).toLocaleDateString()}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       <div className="glass-panel" style={{ padding: '24px' }}>
         <div style={{ marginBottom: '24px', display: 'flex', gap: '16px', maxWidth: '400px' }}>

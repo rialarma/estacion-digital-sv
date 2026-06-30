@@ -496,6 +496,31 @@ const Ventas = () => {
             description: `Venta (POS) - ${item.quantity} ${item.sale_type}`,
             created_by: userId
           }]);
+
+          // 4.6.1 FIFO Descuento de lotes
+          const { data: batches } = await supabase
+            .from('product_batches')
+            .select('*')
+            .eq('product_id', item.id)
+            .eq('branch_id', branch_id)
+            .gt('current_stock', 0)
+            .order('expiration_date', { ascending: true, nullsFirst: false })
+            .order('created_at', { ascending: true });
+
+          if (batches && batches.length > 0) {
+            let remainingDeduction = deduction;
+            for (const batch of batches) {
+              if (remainingDeduction <= 0) break;
+              
+              const taken = Math.min(batch.current_stock, remainingDeduction);
+              remainingDeduction -= taken;
+              
+              await supabase
+                .from('product_batches')
+                .update({ current_stock: batch.current_stock - taken })
+                .eq('id', batch.id);
+            }
+          }
         }
       }
 
