@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, Package, X, UploadCloud, DownloadCloud, Settings, Trash } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Package, X, UploadCloud, DownloadCloud, Settings, Trash, Camera } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
+import CameraScanner from '../components/CameraScanner';
 
 const Catalogo = () => {
   const { tenantInfo } = useTenantStore();
@@ -21,6 +22,7 @@ const Catalogo = () => {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [configType, setConfigType] = useState('category');
   const [uploadingCatImage, setUploadingCatImage] = useState(null);
+  const [showScanner, setShowScanner] = useState(false);
   const [formData, setFormData] = useState({
     name: '', sku: '', barcode: '', description: '', category: '', brand: '',
     price: '', cost: '', target_margin: '', is_taxable: true,
@@ -556,8 +558,30 @@ const Catalogo = () => {
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label>Código de Barras</label>
-                  <input type="text" className="glass-input" value={formData.barcode} placeholder="Escanea o escribe aquí"
-                    onChange={e => setFormData({ ...formData, barcode: e.target.value })} />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input type="text" className="glass-input" value={formData.barcode} placeholder="Escanea o escribe aquí"
+                      onChange={e => setFormData({ ...formData, barcode: e.target.value })} 
+                      style={{ paddingRight: '40px', width: '100%' }} />
+                    <button
+                      type="button"
+                      onClick={() => setShowScanner(true)}
+                      title="Escanear con cámara"
+                      style={{
+                        position: 'absolute',
+                        right: '8px',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--primary)',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <Camera size={20} />
+                    </button>
+                  </div>
                 </div>
               </div>
 

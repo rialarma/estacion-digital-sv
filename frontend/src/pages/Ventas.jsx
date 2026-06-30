@@ -4,6 +4,7 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
 import ProductSearch from '../components/ProductSearch';
+import CameraScanner from '../components/CameraScanner';
 import { printDocument } from '../utils/printUtils';
 
 // Genera un UUID v4 simple para el código de generación del DTE
@@ -38,6 +39,7 @@ const Ventas = () => {
   // Print Modal State
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [lastSaleData, setLastSaleData] = useState(null);
+  const [showScanner, setShowScanner] = useState(false);
 
   useEffect(() => {
     fetchActiveShift();
@@ -190,6 +192,16 @@ const Ventas = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [products, items]); // items está incluido porque handleSelectProduct usa items del state actual
+
+  const handleCameraScan = (decodedText) => {
+    const product = products.find(p => p.barcode === decodedText || p.sku === decodedText);
+    if (product) {
+      handleSelectProduct(product);
+      setShowScanner(false);
+    } else {
+      alert(`Código ${decodedText} no encontrado en el catálogo.`);
+    }
+  };
 
   const handleSelectProduct = (product) => {
     const existingItem = items.find(i => i.id === product.id && i.sale_type === 'UNIDAD');
@@ -626,8 +638,21 @@ const Ventas = () => {
             <h2 style={{ fontSize: '18px', marginBottom: '20px' }}>Construir Venta</h2>
             
             <div style={{ marginBottom: '24px', zIndex: 10 }}>
-              <ProductSearch products={products} onSelect={handleSelectProduct} />
+              <ProductSearch 
+                products={products} 
+                onSelect={handleSelectProduct} 
+                onCameraClick={() => setShowScanner(true)}
+              />
             </div>
+
+            {showScanner && (
+              <div className="modal-overlay" style={{ zIndex: 100 }}>
+                <CameraScanner 
+                  onScan={handleCameraScan} 
+                  onClose={() => setShowScanner(false)} 
+                />
+              </div>
+            )}
 
             <table className="glass-table">
               <thead>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Package } from 'lucide-react';
+import { Search, Package, Camera } from 'lucide-react';
 
-const ProductSearch = ({ products, onSelect, placeholder = "Buscar por nombre o SKU..." }) => {
+const ProductSearch = ({ products, onSelect, onCameraClick, placeholder = "Buscar por nombre o SKU..." }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [filtered, setFiltered] = useState([]);
@@ -50,8 +50,8 @@ const ProductSearch = ({ products, onSelect, placeholder = "Buscar por nombre o 
 
   return (
     <div ref={wrapperRef} style={{ position: 'relative', width: '100%' }}>
-      <div style={{ position: 'relative' }}>
-        <Search size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-muted)' }} />
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        <Search size={18} style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)' }} />
         <input
           type="text"
           className="glass-input"
@@ -63,9 +63,30 @@ const ProductSearch = ({ products, onSelect, placeholder = "Buscar por nombre o 
           }}
           onFocus={() => setShowDropdown(true)}
           onKeyDown={handleKeyDown}
-          style={{ paddingLeft: '40px', width: '100%' }}
+          style={{ paddingLeft: '40px', paddingRight: onCameraClick ? '40px' : '12px', width: '100%' }}
           autoComplete="off"
         />
+        {onCameraClick && (
+          <button
+            type="button"
+            onClick={onCameraClick}
+            title="Escanear con cámara"
+            style={{
+              position: 'absolute',
+              right: '8px',
+              background: 'none',
+              border: 'none',
+              color: 'var(--primary)',
+              cursor: 'pointer',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <Camera size={20} />
+          </button>
+        )}
       </div>
 
       {showDropdown && (
