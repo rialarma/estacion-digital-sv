@@ -21,10 +21,10 @@ const Clients = () => {
     nrc: '',
     economic_activity_code: '',
     department_code: '',
-    municipality_code: '',
     district: '',
     address: '',
-    credit_limit: 0
+    credit_limit: 0,
+    points_balance: 0
   });
 
   const [giroSearch, setGiroSearch] = useState('');
@@ -81,7 +81,7 @@ const Clients = () => {
       }
       
       setShowModal(false);
-      setFormData({ name: '', business_name: '', email: '', phone: '', document_type: 'DUI', document_number: '', nrc: '', economic_activity_code: '', department_code: '', municipality_code: '', district: '', address: '', credit_limit: 0 });
+      setFormData({ name: '', business_name: '', email: '', phone: '', document_type: 'DUI', document_number: '', nrc: '', economic_activity_code: '', department_code: '', municipality_code: '', district: '', address: '', credit_limit: 0, points_balance: 0 });
       setGiroSearch('');
       setEditingId(null);
       fetchClients();
@@ -105,7 +105,8 @@ const Clients = () => {
       municipality_code: client.municipality_code || '',
       district: client.district || '',
       address: client.address || '',
-      credit_limit: client.credit_limit || 0
+      credit_limit: client.credit_limit || 0,
+      points_balance: client.points_balance || 0
     });
     setGiroSearch('');
     setEditingId(client.id);
@@ -125,7 +126,7 @@ const Clients = () => {
         <h1 className="page-title">Directorio de Clientes</h1>
         <button className="glass-button" onClick={() => {
           setEditingId(null);
-          setFormData({ name: '', business_name: '', email: '', phone: '', document_type: 'DUI', document_number: '', nrc: '', economic_activity_code: '', department_code: '', municipality_code: '', district: '', address: '', credit_limit: 0 });
+          setFormData({ name: '', business_name: '', email: '', phone: '', document_type: 'DUI', document_number: '', nrc: '', economic_activity_code: '', department_code: '', municipality_code: '', district: '', address: '', credit_limit: 0, points_balance: 0 });
           setGiroSearch('');
           setShowModal(true);
         }}>
@@ -145,6 +146,7 @@ const Clients = () => {
                 <th>Documento</th>
                 <th>Contacto</th>
                 <th>Crédito</th>
+                <th>Puntos</th>
                 {tenantInfo?.module_memberships !== false && <th>Membresías</th>}
                 <th>Acciones</th>
               </tr>
@@ -183,6 +185,11 @@ const Clients = () => {
                   <td>
                     <div style={{ fontSize: '13px', fontWeight: 'bold', color: client.credit_limit > 0 ? '#10b981' : 'var(--text-muted)' }}>
                       ${Number(client.credit_limit || 0).toFixed(2)}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      ⭐ {client.points_balance || 0}
                     </div>
                   </td>
                   {tenantInfo?.module_memberships !== false && (
@@ -307,11 +314,16 @@ const Clients = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', marginTop: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
                 <div className="form-group">
                   <label>Límite de Crédito ($)</label>
                   <input type="number" step="0.01" min="0" className="glass-input" name="credit_limit" value={formData.credit_limit} onChange={handleInputChange} placeholder="0.00" />
                   <small style={{ color: 'var(--text-muted)' }}>0 significa que no tiene crédito.</small>
+                </div>
+                <div className="form-group">
+                  <label>Puntos Acumulados</label>
+                  <input type="number" min="0" className="glass-input" name="points_balance" value={formData.points_balance} onChange={handleInputChange} placeholder="0" />
+                  <small style={{ color: 'var(--text-muted)' }}>Puedes ajustar los puntos manualmente.</small>
                 </div>
               </div>
 

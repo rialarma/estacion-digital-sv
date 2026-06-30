@@ -40,6 +40,7 @@ const Ventas = () => {
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [lastSaleData, setLastSaleData] = useState(null);
   const [showScanner, setShowScanner] = useState(false);
+  const [pointsToUse, setPointsToUse] = useState(0);
 
   useEffect(() => {
     fetchActiveShift();
@@ -390,7 +391,7 @@ const Ventas = () => {
       // 2. Calcular totales (Reutilizamos el desglose hacia atrás)
       const subtotalDb = parseFloat(subtotal.toFixed(2));
       const tax_ivaDb = parseFloat(tax_iva.toFixed(2));
-      const totalDb = parseFloat(totalOrder.toFixed(2));
+      const totalDb = parseFloat(Math.max(0, totalOrder - pointsToUse).toFixed(2));
       const dteTipo = selectedClientId ? '03' : '01'; // 03=CCF, 01=FCF
       const codigoGeneracion = crypto.randomUUID();
 
@@ -498,6 +499,30 @@ const Ventas = () => {
         }
       }
 
+      // 4.7 Gestión de Puntos de Fidelización
+      const pointsEarned = Math.floor(totalDb);
+      const pointsSpent = pointsToUse > 0 ? pointsToUse : 0;
+      
+      if (selectedClientId && (pointsEarned > 0 || pointsSpent > 0)) {
+        const client = clients.find(c => c.id === selectedClientId);
+        if (client) {
+          const newBalance = (client.points_balance || 0) + pointsEarned - pointsSpent;
+          // Actualizar tabla clients
+          await supabase.from('clients').update({ points_balance: newBalance }).eq('id', selectedClientId);
+          
+          if (pointsEarned > 0) {
+            await supabase.from('client_points_history').insert({
+              tenant_id, client_id: selectedClientId, sale_id: sale.id, points_change: pointsEarned, description: 'Puntos ganados por compra en POS'
+            });
+          }
+          if (pointsSpent > 0) {
+            await supabase.from('client_points_history').insert({
+              tenant_id, client_id: selectedClientId, sale_id: sale.id, points_change: -pointsSpent, description: 'Puntos canjeados como descuento'
+            });
+          }
+        }
+      }
+
       // 5. Éxito
       const tipoLabel = dteTipo === '03' ? 'CCF' : 'FCF';
       
@@ -576,7 +601,10 @@ const Ventas = () => {
                 <select 
                   className="glass-input"
                   value={selectedClientId}
-                  onChange={(e) => setSelectedClientId(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedClientId(e.target.value);
+                    setPointsToUse(0);
+                  }}
                 >
                   <option value="">Consumidor Final (Sin nombre)</option>
                   {clients.map(c => (
@@ -711,10 +739,16 @@ const Ventas = () => {
             <span style={{ color: 'var(--text-muted)' }}>Subtotal (Sin IVA):</span>
             <span>${subtotal.toFixed(2)}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
             <span style={{ color: 'var(--text-muted)' }}>IVA ({(tenantInfo?.tax_iva || 13)}%):</span>
             <span>${tax_iva.toFixed(2)}</span>
           </div>
+          {pointsToUse > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', color: '#10b981' }}>
+              <span>Descuento por Puntos:</span>
+              <span>-${pointsToUse.toFixed(2)}</span>
+            </div>
+          )}
           <div style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
@@ -725,9 +759,43 @@ const Ventas = () => {
           }}>
             <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--primary)' }}>Total a Cobrar:</span>
             <span style={{ fontSize: '24px', fontWeight: 800, color: 'var(--primary)' }}>
-              ${totalOrder.toFixed(2)}
+              ${Math.max(0, totalOrder - pointsToUse).toFixed(2)}
             </span>
           </div>
+
+          {selectedClientId && (() => {
+            const client = clients.find(c => c.id === selectedClientId);
+            const balance = client?.points_balance || 0;
+            const pointsEarned = Math.floor(Math.max(0, totalOrder - pointsToUse));
+            return (
+              <div style={{ background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.3)', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ color: '#8b5cf6', fontWeight: 'bold' }}>⭐ Puntos: {balance}</span>
+                  <span style={{ color: '#10b981', fontSize: '12px' }}>+ {pointsEarned} pts hoy</span>
+                </div>
+                {balance > 0 && (
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input 
+                      type="number" 
+                      className="glass-input" 
+                      style={{ padding: '6px', fontSize: '12px', flex: 1 }}
+                      placeholder="Pts a usar"
+                      max={balance}
+                      min={0}
+                      value={pointsToUse || ''}
+                      onChange={(e) => {
+                        let val = Number(e.target.value) || 0;
+                        if (val > balance) val = balance;
+                        if (val > totalOrder) val = Math.floor(totalOrder); // Can't discount more than total
+                        setPointsToUse(val);
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           <button
             id="btn-emitir"
             className="glass-button"
