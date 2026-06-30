@@ -7,12 +7,16 @@ CREATE TABLE IF NOT EXISTS public.returns (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   tenant_id UUID REFERENCES public.tenants(id) ON DELETE CASCADE NOT NULL,
   branch_id UUID REFERENCES public.branches(id) ON DELETE CASCADE NOT NULL,
+  shift_id UUID REFERENCES public.cash_shifts(id) ON DELETE SET NULL, -- Turno en el que se hizo la devolución
   sale_id UUID REFERENCES public.sales(id) ON DELETE CASCADE NOT NULL,
   cashier_id UUID REFERENCES public.user_profiles(id) ON DELETE SET NULL,
   total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0,
   reason TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- (Si la tabla ya existe, añadimos la columna shift_id por seguridad)
+ALTER TABLE public.returns ADD COLUMN IF NOT EXISTS shift_id UUID REFERENCES public.cash_shifts(id) ON DELETE SET NULL;
 
 -- 2. Tabla de Items Devueltos
 CREATE TABLE IF NOT EXISTS public.return_items (
@@ -30,10 +34,16 @@ ALTER TABLE public.returns ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.return_items ENABLE ROW LEVEL SECURITY;
 
 -- Políticas
+DROP POLICY IF EXISTS "Tenants can view their own returns" ON public.returns;
 CREATE POLICY "Tenants can view their own returns" ON public.returns FOR SELECT USING (tenant_id IN (SELECT tenant_id FROM public.user_profiles WHERE id = auth.uid()));
+
+DROP POLICY IF EXISTS "Tenants can insert their own returns" ON public.returns;
 CREATE POLICY "Tenants can insert their own returns" ON public.returns FOR INSERT WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.user_profiles WHERE id = auth.uid()));
 
+DROP POLICY IF EXISTS "Tenants can view their own return items" ON public.return_items;
 CREATE POLICY "Tenants can view their own return items" ON public.return_items FOR SELECT USING (tenant_id IN (SELECT tenant_id FROM public.user_profiles WHERE id = auth.uid()));
+
+DROP POLICY IF EXISTS "Tenants can insert their own return items" ON public.return_items;
 CREATE POLICY "Tenants can insert their own return items" ON public.return_items FOR INSERT WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.user_profiles WHERE id = auth.uid()));
 
 -- 3. RPC para Procesar Devolución
@@ -53,10 +63,14 @@ DECLARE
   v_inv_id UUID;
   v_prev_stock DECIMAL(10,2);
   v_batch_id UUID;
+  v_sale_total DECIMAL(10,2);
 BEGIN
+  -- Obtener el total original de la venta
+  SELECT total INTO v_sale_total FROM public.sales WHERE id = p_sale_id;
+
   -- Insertar la cabecera de la devolución
-  INSERT INTO public.returns (tenant_id, branch_id, sale_id, cashier_id, reason)
-  VALUES (p_tenant_id, p_branch_id, p_sale_id, p_cashier_id, p_reason)
+  INSERT INTO public.returns (tenant_id, branch_id, shift_id, sale_id, cashier_id, reason)
+  VALUES (p_tenant_id, p_branch_id, p_shift_id, p_sale_id, p_cashier_id, p_reason)
   RETURNING id INTO v_return_id;
 
   -- Iterar sobre los items
@@ -96,12 +110,11 @@ BEGIN
   -- Actualizar el monto total de la devolución
   UPDATE public.returns SET total_amount = v_total_amount WHERE id = v_return_id;
 
-  -- Actualizar el total de la venta original para que los cortes de caja y reportes cuadren
+  -- Actualizar el estado de la venta original, pero NO modificamos el total para no arruinar cortes pasados.
   UPDATE public.sales 
   SET 
-    total = total - v_total_amount,
     status = CASE 
-      WHEN (total - v_total_amount) <= 0 THEN 'DEVUELTA'
+      WHEN (v_sale_total - v_total_amount) <= 0 THEN 'DEVUELTA'
       ELSE 'PARCIALMENTE_DEVUELTA'
     END
   WHERE id = p_sale_id;

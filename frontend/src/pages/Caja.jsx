@@ -18,7 +18,7 @@ const Caja = () => {
   // States para cierre
   const [actualBalance, setActualBalance] = useState('');
   const [closingNotes, setClosingNotes] = useState('');
-  const [shiftStats, setShiftStats] = useState({ salesTotal: 0, salesCount: 0, cardTotal: 0, transferTotal: 0 });
+  const [shiftStats, setShiftStats] = useState({ salesTotal: 0, salesCount: 0, cardTotal: 0, transferTotal: 0, returnsTotal: 0 });
   
   // Historial de Cortes
   const [closedShifts, setClosedShifts] = useState([]);
@@ -51,11 +51,20 @@ const Caja = () => {
       const cardSales = sales?.filter(s => s.payment_method === 'TARJETA').reduce((sum, s) => sum + Number(s.total), 0) || 0;
       const transferSales = sales?.filter(s => s.payment_method === 'TRANSFERENCIA').reduce((sum, s) => sum + Number(s.total), 0) || 0;
       
+      // Calcular devoluciones durante este turno
+      const { data: returns } = await supabase
+        .from('returns')
+        .select('total_amount')
+        .eq('shift_id', shift.id);
+        
+      const returnsTotal = returns?.reduce((sum, r) => sum + Number(r.total_amount), 0) || 0;
+
       setShiftStats({
         salesTotal: efecSales,
         salesCount: sales?.length || 0,
         cardTotal: cardSales,
-        transferTotal: transferSales
+        transferTotal: transferSales,
+        returnsTotal: returnsTotal
       });
     }
 
@@ -102,7 +111,8 @@ const Caja = () => {
     e.preventDefault();
     if (!activeShift) return;
     
-    const expected = Number(activeShift.opening_balance) + shiftStats.salesTotal;
+    // El efectivo esperado es (Fondo Inicial + Ventas Efectivo - Devoluciones Efectivo)
+    const expected = Number(activeShift.opening_balance) + shiftStats.salesTotal - shiftStats.returnsTotal;
     const actual = parseFloat(actualBalance || 0);
     const diff = actual - expected;
 
@@ -179,6 +189,13 @@ const Caja = () => {
                 <span style={{ fontWeight: 'bold', color: '#10b981' }}>+ ${shiftStats.salesTotal.toFixed(2)}</span>
               </div>
               
+              {shiftStats.returnsTotal > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Devoluciones</span>
+                  <span style={{ fontWeight: 'bold', color: '#ef4444' }}>- ${shiftStats.returnsTotal.toFixed(2)}</span>
+                </div>
+              )}
+              
               {(shiftStats.cardTotal > 0 || shiftStats.transferTotal > 0) && (
                 <div style={{ padding: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', fontSize: '13px' }}>
                   <div style={{ marginBottom: '4px', color: 'var(--text-muted)' }}>Ingresos No Físicos (Banco):</div>
@@ -198,9 +215,9 @@ const Caja = () => {
               )}
 
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', marginTop: '10px' }}>
-                <span style={{ paddingLeft: '12px', fontWeight: 'bold' }}>Efectivo Esperado</span>
-                <span style={{ paddingRight: '12px', fontWeight: 'bold', fontSize: '20px', color: '#60a5fa' }}>
-                  ${(Number(activeShift.opening_balance) + shiftStats.salesTotal).toFixed(2)}
+                <span style={{ paddingLeft: '12px' }}>Efectivo Esperado</span>
+                <span style={{ paddingRight: '12px', fontWeight: 'bold', fontSize: '20px', color: '#3b82f6' }}>
+                  ${(Number(activeShift.opening_balance) + shiftStats.salesTotal - shiftStats.returnsTotal).toFixed(2)}
                 </span>
               </div>
             </div>
