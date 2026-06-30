@@ -99,8 +99,8 @@ const CameraScanner = ({ onScan, onClose }) => {
           margin-bottom: 10px;
           width: 100%;
         }
-        #reader a { display: none !important; }
-        #reader span { display: none !important; }
+        /* Ocultar enlace de sponsor si existe pero sin romper la UI */
+        #reader a[href*="scanapp"] { display: none !important; }
       `}</style>
     </div>
   );
