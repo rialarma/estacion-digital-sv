@@ -33,7 +33,7 @@ const StorefrontCheckout = ({ customTenantId }) => {
   useEffect(() => {
     const fetchConfig = async () => {
       if (tenantId) {
-        const { data } = await supabase.from('tenants').select('store_shipping_cost, primary_color, store_primary_text_color').eq('id', tenantId).single();
+        const { data } = await supabase.rpc('get_storefront_config', { p_tenant_id: tenantId });
         if (data) setTenantConfig(data);
       }
     };

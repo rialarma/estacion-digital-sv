@@ -32,10 +32,7 @@ const StorefrontHome = ({ customTenantId }) => {
     const fetchStoreData = async () => {
       try {
         const { data: tenantData } = await supabase
-          .from('tenants')
-          .select('name, logo_url, whatsapp_number, facebook_url, instagram_url, about_us, allow_negative_stock, primary_color, hero_banner_url, store_slogan, store_promo_message, store_catalog_mode, store_button_text, store_shipping_cost, tiktok_url, store_show_whatsapp_float, store_primary_text_color')
-          .eq('id', tenantId)
-          .single();
+          .rpc('get_storefront_config', { p_tenant_id: tenantId });
           
         if (tenantData) {
           setTenantName(tenantData.name);
@@ -49,18 +46,12 @@ const StorefrontHome = ({ customTenantId }) => {
         setProducts(productsData || []);
 
         const { data: catData } = await supabase
-          .from('product_categories')
-          .select('id, name, image_url')
-          .eq('tenant_id', tenantId)
-          .order('name');
+          .rpc('get_storefront_categories', { p_tenant_id: tenantId });
           
         if (catData) setCategories(catData);
 
         const { data: brandData } = await supabase
-          .from('product_brands')
-          .select('id, name')
-          .eq('tenant_id', tenantId)
-          .order('name');
+          .rpc('get_storefront_brands', { p_tenant_id: tenantId });
           
         if (brandData) setBrands(brandData);
       } catch (err) {
