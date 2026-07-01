@@ -69,6 +69,8 @@ const AuthStoreModal = ({ tenantId, isOpen, onClose, onLoginSuccess }) => {
     } finally {
       setLoading(false);
     }
+  };
+
   const handleGoogleLogin = async () => {
     try {
       setLoading(true);

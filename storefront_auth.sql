@@ -44,15 +44,23 @@ END;
 $$;
 
 -- 4. Políticas de Seguridad (RLS) para que los clientes B2C puedan ver su info
-CREATE POLICY "Customers can view their own client profile" ON public.clients
-  FOR SELECT USING (user_id = auth.uid());
+DROP POLICY IF EXISTS "Customers can view their own client profile" ON public.clients;
+CREATE POLICY "Customers can view their own client profile"
+ON public.clients FOR SELECT
+TO authenticated
+USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Customers can update their own client profile" ON public.clients;
 CREATE POLICY "Customers can update their own client profile" ON public.clients
   FOR UPDATE USING (user_id = auth.uid());
 
-CREATE POLICY "Customers can view their own web orders" ON public.web_orders
-  FOR SELECT USING (client_id IN (SELECT id FROM public.clients WHERE user_id = auth.uid()));
+DROP POLICY IF EXISTS "Customers can view their own orders" ON public.web_orders;
+CREATE POLICY "Customers can view their own orders"
+ON public.web_orders FOR SELECT
+TO authenticated
+USING (client_id IN (SELECT id FROM public.clients WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Customers can view their own web order items" ON public.web_order_items;
 CREATE POLICY "Customers can view their own web order items" ON public.web_order_items
   FOR SELECT USING (web_order_id IN (SELECT id FROM public.web_orders WHERE client_id IN (SELECT id FROM public.clients WHERE user_id = auth.uid())));
 
