@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabase';
 import { useCartStore } from './CartStore';
-import { ArrowLeft, CheckCircle, CreditCard, Banknote } from 'lucide-react';
+import { ArrowLeft, CheckCircle, CreditCard, Banknote, User } from 'lucide-react';
+import AuthStoreModal from './AuthStoreModal';
 import './Storefront.css';
 
 const StorefrontCheckout = ({ customTenantId }) => {
@@ -29,6 +30,7 @@ const StorefrontCheckout = ({ customTenantId }) => {
   const [tenantConfig, setTenantConfig] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [clientProfile, setClientProfile] = useState(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -57,6 +59,23 @@ const StorefrontCheckout = ({ customTenantId }) => {
             phone: profile.phone || prev.phone,
             address: profile.address || prev.address
           }));
+        } else {
+          // Si el usuario acaba de iniciar sesión con Google y no tiene perfil de cliente, lo creamos
+          const defaultName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
+          const { error: rpcError } = await supabase.rpc('register_store_customer', {
+            p_tenant_id: tenantId,
+            p_name: defaultName,
+            p_phone: '',
+            p_address: ''
+          });
+          if (!rpcError) {
+            // Re-fetch para cargar el id del cliente
+            const { data: newProfile } = await supabase.from('clients').select('*').eq('user_id', session.user.id).eq('tenant_id', tenantId).single();
+            if (newProfile) {
+              setClientProfile(newProfile);
+              setFormData(prev => ({ ...prev, name: defaultName }));
+            }
+          }
         }
       }
     };
@@ -178,93 +197,81 @@ const StorefrontCheckout = ({ customTenantId }) => {
         <div style={{ background: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
             <h2 className="sf-title" style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Datos de Envío</h2>
             
-            {!currentUser && (
-              <div style={{ background: '#e0f2fe', color: '#0284c7', padding: '12px 16px', borderRadius: '12px', marginBottom: '1.5rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <CheckCircle size={18} />
-                <span>¿Quieres guardar tus datos para tu próxima compra? ¡Inicia sesión o regístrate en la pantalla principal!</span>
+            {!currentUser ? (
+              <div style={{ padding: '2rem', textAlign: 'center', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+                <User size={48} color="#94a3b8" style={{ marginBottom: '1rem' }} />
+                <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>¡Hola! Inicia sesión para continuar</h3>
+                <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Para ofrecerte una experiencia de compra segura y más rápida, requerimos que inicies sesión.</p>
+                <button 
+                  onClick={() => setIsAuthModalOpen(true)}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'var(--sf-primary)', color: 'var(--sf-text-on-primary)', border: 'none', fontWeight: 600, cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                >
+                  Iniciar sesión o Registrarse
+                </button>
               </div>
+            ) : (
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: 600 }}>Nombre Completo *</label>
+                  <input required type="text" name="name" value={formData.name} onChange={handleInputChange}
+                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: 600 }}>Teléfono *</label>
+                  <input required type="tel" name="phone" value={formData.phone} onChange={handleInputChange}
+                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: 600 }}>Dirección de Entrega *</label>
+                  <textarea required name="address" value={formData.address} onChange={handleInputChange} rows={3}
+                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}></textarea>
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: 600 }}>Notas adicionales</label>
+                  <textarea name="notes" value={formData.notes} onChange={handleInputChange} rows={2}
+                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} placeholder="Opcional"></textarea>
+                </div>
+
+                <div style={{ marginTop: '16px' }}>
+                  <h3 style={{ fontSize: '1rem', marginBottom: '12px' }}>Método de Pago</h3>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button type="button" onClick={() => setPaymentMethod('CASH')}
+                      style={{ flex: 1, padding: '16px', borderRadius: '8px', border: paymentMethod === 'CASH' ? '2px solid var(--sf-primary)' : '1px solid #e2e8f0', background: paymentMethod === 'CASH' ? 'color-mix(in srgb, var(--sf-primary) 5%, transparent)' : 'white', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                      <Banknote size={24} color={paymentMethod === 'CASH' ? 'var(--sf-primary)' : '#64748b'} />
+                      <span style={{ fontWeight: 600, color: paymentMethod === 'CASH' ? 'var(--sf-primary)' : '#64748b' }}>Efectivo al recibir</span>
+                    </button>
+                    <button type="button" onClick={() => setPaymentMethod('CARD')}
+                      style={{ flex: 1, padding: '16px', borderRadius: '8px', border: paymentMethod === 'CARD' ? '2px solid var(--sf-primary)' : '1px solid #e2e8f0', background: paymentMethod === 'CARD' ? 'color-mix(in srgb, var(--sf-primary) 5%, transparent)' : 'white', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                      <CreditCard size={24} color={paymentMethod === 'CARD' ? 'var(--sf-primary)' : '#64748b'} />
+                      <span style={{ fontWeight: 600, color: paymentMethod === 'CARD' ? 'var(--sf-primary)' : '#64748b' }}>Tarjeta (Simulado)</span>
+                    </button>
+                  </div>
+                </div>
+
+                {paymentMethod === 'CARD' && (
+                  <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '8px', marginTop: '8px' }}>
+                    <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '12px' }}>🔒 Pago seguro 256-bit (Modo Prueba)</p>
+                    <input type="text" placeholder="Número de Tarjeta" value={cardData.number} onChange={e => setCardData({ ...cardData, number: e.target.value })} style={{ width: '100%', padding: '10px', marginBottom: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input type="text" placeholder="MM/YY" value={cardData.expiry} onChange={e => setCardData({ ...cardData, expiry: e.target.value })} style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                      <input type="text" placeholder="CVV" value={cardData.cvv} onChange={e => setCardData({ ...cardData, cvv: e.target.value })} style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                    </div>
+                  </div>
+                )}
+
+                <button type="submit" disabled={loading} style={{ marginTop: '16px', width: '100%', padding: '16px', borderRadius: '12px', background: 'var(--sf-primary)', color: 'var(--sf-text-on-primary)', border: 'none', fontWeight: 'bold', fontSize: '1.1rem', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+                  {loading ? (
+                    paymentStep === 'PROCESSING_CARD' ? 'Verificando Tarjeta...' : 'Procesando Pedido...'
+                  ) : (
+                    `Confirmar Pedido - $${finalTotal.toFixed(2)}`
+                  )}
+                </button>
+              </form>
             )}
-
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: 600 }}>Nombre Completo *</label>
-              <input required type="text" name="name" value={formData.name} onChange={handleInputChange}
-                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: 600 }}>Teléfono (WhatsApp) *</label>
-              <input required type="text" name="phone" value={formData.phone} onChange={handleInputChange}
-                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: 600 }}>Dirección de Entrega</label>
-              <textarea required name="address" value={formData.address} onChange={handleInputChange} rows="3"
-                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', resize: 'vertical' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: 600 }}>Notas adicionales (Opcional)</label>
-              <textarea name="notes" value={formData.notes} onChange={handleInputChange} rows="2"
-                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', resize: 'vertical' }} placeholder="Ej: Llamar al llegar, dejar en portería..." />
-            </div>
-
-            <button type="submit" className="checkout-btn" disabled={loading} style={{ marginTop: '16px', position: 'relative' }}>
-              {paymentStep === 'PROCESSING_CARD' ? 'Procesando Tarjeta...' : loading ? 'Guardando...' : `Confirmar Pedido - $${finalTotal.toFixed(2)}`}
-            </button>
-          </form>
         </div>
 
         {/* Resumen del Carrito y Pagos */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* Método de Pago */}
-          <div style={{ background: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '16px' }}>Método de Pago</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              
-              <label style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', border: paymentMethod === 'CASH' ? '2px solid #3b82f6' : '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}>
-                <input type="radio" name="paymentMethod" value="CASH" checked={paymentMethod === 'CASH'} onChange={() => setPaymentMethod('CASH')} style={{ width: '18px', height: '18px' }} />
-                <Banknote color={paymentMethod === 'CASH' ? '#3b82f6' : '#64748b'} />
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontWeight: 600 }}>Efectivo</span>
-                  <span style={{ fontSize: '12px', color: '#64748b' }}>Pagas al recibir tu pedido</span>
-                </div>
-              </label>
-
-              <label style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', border: paymentMethod === 'CARD' ? '2px solid #3b82f6' : '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}>
-                <input type="radio" name="paymentMethod" value="CARD" checked={paymentMethod === 'CARD'} onChange={() => setPaymentMethod('CARD')} style={{ width: '18px', height: '18px' }} />
-                <CreditCard color={paymentMethod === 'CARD' ? '#3b82f6' : '#64748b'} />
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontWeight: 600 }}>Tarjeta de Crédito / Débito</span>
-                  <span style={{ fontSize: '12px', color: '#64748b' }}>Pago seguro en línea (Simulado)</span>
-                </div>
-              </label>
-            </div>
-
-            {paymentMethod === 'CARD' && (
-              <div style={{ marginTop: '16px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
-                <div style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 600 }}>Número de Tarjeta</label>
-                  <input type="text" placeholder="0000 0000 0000 0000" maxLength="19" required={paymentMethod === 'CARD'}
-                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                    onChange={e => setCardData({...cardData, number: e.target.value})} />
-                </div>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 600 }}>Vencimiento</label>
-                    <input type="text" placeholder="MM/YY" maxLength="5" required={paymentMethod === 'CARD'}
-                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                      onChange={e => setCardData({...cardData, expiry: e.target.value})} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 600 }}>CVV</label>
-                    <input type="text" placeholder="123" maxLength="4" required={paymentMethod === 'CARD'}
-                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                      onChange={e => setCardData({...cardData, cvv: e.target.value})} />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
           <div style={{ background: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
             <h2 style={{ fontSize: '1.25rem', marginBottom: '20px' }}>Resumen</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
@@ -288,6 +295,17 @@ const StorefrontCheckout = ({ customTenantId }) => {
         </div>
         </div>
       </main>
+
+      <AuthStoreModal 
+        tenantId={tenantId}
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+        onLoginSuccess={(user) => {
+          setCurrentUser(user);
+          // Recargar para que fetchConfig dispare checkUser() nuevamente
+          window.location.reload(); 
+        }}
+      />
     </div>
   );
 };
