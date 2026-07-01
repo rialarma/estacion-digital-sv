@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../../../supabase';
+import { supabase } from '../../supabase';
 import { X, Mail, Lock, User, Phone } from 'lucide-react';
 import './AuthStoreModal.css';
 

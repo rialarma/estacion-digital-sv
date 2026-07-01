@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../../../supabase';
+import { supabase } from '../../supabase';
 import { ArrowLeft, User, Package, MapPin, Phone, LogOut } from 'lucide-react';
 
 const StoreProfile = () => {
