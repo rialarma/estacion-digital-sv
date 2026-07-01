@@ -8,6 +8,9 @@ import { Menu, UserCheck, Truck, FileText } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Compras from './pages/Compras';
 import Ventas from './pages/Ventas';
+import Storefront from './pages/Storefront/Home';
+import Checkout from './pages/Storefront/Checkout';
+import StoreProfile from './pages/Storefront/StoreProfile';
 const Historial = lazy(() => import('./pages/Historial'));
 const Documents = lazy(() => import('./pages/Documents'));
 const Inventory = lazy(() => import('./pages/Inventory'));
@@ -158,8 +161,9 @@ function App() {
         <Router>
           <Suspense fallback={<div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center' }}>Cargando tienda...</div>}>
             <Routes>
-              <Route path="/" element={<StorefrontHome customTenantId={customDomainTenantId} />} />
-              <Route path="/checkout" element={<StorefrontCheckout customTenantId={customDomainTenantId} />} />
+              <Route path="/" element={<Storefront customTenantId={customDomainTenantId} />} />
+              <Route path="/checkout" element={<Checkout customTenantId={customDomainTenantId} />} />
+              <Route path="/perfil" element={<StoreProfile customTenantId={customDomainTenantId} />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
@@ -174,8 +178,10 @@ function App() {
       <Router>
         <Suspense fallback={<div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center' }}>Cargando tienda...</div>}>
           <Routes>
-            <Route path="/tienda/:tenantId" element={<StorefrontHome />} />
-            <Route path="/tienda/:tenantId/checkout" element={<StorefrontCheckout />} />
+            {/* Rutas Públicas (Tienda Virtual) */}
+            <Route path="/tienda/:tenantId" element={<Storefront />} />
+            <Route path="/tienda/:tenantId/checkout" element={<Checkout />} />
+            <Route path="/tienda/:tenantId/perfil" element={<StoreProfile />} />
             <Route path="/kiosko/:tenantId" element={<KioskoAsistencia />} />
           </Routes>
         </Suspense>

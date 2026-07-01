@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabase';
 import { useCartStore } from './CartStore';
-import { ShoppingCart, Plus, Minus, Trash2, Phone, Search, X, MessageCircle, Heart } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, Phone, Search, X, MessageCircle, Heart, User } from 'lucide-react';
+import AuthStoreModal from './AuthStoreModal';
 import './Storefront.css';
 
 const StorefrontHome = ({ customTenantId }) => {
@@ -16,6 +17,8 @@ const StorefrontHome = ({ customTenantId }) => {
   const [tenantName, setTenantName] = useState('Tienda Virtual');
   const [tenantConfig, setTenantConfig] = useState(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -28,8 +31,6 @@ const StorefrontHome = ({ customTenantId }) => {
   useEffect(() => {
     const fetchStoreData = async () => {
       try {
-        // Fetch Tenant Name (Optional, might require RLS adjustment if not public, 
-        // but let's try reading public.tenants if possible, or just default)
         const { data: tenantData } = await supabase
           .from('tenants')
           .select('name, logo_url, whatsapp_number, facebook_url, instagram_url, about_us, allow_negative_stock, primary_color, hero_banner_url, store_slogan, store_promo_message, store_catalog_mode, store_button_text, store_shipping_cost, tiktok_url, store_show_whatsapp_float, store_primary_text_color')
@@ -41,14 +42,12 @@ const StorefrontHome = ({ customTenantId }) => {
           setTenantConfig(tenantData);
         }
 
-        // Fetch Products via RPC
         const { data: productsData, error } = await supabase
           .rpc('get_storefront_products', { p_tenant_id: tenantId });
 
         if (error) throw error;
         setProducts(productsData || []);
 
-        // Fetch Categories
         const { data: catData } = await supabase
           .from('product_categories')
           .select('id, name, image_url')
@@ -57,7 +56,6 @@ const StorefrontHome = ({ customTenantId }) => {
           
         if (catData) setCategories(catData);
 
-        // Fetch Brands
         const { data: brandData } = await supabase
           .from('product_brands')
           .select('id, name')
@@ -73,6 +71,15 @@ const StorefrontHome = ({ customTenantId }) => {
     };
 
     if (tenantId) fetchStoreData();
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setCurrentUser(session?.user || null);
+    });
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user || null);
+    });
+    return () => subscription.unsubscribe();
   }, [tenantId]);
 
   const parentProducts = products.filter(p => !p.parent_id);
@@ -89,7 +96,7 @@ const StorefrontHome = ({ customTenantId }) => {
     setSelectedProduct(product);
     const variants = getVariants(product.id);
     if (variants.length > 0) {
-      setSelectedVariant(variants[0]); // Select first variant by default
+      setSelectedVariant(variants[0]);
     } else {
       setSelectedVariant(null);
     }
@@ -113,7 +120,7 @@ const StorefrontHome = ({ customTenantId }) => {
     } else {
       addItem(product);
     }
-    setSelectedProduct(null); // Close modal if open
+    setSelectedProduct(null);
     setIsCartOpen(true);
   };
 
@@ -129,14 +136,12 @@ const StorefrontHome = ({ customTenantId }) => {
         }
       `}</style>
 
-      {/* Promo Bar */}
       {tenantConfig?.store_promo_message && (
         <div style={{ background: 'var(--sf-primary)', color: 'var(--sf-text-on-primary)', textAlign: 'center', padding: '10px 16px', fontSize: '0.9rem', fontWeight: 500, letterSpacing: '0.5px' }}>
           {tenantConfig.store_promo_message}
         </div>
       )}
 
-      {/* Header Fijo */}
       <header className="storefront-header">
         <div className="storefront-header-content">
           <a href="#" className="sf-brand">
@@ -157,16 +162,24 @@ const StorefrontHome = ({ customTenantId }) => {
             />
           </div>
 
-          <button className="cart-toggle-btn" onClick={() => setIsCartOpen(true)}>
-            <ShoppingCart size={22} />
-            {cartItemCount > 0 && <span className="cart-badge">{cartItemCount}</span>}
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="cart-toggle-btn" onClick={() => {
+              if (currentUser) {
+                navigate(customTenantId ? '/perfil' : `/tienda/${tenantId}/perfil`);
+              } else {
+                setIsAuthModalOpen(true);
+              }
+            }}>
+              <User size={22} />
+            </button>
+            <button className="cart-toggle-btn" onClick={() => setIsCartOpen(true)}>
+              <ShoppingCart size={22} />
+              {cartItemCount > 0 && <span className="cart-badge">{cartItemCount}</span>}
+            </button>
+          </div>
         </div>
       </header>
 
-
-
-      {/* Hero Banner Dinámico (Carrusel) */}
       <section className="sf-hero">
         <img src={tenantConfig?.hero_banner_url || "https://images.unsplash.com/photo-1540569014015-19a7be504e3a?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80"} alt="Promo" className="sf-hero-image" />
         <div className="sf-hero-overlay"></div>
@@ -176,7 +189,6 @@ const StorefrontHome = ({ customTenantId }) => {
         </div>
       </section>
 
-      {/* Círculos de Compra por Categoría */}
       <section className="sf-category-circles-container">
         <h3 className="sf-category-circles-title">Compra por categoría</h3>
         <div className="sf-category-circles">
@@ -195,7 +207,6 @@ const StorefrontHome = ({ customTenantId }) => {
         </div>
       </section>
 
-      {/* Catálogo */}
       <main className="storefront-main">
         <div className="sf-section-title">
           <span>Nuestro Catálogo</span>
@@ -293,7 +304,6 @@ const StorefrontHome = ({ customTenantId }) => {
         )}
       </main>
 
-      {/* Modal de Producto (Vista Rápida) para Variantes */}
       {selectedProduct && (
         <div className="cart-sidebar-overlay" onClick={() => setSelectedProduct(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
           <div className="glass-panel" onClick={e => e.stopPropagation()} style={{ background: 'var(--sf-surface)', width: '90%', maxWidth: '500px', borderRadius: '16px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -377,7 +387,6 @@ const StorefrontHome = ({ customTenantId }) => {
         </div>
       )}
 
-      {/* Shopping Cart Modal */}
       {isCartOpen && (
         <div className="cart-sidebar-overlay" onClick={() => setIsCartOpen(false)}>
           <div className="cart-sidebar" onClick={e => e.stopPropagation()}>
@@ -434,7 +443,6 @@ const StorefrontHome = ({ customTenantId }) => {
         </div>
       )}
 
-      {/* Bandeja de Beneficios (Features Strip) */}
       <section className="sf-features-strip">
         <div className="sf-features-content">
           <div className="sf-feature-item">
@@ -460,7 +468,6 @@ const StorefrontHome = ({ customTenantId }) => {
         </div>
       </section>
 
-      {/* Marcas (Brands Strip) */}
       {brands && brands.length > 0 && (
         <section className="sf-brands-strip">
           <h3 className="sf-brands-title">Conoce nuestras marcas</h3>
@@ -472,7 +479,6 @@ const StorefrontHome = ({ customTenantId }) => {
         </section>
       )}
 
-      {/* Footer Pro */}
       <footer className="sf-footer">
         <div className="sf-footer-content">
           <div className="sf-footer-brand">
@@ -509,10 +515,10 @@ const StorefrontHome = ({ customTenantId }) => {
         </div>
 
         <div className="sf-footer-bottom">
-          <p>© {new Date().getFullYear()} {tenantName}. Todos los derechos reservados.</p>
+          <p>&copy; {new Date().getFullYear()} {tenantName}. Todos los derechos reservados.</p>
         </div>
       </footer>
-      {/* Floating WhatsApp Button */}
+
       {tenantConfig?.whatsapp_number && tenantConfig?.store_show_whatsapp_float !== false && (
         <a 
           href={`https://wa.me/${tenantConfig.whatsapp_number.replace(/\D/g, '')}?text=Hola,%20quisiera%20más%20información.`} 

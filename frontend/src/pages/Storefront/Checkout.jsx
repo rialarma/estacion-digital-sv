@@ -27,6 +27,8 @@ const StorefrontCheckout = ({ customTenantId }) => {
   const [loading, setLoading] = useState(false);
   const [successOrderId, setSuccessOrderId] = useState(null);
   const [tenantConfig, setTenantConfig] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [clientProfile, setClientProfile] = useState(null);
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -35,7 +37,32 @@ const StorefrontCheckout = ({ customTenantId }) => {
         if (data) setTenantConfig(data);
       }
     };
+
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setCurrentUser(session.user);
+        const { data: profile } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .eq('tenant_id', tenantId)
+          .single();
+          
+        if (profile) {
+          setClientProfile(profile);
+          setFormData(prev => ({
+            ...prev,
+            name: profile.name || prev.name,
+            phone: profile.phone || prev.phone,
+            address: profile.address || prev.address
+          }));
+        }
+      }
+    };
+
     fetchConfig();
+    checkUser();
   }, [tenantId]);
 
   const cartTotal = getTotal();
@@ -78,7 +105,8 @@ const StorefrontCheckout = ({ customTenantId }) => {
         p_total: finalTotal,
         p_items: orderItems,
         p_payment_method: paymentMethod,
-        p_payment_status: finalPaymentStatus
+        p_payment_status: finalPaymentStatus,
+        p_client_id: clientProfile?.id || null
       });
 
       if (error) throw error;
@@ -148,8 +176,16 @@ const StorefrontCheckout = ({ customTenantId }) => {
       <main className="storefront-main" style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '32px', alignItems: 'start' }}>
         {/* Formulario de Cliente */}
         <div style={{ background: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '20px' }}>Tus Datos de Envío</h2>
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <h2 className="sf-title" style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Datos de Envío</h2>
+            
+            {!currentUser && (
+              <div style={{ background: '#e0f2fe', color: '#0284c7', padding: '12px 16px', borderRadius: '12px', marginBottom: '1.5rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CheckCircle size={18} />
+                <span>¿Quieres guardar tus datos para tu próxima compra? ¡Inicia sesión o regístrate en la pantalla principal!</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: 600 }}>Nombre Completo *</label>
               <input required type="text" name="name" value={formData.name} onChange={handleInputChange}
