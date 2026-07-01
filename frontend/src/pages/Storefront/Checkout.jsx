@@ -26,8 +26,21 @@ const StorefrontCheckout = ({ customTenantId }) => {
   
   const [loading, setLoading] = useState(false);
   const [successOrderId, setSuccessOrderId] = useState(null);
+  const [tenantConfig, setTenantConfig] = useState(null);
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      if (tenantId) {
+        const { data } = await supabase.from('tenants').select('store_shipping_cost, primary_color, store_primary_text_color').eq('id', tenantId).single();
+        if (data) setTenantConfig(data);
+      }
+    };
+    fetchConfig();
+  }, [tenantId]);
 
   const cartTotal = getTotal();
+  const shippingCost = tenantConfig?.store_shipping_cost || 0;
+  const finalTotal = cartTotal + shippingCost;
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -62,7 +75,7 @@ const StorefrontCheckout = ({ customTenantId }) => {
         p_customer_phone: formData.phone,
         p_delivery_address: formData.address,
         p_notes: formData.notes,
-        p_total: cartTotal,
+        p_total: finalTotal,
         p_items: orderItems,
         p_payment_method: paymentMethod,
         p_payment_status: finalPaymentStatus
@@ -116,6 +129,13 @@ const StorefrontCheckout = ({ customTenantId }) => {
 
   return (
     <div className="storefront-container">
+      <style>{`
+        .storefront-container {
+          --sf-primary: ${tenantConfig?.primary_color || '#0f172a'};
+          --sf-primary-hover: ${tenantConfig?.primary_color ? tenantConfig.primary_color + 'dd' : '#1e293b'};
+          --sf-text-on-primary: ${tenantConfig?.store_primary_text_color || '#ffffff'};
+        }
+      `}</style>
       <header className="storefront-header">
         <div className="storefront-header-content" style={{ justifyContent: 'flex-start', gap: '16px' }}>
           <button onClick={() => navigate(customTenantId ? '/' : `/tienda/${tenantId}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
@@ -152,7 +172,7 @@ const StorefrontCheckout = ({ customTenantId }) => {
             </div>
 
             <button type="submit" className="checkout-btn" disabled={loading} style={{ marginTop: '16px', position: 'relative' }}>
-              {paymentStep === 'PROCESSING_CARD' ? 'Procesando Tarjeta...' : loading ? 'Guardando...' : `Confirmar Pedido - $${cartTotal.toFixed(2)}`}
+              {paymentStep === 'PROCESSING_CARD' ? 'Procesando Tarjeta...' : loading ? 'Guardando...' : `Confirmar Pedido - $${finalTotal.toFixed(2)}`}
             </button>
           </form>
         </div>
@@ -219,9 +239,15 @@ const StorefrontCheckout = ({ customTenantId }) => {
               </div>
             ))}
           </div>
+          {shippingCost > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '20px', color: '#64748b' }}>
+              <span>Envío a Domicilio</span>
+              <span style={{ fontWeight: 600 }}>${shippingCost.toFixed(2)}</span>
+            </div>
+          )}
           <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', fontWeight: 700 }}>
             <span>Total</span>
-            <span>${cartTotal.toFixed(2)}</span>
+            <span>${finalTotal.toFixed(2)}</span>
           </div>
         </div>
         </div>

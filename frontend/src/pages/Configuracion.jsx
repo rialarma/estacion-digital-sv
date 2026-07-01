@@ -9,6 +9,9 @@ const Configuracion = () => {
   const { tenantInfo, updateTenantInfo } = useTenantStore();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [branches, setBranches] = useState([]);
+  const [savingBranches, setSavingBranches] = useState(false);
+  const [activeTab, setActiveTab] = useState('general');
   
   const [formData, setFormData] = useState({
     name: '',
@@ -27,7 +30,18 @@ const Configuracion = () => {
     allow_negative_stock: true,
     primary_color: '#0f172a',
     store_slogan: '',
-    theme: 'dark'
+    theme: 'dark',
+    dte_enabled: false,
+    dte_environment: 'TEST',
+    dte_password_api: '',
+    dte_username_api: '',
+    store_promo_message: '',
+    store_catalog_mode: false,
+    store_button_text: 'AÑADIR AL CARRITO',
+    store_shipping_cost: 0.00,
+    tiktok_url: '',
+    store_show_whatsapp_float: true,
+    store_primary_text_color: '#ffffff'
   });
 
   const [logoFile, setLogoFile] = useState(null);
@@ -54,15 +68,39 @@ const Configuracion = () => {
         allow_negative_stock: tenantInfo.allow_negative_stock !== false,
         primary_color: tenantInfo.primary_color || '#0f172a',
         store_slogan: tenantInfo.store_slogan || '',
-        theme: tenantInfo.theme || 'dark'
+        theme: tenantInfo.theme || 'dark',
+        dte_enabled: tenantInfo.dte_enabled || false,
+        dte_environment: tenantInfo.dte_environment || 'TEST',
+        dte_password_api: '', // Nunca cargamos la contraseña encriptada en la vista
+        dte_username_api: tenantInfo.dte_username_api || '',
+        store_promo_message: tenantInfo.store_promo_message || '',
+        store_catalog_mode: tenantInfo.store_catalog_mode || false,
+        store_button_text: tenantInfo.store_button_text || 'AÑADIR AL CARRITO',
+        store_shipping_cost: tenantInfo.store_shipping_cost || 0.00,
+        tiktok_url: tenantInfo.tiktok_url || '',
+        store_show_whatsapp_float: tenantInfo.store_show_whatsapp_float !== false,
+        store_primary_text_color: tenantInfo.store_primary_text_color || '#ffffff'
       });
       setPreviewUrl(tenantInfo.logo_url || '');
       setPreviewBannerUrl(tenantInfo.hero_banner_url || '');
+      
+      // Fetch branches
+      const fetchBranches = async () => {
+        const { data, error } = await supabase
+          .from('branches')
+          .select('*')
+          .eq('tenant_id', tenantInfo.id);
+        if (!error && data) {
+          setBranches(data);
+        }
+      };
+      fetchBranches();
     }
   }, [tenantInfo]);
 
   const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    setFormData({ ...formData, [e.target.name]: value });
   };
 
   const handleFileChange = (e) => {
@@ -138,11 +176,29 @@ const Configuracion = () => {
           primary_color: formData.primary_color,
           store_slogan: formData.store_slogan,
           theme: formData.theme,
-          hero_banner_url: await uploadBanner()
+          hero_banner_url: await uploadBanner(),
+          store_promo_message: formData.store_promo_message,
+          store_catalog_mode: formData.store_catalog_mode,
+          store_button_text: formData.store_button_text,
+          store_shipping_cost: formData.store_shipping_cost,
+          tiktok_url: formData.tiktok_url,
+          store_show_whatsapp_float: formData.store_show_whatsapp_float,
+          store_primary_text_color: formData.store_primary_text_color
         })
         .eq('id', tenantInfo.id);
 
       if (error) throw error;
+
+      // 2. Guardar Configuración DTE de forma segura (RPC)
+      const { error: dteError } = await supabase.rpc('save_dte_credentials', {
+        p_tenant_id: tenantInfo.id,
+        p_enabled: formData.dte_enabled,
+        p_environment: formData.dte_environment,
+        p_username: formData.dte_username_api,
+        p_password: formData.dte_password_api
+      });
+
+      if (dteError) throw dteError;
 
       updateTenantInfo({
         company_name: formData.name,
@@ -161,7 +217,18 @@ const Configuracion = () => {
         primary_color: formData.primary_color,
         store_slogan: formData.store_slogan,
         theme: formData.theme,
-        hero_banner_url: previewBannerUrl || tenantInfo.hero_banner_url
+        dte_enabled: formData.dte_enabled,
+        dte_environment: formData.dte_environment,
+        dte_username_api: formData.dte_username_api,
+        // dte_password_api no lo actualizamos en el estado local por seguridad
+        hero_banner_url: previewBannerUrl || tenantInfo.hero_banner_url,
+        store_promo_message: formData.store_promo_message,
+        store_catalog_mode: formData.store_catalog_mode,
+        store_button_text: formData.store_button_text,
+        store_shipping_cost: formData.store_shipping_cost,
+        tiktok_url: formData.tiktok_url,
+        store_show_whatsapp_float: formData.store_show_whatsapp_float,
+        store_primary_text_color: formData.store_primary_text_color
       });
 
       alert('Configuración guardada exitosamente. Si cambiaste el tema, recarga la página para ver los cambios completos.');
@@ -174,6 +241,64 @@ const Configuracion = () => {
       alert('Error al guardar configuración: ' + err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleBranchChange = (index, field, value) => {
+    const updatedBranches = [...branches];
+    updatedBranches[index][field] = value;
+    setBranches(updatedBranches);
+  };
+
+  const createNewBranch = async () => {
+    const branchName = prompt('Nombre de la nueva sucursal:');
+    if (!branchName) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('branches')
+        .insert([{
+          tenant_id: tenantInfo.id,
+          name: branchName,
+          establishment_code: '0000',
+          point_of_sale_code: '0000'
+        }])
+        .select();
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        setBranches([...branches, data[0]]);
+        alert('Sucursal creada exitosamente.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error al crear sucursal: ' + err.message);
+    }
+  };
+
+  const saveBranches = async () => {
+    setSavingBranches(true);
+    try {
+      for (const branch of branches) {
+        const { error } = await supabase
+          .from('branches')
+          .update({
+            dte_resolution_number: branch.dte_resolution_number,
+            dte_series: branch.dte_series,
+            dte_correlative_fcf: branch.dte_correlative_fcf,
+            dte_correlative_ccf: branch.dte_correlative_ccf,
+            dte_correlative_fex: branch.dte_correlative_fex
+          })
+          .eq('id', branch.id);
+        if (error) throw error;
+      }
+      alert('Configuración de sucursales guardada exitosamente.');
+    } catch (err) {
+      console.error(err);
+      alert('Error al guardar sucursales: ' + err.message);
+    } finally {
+      setSavingBranches(false);
     }
   };
 
@@ -199,9 +324,44 @@ const Configuracion = () => {
         </button>
       </div>
 
+      {/* Tabs Navigation */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', overflowX: 'auto' }}>
+        <button 
+          className={`glass-button ${activeTab === 'general' ? 'active' : ''}`}
+          onClick={() => setActiveTab('general')}
+          style={{ background: activeTab === 'general' ? 'var(--primary)' : 'rgba(255,255,255,0.05)' }}
+        >
+          General
+        </button>
+        <button 
+          className={`glass-button ${activeTab === 'facturacion' ? 'active' : ''}`}
+          onClick={() => setActiveTab('facturacion')}
+          style={{ background: activeTab === 'facturacion' ? 'var(--primary)' : 'rgba(255,255,255,0.05)' }}
+        >
+          Facturación & DTE
+        </button>
+        <button 
+          className={`glass-button ${activeTab === 'sistema' ? 'active' : ''}`}
+          onClick={() => setActiveTab('sistema')}
+          style={{ background: activeTab === 'sistema' ? 'var(--primary)' : 'rgba(255,255,255,0.05)' }}
+        >
+          Sistema ERP
+        </button>
+        <button 
+          className={`glass-button ${activeTab === 'tienda' ? 'active' : ''}`}
+          onClick={() => setActiveTab('tienda')}
+          style={{ background: activeTab === 'tienda' ? 'var(--primary)' : 'rgba(255,255,255,0.05)' }}
+        >
+          Tienda Virtual
+        </button>
+      </div>
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         
-        {/* Panel de Logo */}
+        {/* ======================= TAB: GENERAL ======================= */}
+        {activeTab === 'general' && (
+          <>
+            {/* Panel de Logo */}
         <div className="glass-panel" style={{ padding: '24px' }}>
           <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ImageIcon size={20} color="var(--primary)" /> Logo de la Empresa
@@ -243,7 +403,58 @@ const Configuracion = () => {
           </div>
         </div>
 
-        {/* Apariencia del Sistema ERP */}
+            {/* Datos Legales */}
+            <div className="glass-panel" style={{ padding: '24px' }}>
+              <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Building2 size={20} color="var(--primary)" /> Datos Comerciales
+              </h2>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-group">
+                  <label>Nombre Comercial</label>
+                  <input type="text" className="glass-input" name="name" value={formData.name} onChange={handleInputChange} />
+                </div>
+                <div className="form-group">
+                  <label>Actividad Económica</label>
+                  <input type="text" className="glass-input" name="activity_desc" value={formData.activity_desc} onChange={handleInputChange} />
+                </div>
+                <div className="form-group">
+                  <label>NRC (Número de Registro)</label>
+                  <input type="text" className="glass-input" name="nrc" value={formData.nrc} onChange={handleInputChange} />
+                </div>
+                <div className="form-group">
+                  <label>NIT</label>
+                  <input type="text" className="glass-input" name="nit" value={formData.nit} onChange={handleInputChange} />
+                </div>
+              </div>
+            </div>
+
+            {/* Metas y Objetivos */}
+            <div className="glass-panel" style={{ padding: '24px' }}>
+              <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Receipt size={20} color="var(--primary)" /> Metas y Objetivos
+              </h2>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+                <div className="form-group">
+                  <label>Meta de Ventas Mensual ($)</label>
+                  <input 
+                    type="number" 
+                    className="glass-input" 
+                    name="monthly_sales_goal" 
+                    value={formData.monthly_sales_goal} 
+                    onChange={handleInputChange} 
+                    style={{ width: '200px' }} 
+                  />
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>Esta meta alimentará el medidor de progreso en el Dashboard Comercial.</p>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ======================= TAB: SISTEMA ======================= */}
+        {activeTab === 'sistema' && (
+          <>
+            {/* Apariencia del Sistema ERP */}
         <div className="glass-panel" style={{ padding: '24px' }}>
           <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Palette size={20} color="var(--primary)" /> Apariencia del Sistema ERP
@@ -271,25 +482,68 @@ const Configuracion = () => {
           </div>
         </div>
 
-        {/* Diseño de Tienda Virtual */}
+            {/* Inventario */}
+            <div className="glass-panel" style={{ padding: '24px' }}>
+              <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Package size={20} color="var(--primary)" /> Ajustes de Inventario
+              </h2>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+                <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <input 
+                    type="checkbox" 
+                    id="allow_negative_stock" 
+                    checked={formData.allow_negative_stock} 
+                    onChange={(e) => setFormData({...formData, allow_negative_stock: e.target.checked})}
+                    style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="allow_negative_stock" style={{ margin: 0, cursor: 'pointer' }}>
+                    <span style={{ fontWeight: 600, display: 'block' }}>Permitir vender sin stock (Ventas en Negativo)</span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Si está activo, el sistema permitirá facturar aunque el inventario llegue a cero.</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ======================= TAB: TIENDA VIRTUAL ======================= */}
+        {activeTab === 'tienda' && (
+          <>
+            {/* Diseño de Tienda Virtual */}
         <div className="glass-panel" style={{ padding: '24px' }}>
           <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Palette size={20} color="var(--primary)" /> Diseño de la Tienda Virtual
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
             
-            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div>
-                <label>Color Principal del Tema</label>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>Elige el color corporativo que pintará la tienda</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div>
+                  <label>Color Principal del Tema</label>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>Fondo de los encabezados</p>
+                </div>
+                <input 
+                  type="color" 
+                  name="primary_color" 
+                  value={formData.primary_color} 
+                  onChange={handleInputChange} 
+                  style={{ width: '60px', height: '40px', border: 'none', cursor: 'pointer', padding: 0, borderRadius: '4px' }}
+                />
               </div>
-              <input 
-                type="color" 
-                name="primary_color" 
-                value={formData.primary_color} 
-                onChange={handleInputChange} 
-                style={{ width: '60px', height: '40px', border: 'none', cursor: 'pointer', padding: 0, borderRadius: '4px' }}
-              />
+
+              <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div>
+                  <label>Color de Letra (Sobre Principal)</label>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>El texto de los encabezados</p>
+                </div>
+                <input 
+                  type="color" 
+                  name="store_primary_text_color" 
+                  value={formData.store_primary_text_color} 
+                  onChange={handleInputChange} 
+                  style={{ width: '60px', height: '40px', border: 'none', cursor: 'pointer', padding: 0, borderRadius: '4px' }}
+                />
+              </div>
             </div>
 
             <div className="form-group">
@@ -352,53 +606,126 @@ const Configuracion = () => {
           </div>
         </div>
 
-        {/* Datos Legales */}
-        <div className="glass-panel" style={{ padding: '24px' }}>
+        <div className="glass-panel" style={{ padding: '24px', marginTop: '24px' }}>
           <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Building2 size={20} color="var(--primary)" /> Datos Comerciales
+            <Package size={20} color="var(--primary)" /> Configuraciones Avanzadas (Tienda)
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div className="form-group">
-              <label>Nombre Comercial</label>
-              <input type="text" className="glass-input" name="name" value={formData.name} onChange={handleInputChange} />
-            </div>
-            <div className="form-group">
-              <label>Actividad Económica</label>
-              <input type="text" className="glass-input" name="activity_desc" value={formData.activity_desc} onChange={handleInputChange} />
-            </div>
-            <div className="form-group">
-              <label>NRC (Número de Registro)</label>
-              <input type="text" className="glass-input" name="nrc" value={formData.nrc} onChange={handleInputChange} />
-            </div>
-            <div className="form-group">
-              <label>NIT</label>
-              <input type="text" className="glass-input" name="nit" value={formData.nit} onChange={handleInputChange} />
-            </div>
-          </div>
-        </div>
-
-        {/* Metas y Objetivos */}
-        <div className="glass-panel" style={{ padding: '24px' }}>
-          <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Receipt size={20} color="var(--primary)" /> Metas y Objetivos
-          </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
-            <div className="form-group">
-              <label>Meta de Ventas Mensual ($)</label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
+            
+            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
               <input 
-                type="number" 
-                className="glass-input" 
-                name="monthly_sales_goal" 
-                value={formData.monthly_sales_goal} 
-                onChange={handleInputChange} 
-                style={{ width: '200px' }} 
+                type="checkbox" 
+                id="store_catalog_mode" 
+                name="store_catalog_mode"
+                checked={formData.store_catalog_mode} 
+                onChange={handleInputChange}
+                style={{ width: '20px', height: '20px', cursor: 'pointer' }}
               />
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>Esta meta alimentará el medidor de progreso en el Dashboard Comercial.</p>
+              <label htmlFor="store_catalog_mode" style={{ margin: 0, cursor: 'pointer' }}>
+                <span style={{ fontWeight: 600, display: 'block' }}>Activar Modo Catálogo</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Oculta los precios y el carrito. El botón de compra enviará al cliente directo a tu WhatsApp.</span>
+              </label>
             </div>
+
+            <div className="form-group">
+              <label>Mensaje de Barra Superior (Promo Bar)</label>
+              <input 
+                type="text" 
+                className="glass-input" 
+                name="store_promo_message" 
+                value={formData.store_promo_message} 
+                onChange={handleInputChange} 
+                placeholder="Ej. ¡Envío gratis por compras mayores a $50!"
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="form-group">
+                <label>Texto del Botón de Compra</label>
+                <input 
+                  type="text" 
+                  className="glass-input" 
+                  name="store_button_text" 
+                  value={formData.store_button_text} 
+                  onChange={handleInputChange} 
+                  placeholder="Ej. AÑADIR AL CARRITO"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>Costo Fijo de Envío Estándar ($)</label>
+                <input 
+                  type="number" 
+                  step="0.01"
+                  className="glass-input" 
+                  name="store_shipping_cost" 
+                  value={formData.store_shipping_cost} 
+                  onChange={handleInputChange} 
+                />
+              </div>
+            </div>
+            
           </div>
         </div>
 
-        {/* Facturación */}
+            {/* Tienda Virtual / Storefront */}
+            <div className="glass-panel" style={{ padding: '24px' }}>
+              <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Building2 size={20} color="var(--primary)" /> Redes y Contacto
+              </h2>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-group">
+                  <label>WhatsApp de Ventas</label>
+                  <input type="text" className="glass-input" name="whatsapp_number" value={formData.whatsapp_number} onChange={handleInputChange} placeholder="+503 7777-7777" />
+                </div>
+                <div className="form-group">
+                  <label>Link de Facebook</label>
+                  <input type="text" className="glass-input" name="facebook_url" value={formData.facebook_url} onChange={handleInputChange} placeholder="https://facebook.com/..." />
+                </div>
+                <div className="form-group">
+                  <label>Link de Instagram</label>
+                  <input type="text" className="glass-input" name="instagram_url" value={formData.instagram_url} onChange={handleInputChange} placeholder="https://instagram.com/..." />
+                </div>
+                <div className="form-group">
+                  <label>Link de TikTok</label>
+                  <input type="text" className="glass-input" name="tiktok_url" value={formData.tiktok_url} onChange={handleInputChange} placeholder="https://tiktok.com/@..." />
+                </div>
+              </div>
+              
+              <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', marginTop: '16px' }}>
+                <input 
+                  type="checkbox" 
+                  id="store_show_whatsapp_float" 
+                  name="store_show_whatsapp_float"
+                  checked={formData.store_show_whatsapp_float} 
+                  onChange={handleInputChange}
+                  style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                />
+                <label htmlFor="store_show_whatsapp_float" style={{ margin: 0, cursor: 'pointer' }}>
+                  <span style={{ fontWeight: 600, display: 'block' }}>Mostrar Botón Flotante de WhatsApp</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Muestra un botón verde fijo en la esquina inferior para contacto rápido.</span>
+                </label>
+              </div>
+
+              <div className="form-group" style={{ marginTop: '16px' }}>
+                <label>Acerca de Nosotros (Aparecerá en el pie de página de la tienda)</label>
+                <textarea 
+                  className="glass-input" 
+                  name="about_us" 
+                  value={formData.about_us} 
+                  onChange={handleInputChange} 
+                  rows={4}
+                  placeholder="Ej. Somos una empresa comprometida con..."
+                />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ======================= TAB: FACTURACIÓN ======================= */}
+        {activeTab === 'facturacion' && (
+          <>
+            {/* Facturación */}
         <div className="glass-panel" style={{ padding: '24px' }}>
           <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Receipt size={20} color="var(--primary)" /> Ajustes de Facturación
@@ -422,59 +749,144 @@ const Configuracion = () => {
           </div>
         </div>
 
-        {/* Inventario */}
-        <div className="glass-panel" style={{ padding: '24px' }}>
+        {/* Facturación Electrónica (MH) */}
+        <div className="glass-panel" style={{ padding: '24px', border: formData.dte_enabled ? '1px solid var(--primary)' : '1px solid var(--border-color)' }}>
           <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Package size={20} color="var(--primary)" /> Ajustes de Inventario
+            <Receipt size={20} color={formData.dte_enabled ? "var(--primary)" : "var(--text-muted)"} /> 
+            Facturación Electrónica (Ministerio de Hacienda)
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
-            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <input 
-                type="checkbox" 
-                id="allow_negative_stock" 
-                checked={formData.allow_negative_stock} 
-                onChange={(e) => setFormData({...formData, allow_negative_stock: e.target.checked})}
-                style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-              />
-              <label htmlFor="allow_negative_stock" style={{ margin: 0, cursor: 'pointer' }}>
-                <span style={{ fontWeight: 600, display: 'block' }}>Permitir vender sin stock (Ventas en Negativo)</span>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Si está activo, el sistema permitirá facturar aunque el inventario llegue a cero.</span>
-              </label>
-            </div>
+          
+          <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
+            <input 
+              type="checkbox" 
+              id="dte_enabled" 
+              name="dte_enabled"
+              checked={formData.dte_enabled} 
+              onChange={handleInputChange}
+              style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+            />
+            <label htmlFor="dte_enabled" style={{ margin: 0, cursor: 'pointer' }}>
+              <span style={{ fontWeight: 600, display: 'block' }}>Activar Facturación Electrónica (DTE)</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Si está activo, las ventas se enviarán al MH para validación. Si está inactivo, se generarán tickets internos.</span>
+            </label>
           </div>
+
+          {formData.dte_enabled && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px', padding: '16px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+              <div className="form-group">
+                <label>Ambiente</label>
+                <select className="glass-input" name="dte_environment" value={formData.dte_environment} onChange={handleInputChange}>
+                  <option value="TEST">Pruebas (TEST)</option>
+                  <option value="PROD">Producción (PROD)</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Usuario API (MH)</label>
+                <input type="text" className="glass-input" name="dte_username_api" value={formData.dte_username_api} onChange={handleInputChange} placeholder="NIT o Usuario" />
+              </div>
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label>Contraseña API (MH)</label>
+                <input type="password" className="glass-input" name="dte_password_api" value={formData.dte_password_api} onChange={handleInputChange} placeholder={tenantInfo.dte_username_api ? "•••••••• (Guardada)" : "••••••••"} />
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  {tenantInfo.dte_username_api ? "La contraseña está guardada de forma segura (encriptada). Escribe una nueva solo si deseas cambiarla." : "Asegúrate de ingresar la contraseña correcta asignada por el MH para la transmisión de DTEs."}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Tienda Virtual / Storefront */}
+        {/* Sucursales (Siempre visible) */}
         <div className="glass-panel" style={{ padding: '24px' }}>
-          <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Building2 size={20} color="var(--primary)" /> Tienda Virtual
-          </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div className="form-group">
-              <label>WhatsApp de Ventas</label>
-              <input type="text" className="glass-input" name="whatsapp_number" value={formData.whatsapp_number} onChange={handleInputChange} placeholder="+503 7777-7777" />
-            </div>
-            <div className="form-group">
-              <label>Link de Facebook</label>
-              <input type="text" className="glass-input" name="facebook_url" value={formData.facebook_url} onChange={handleInputChange} placeholder="https://facebook.com/..." />
-            </div>
-            <div className="form-group">
-              <label>Link de Instagram</label>
-              <input type="text" className="glass-input" name="instagram_url" value={formData.instagram_url} onChange={handleInputChange} placeholder="https://instagram.com/..." />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Building2 size={20} color="var(--primary)" /> Sucursales {formData.dte_enabled && "y Correlativos DTE"}
+            </h2>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                className="glass-button" 
+                onClick={createNewBranch} 
+                style={{ background: 'rgba(255,255,255,0.1)', padding: '6px 12px', fontSize: '13px' }}
+              >
+                + Nueva Sucursal
+              </button>
+              <button 
+                className="glass-button" 
+                onClick={saveBranches} 
+                disabled={savingBranches}
+                style={{ background: 'var(--primary)', padding: '6px 12px', fontSize: '13px' }}
+              >
+                {savingBranches ? 'Guardando...' : 'Guardar Sucursales'}
+              </button>
             </div>
           </div>
-          <div className="form-group" style={{ marginTop: '16px' }}>
-            <label>Acerca de Nosotros (Aparecerá en el pie de página de la tienda)</label>
-            <textarea 
-              className="glass-input" 
-              name="about_us" 
-              value={formData.about_us} 
-              onChange={handleInputChange} 
-              rows={3}
-              placeholder="Ej. Somos una empresa salvadoreña dedicada a..."
-            />
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {branches.map((branch, index) => (
+              <div key={branch.id} style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <h3 style={{ fontSize: '16px', marginBottom: '16px', color: 'var(--text-light)' }}>
+                  {branch.name}
+                </h3>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
+                  <div className="form-group">
+                    <label>Nombre</label>
+                    <input 
+                      type="text" 
+                      className="glass-input" 
+                      value={branch.name || ''} 
+                      onChange={(e) => handleBranchChange(index, 'name', e.target.value)} 
+                    />
+                  </div>
+
+                  {formData.dte_enabled && (
+                    <>
+                      <div className="form-group">
+                        <label>Nº Resolución MH</label>
+                        <input 
+                          type="text" 
+                          className="glass-input" 
+                          value={branch.dte_resolution_number || ''} 
+                          onChange={(e) => handleBranchChange(index, 'dte_resolution_number', e.target.value)} 
+                          placeholder="Ej. 15000-RES-..."
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Serie DTE</label>
+                        <input 
+                          type="text" 
+                          className="glass-input" 
+                          value={branch.dte_series || ''} 
+                          onChange={(e) => handleBranchChange(index, 'dte_series', e.target.value)} 
+                          placeholder="Ej. 24SV0001"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Correlativo FCF</label>
+                        <input 
+                          type="number" 
+                          className="glass-input" 
+                          value={branch.dte_correlative_fcf || ''} 
+                          onChange={(e) => handleBranchChange(index, 'dte_correlative_fcf', parseInt(e.target.value) || 1)} 
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Correlativo CCF</label>
+                        <input 
+                          type="number" 
+                          className="glass-input" 
+                          value={branch.dte_correlative_ccf || ''} 
+                          onChange={(e) => handleBranchChange(index, 'dte_correlative_ccf', parseInt(e.target.value) || 1)} 
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
+          </>
+        )}
 
       </div>
     </div>
