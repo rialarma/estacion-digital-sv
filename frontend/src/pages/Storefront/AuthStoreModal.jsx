@@ -54,7 +54,8 @@ const AuthStoreModal = ({ tenantId, isOpen, onClose, onLoginSuccess }) => {
             p_tenant_id: tenantId,
             p_name: formData.name,
             p_phone: formData.phone,
-            p_address: ''
+            p_address: '',
+            p_email: formData.email
           });
           if (rpcError) console.error("Error creating customer profile:", rpcError);
           

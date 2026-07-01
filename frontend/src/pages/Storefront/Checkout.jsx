@@ -66,7 +66,8 @@ const StorefrontCheckout = ({ customTenantId }) => {
             p_tenant_id: tenantId,
             p_name: defaultName,
             p_phone: '',
-            p_address: ''
+            p_address: '',
+            p_email: session.user.email
           });
           if (!rpcError) {
             // Re-fetch para cargar el id del cliente

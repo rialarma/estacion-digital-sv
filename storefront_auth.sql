@@ -9,7 +9,8 @@ CREATE OR REPLACE FUNCTION public.register_store_customer(
   p_tenant_id UUID,
   p_name TEXT,
   p_phone TEXT,
-  p_address TEXT
+  p_address TEXT,
+  p_email TEXT DEFAULT NULL
 )
 RETURNS UUID
 LANGUAGE plpgsql
@@ -29,12 +30,12 @@ BEGIN
   WHERE tenant_id = p_tenant_id AND user_id = v_user_id LIMIT 1;
 
   IF v_client_id IS NULL THEN
-    INSERT INTO public.clients (tenant_id, name, phone, address, user_id)
-    VALUES (p_tenant_id, p_name, p_phone, p_address, v_user_id)
+    INSERT INTO public.clients (tenant_id, name, phone, address, email, user_id)
+    VALUES (p_tenant_id, p_name, p_phone, p_address, COALESCE(p_email, (SELECT email FROM auth.users WHERE id = v_user_id)), v_user_id)
     RETURNING id INTO v_client_id;
   ELSE
     UPDATE public.clients 
-    SET name = p_name, phone = p_phone, address = p_address
+    SET name = p_name, phone = p_phone, address = p_address, email = COALESCE(p_email, email)
     WHERE id = v_client_id;
   END IF;
 
