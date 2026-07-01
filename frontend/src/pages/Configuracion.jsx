@@ -3,6 +3,7 @@ import { supabase } from '../supabase';
 import { useAuth } from '../hooks/useAuth';
 import { useTenantStore } from '../store/useTenantStore';
 import { Save, Upload, Building2, Receipt, Image as ImageIcon, Package, Palette } from 'lucide-react';
+import imageCompression from 'browser-image-compression';
 
 const Configuracion = () => {
   const { user } = useAuth();
@@ -118,9 +119,17 @@ const Configuracion = () => {
     const fileName = `${tenantInfo.id}_${Date.now()}.${fileExt}`;
     const filePath = `logos/${fileName}`;
 
+    let fileToUpload = logoFile;
+    try {
+      const options = { maxSizeMB: 0.2, maxWidthOrHeight: 800, useWebWorker: true };
+      fileToUpload = await imageCompression(logoFile, options);
+    } catch (error) {
+      console.error('Error compressing logo:', error);
+    }
+
     const { error: uploadError } = await supabase.storage
       .from('tenant_logos')
-      .upload(filePath, logoFile, { upsert: true });
+      .upload(filePath, fileToUpload, { upsert: true });
 
     if (uploadError) throw uploadError;
 
@@ -138,10 +147,17 @@ const Configuracion = () => {
     const fileName = `banner_${tenantInfo.id}_${Date.now()}.${fileExt}`;
     const filePath = `banners/${fileName}`;
 
-    // Reutilizaremos el bucket tenant_logos para los banners también por simplicidad, o product_images.
+    let fileToUpload = bannerFile;
+    try {
+      const options = { maxSizeMB: 0.3, maxWidthOrHeight: 1920, useWebWorker: true };
+      fileToUpload = await imageCompression(bannerFile, options);
+    } catch (error) {
+      console.error('Error compressing banner:', error);
+    }
+
     const { error: uploadError } = await supabase.storage
       .from('tenant_logos')
-      .upload(filePath, bannerFile, { upsert: true });
+      .upload(filePath, fileToUpload, { upsert: true });
 
     if (uploadError) throw uploadError;
 
