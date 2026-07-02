@@ -10,7 +10,7 @@ const StorefrontCheckout = ({ customTenantId }) => {
   const params = useParams();
   const tenantId = customTenantId || params.tenantId;
   const navigate = useNavigate();
-  const { items, clearCart, getTotal } = useCartStore();
+  const { items, clearCart, getTotal, fetchCloudCart } = useCartStore();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -44,6 +44,9 @@ const StorefrontCheckout = ({ customTenantId }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         setCurrentUser(session.user);
+        if (tenantId) {
+          fetchCloudCart(tenantId);
+        }
         const { data: profile } = await supabase
           .from('clients')
           .select('*')
