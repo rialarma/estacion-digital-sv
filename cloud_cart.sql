@@ -65,15 +65,28 @@ BEGIN
   ON CONFLICT (tenant_id, client_id) DO UPDATE SET updated_at = NOW()
   RETURNING id INTO v_cart_id;
 
-  -- Para cada item en el JSON (carrito local), agregarlo o actualizarlo
-  IF p_items IS NOT NULL AND jsonb_array_length(p_items) > 0 THEN
-    FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
-    LOOP
-      INSERT INTO public.store_cart_items (cart_id, product_id, quantity)
-      VALUES (v_cart_id, (v_item->>'product_id')::UUID, (v_item->>'quantity')::INT)
-      ON CONFLICT (cart_id, product_id) 
-      DO UPDATE SET quantity = EXCLUDED.quantity, updated_at = NOW();
-    END LOOP;
+  -- Si p_items no es NULL, sincronizamos (eliminar los que ya no están, y actualizar los que sí)
+  IF p_items IS NOT NULL THEN
+    IF jsonb_array_length(p_items) = 0 THEN
+      -- Si el array está vacío, significa que el carrito local se vació (ej. después de comprar)
+      DELETE FROM public.store_cart_items WHERE cart_id = v_cart_id;
+    ELSE
+      -- Eliminar los items de la BD que no están en el carrito local actual
+      DELETE FROM public.store_cart_items 
+      WHERE cart_id = v_cart_id 
+      AND product_id NOT IN (
+        SELECT (value->>'product_id')::UUID FROM jsonb_array_elements(p_items)
+      );
+
+      -- Insertar o actualizar los items que vienen en el JSON
+      FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
+      LOOP
+        INSERT INTO public.store_cart_items (cart_id, product_id, quantity)
+        VALUES (v_cart_id, (v_item->>'product_id')::UUID, (v_item->>'quantity')::INT)
+        ON CONFLICT (cart_id, product_id) 
+        DO UPDATE SET quantity = EXCLUDED.quantity, updated_at = NOW();
+      END LOOP;
+    END IF;
   END IF;
 
   -- Devolver los items combinados actuales desde la BD con la data completa del producto

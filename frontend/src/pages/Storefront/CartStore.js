@@ -131,7 +131,7 @@ export const useCartStore = create(
           const { data: cloudItems, error: rpcError } = await supabase.rpc('sync_store_cart', {
             p_tenant_id: tenantId,
             p_client_id: profile.id,
-            p_items: [] 
+            p_items: null // Enviamos null para indicar que es un FETCH (solo leer, no sobreescribir)
           });
 
           if (!rpcError && cloudItems) {

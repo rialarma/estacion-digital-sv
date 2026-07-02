@@ -1,11 +1,11 @@
 require('dotenv').config();
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
+const qrcode = require('qrcode');
 const { createClient } = require('@supabase/supabase-js');
 
 // Configuración de Supabase
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Inicializar cliente de WhatsApp
@@ -19,10 +19,15 @@ const client = new Client({
 
 let isReady = false;
 
-client.on('qr', (qr) => {
-    // Generar e imprimir el código QR en la terminal
-    console.log('¡Escanea este código QR con tu WhatsApp para conectar el bot!');
-    qrcode.generate(qr, { small: true });
+client.on('qr', async (qr) => {
+    // Save QR code as image locally
+    const qrPath = './qr.png';
+    try {
+        await qrcode.toFile(qrPath, qr);
+        console.log('¡QR Guardado en', qrPath, '!');
+    } catch (err) {
+        console.error('Error guardando QR:', err);
+    }
 });
 
 client.on('ready', () => {

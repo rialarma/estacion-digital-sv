@@ -13,11 +13,12 @@ CREATE TABLE IF NOT EXISTS public.whatsapp_queue (
 -- Enable RLS
 ALTER TABLE public.whatsapp_queue ENABLE ROW LEVEL SECURITY;
 
--- Allow public insertion for order confirmations (so frontend can insert anonymously if they are placing order)
--- Wait, orders are placed either logged in or anonymously.
+-- Allow public insertion for order confirmations
 CREATE POLICY "Enable insert for everyone" ON public.whatsapp_queue FOR INSERT WITH CHECK (true);
 
--- Allow reading for bot (we'll use service role key for bot, which bypasses RLS)
+-- Allow reading and updating for the bot (using anon key for now)
+CREATE POLICY "Enable select for everyone" ON public.whatsapp_queue FOR SELECT USING (true);
+CREATE POLICY "Enable update for everyone" ON public.whatsapp_queue FOR UPDATE USING (true);
 
 -- Enable Realtime for whatsapp_queue
 alter publication supabase_realtime add table public.whatsapp_queue;
