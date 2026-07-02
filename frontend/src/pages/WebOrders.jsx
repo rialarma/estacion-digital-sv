@@ -217,7 +217,7 @@ const WebOrders = () => {
                   {orders.filter(o => o.status === 'DISPATCHED').map(order => (
                     <div key={order.id} className="glass-panel" style={{ padding: '16px', cursor: 'pointer', opacity: 0.7, border: selectedOrder?.id === order.id ? '2px solid #3b82f6' : '1px solid var(--border-color)' }} onClick={() => handleViewOrder(order)}>
                       <div style={{ fontWeight: 'bold', fontSize: '15px' }}>{order.customer_name}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Completado a las {new Date(order.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Despachado a las {new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                     </div>
                   ))}
                 </div>
