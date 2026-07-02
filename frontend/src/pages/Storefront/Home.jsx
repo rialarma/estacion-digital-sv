@@ -23,7 +23,7 @@ const StorefrontHome = ({ customTenantId }) => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
   
-  const { items, addItem, removeItem, updateQuantity } = useCartStore();
+  const { items, addItem, removeItem, updateQuantity, fetchCloudCart } = useCartStore();
 
   const cartTotal = items.reduce((total, item) => total + (item.price * item.quantity), 0);
   const cartItemCount = items.reduce((count, item) => count + item.quantity, 0);
@@ -65,10 +65,16 @@ const StorefrontHome = ({ customTenantId }) => {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setCurrentUser(session?.user || null);
+      if (session?.user && tenantId) {
+        fetchCloudCart(tenantId);
+      }
     });
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setCurrentUser(session?.user || null);
+      if (session?.user && tenantId) {
+        fetchCloudCart(tenantId);
+      }
     });
     return () => subscription.unsubscribe();
   }, [tenantId]);
@@ -107,9 +113,9 @@ const StorefrontHome = ({ customTenantId }) => {
     }
 
     if (variant) {
-      addItem({ ...variant, name: `${product.name} - ${variant.variant_name}`, image_url: variant.image_url || product.image_url });
+      addItem({ ...variant, name: `${product.name} - ${variant.variant_name}`, image_url: variant.image_url || product.image_url }, tenantId);
     } else {
-      addItem(product);
+      addItem(product, tenantId);
     }
     setSelectedProduct(null);
     setIsCartOpen(true);
@@ -403,16 +409,14 @@ const StorefrontHome = ({ customTenantId }) => {
                         <h4>{item.name}</h4>
                         <p>${Number(item.price).toFixed(2)}</p>
                       </div>
-                      <div className="cart-item-actions">
-                        <button onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}><Minus size={16} /></button>
-                        <span>{item.quantity}</span>
-                        <button 
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          disabled={isMaxReached}
-                          style={{ opacity: isMaxReached ? 0.3 : 1, cursor: isMaxReached ? 'not-allowed' : 'pointer' }}
-                        ><Plus size={16} /></button>
-                        <button className="remove-item-btn" onClick={() => removeItem(item.id)}><Trash2 size={16} /></button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button className="cart-qty-btn" onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1), tenantId)}><Minus size={14} /></button>
+                        <span style={{ fontWeight: 600, width: '20px', textAlign: 'center' }}>{item.quantity}</span>
+                        <button className="cart-qty-btn" onClick={() => updateQuantity(item.id, item.quantity + 1, tenantId)} disabled={isMaxReached} style={{ opacity: isMaxReached ? 0.3 : 1, cursor: isMaxReached ? 'not-allowed' : 'pointer' }}><Plus size={14} /></button>
                       </div>
+                      <button className="cart-remove-btn" onClick={() => removeItem(item.id, tenantId)}>
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   );
                 })

@@ -143,7 +143,7 @@ const StorefrontCheckout = ({ customTenantId }) => {
       }
 
       setSuccessOrderId(orderId);
-      clearCart();
+      clearCart(tenantId);
     } catch (err) {
       console.error(err);
       alert('Hubo un error al procesar el pedido. Por favor intenta de nuevo.');
