@@ -145,6 +145,18 @@ const StorefrontCheckout = ({ customTenantId }) => {
         });
       }
 
+      // Enviar mensaje de WhatsApp a la cola
+      try {
+        const waMessage = `¡Hola ${formData.name.split(' ')[0]}! Confirmamos tu pedido #${orderId.substring(0,6).toUpperCase()} por un total de $${finalTotal.toFixed(2)}. ¡Gracias por tu compra! Te avisaremos por aquí cuando vaya en camino.`;
+        await supabase.from('whatsapp_queue').insert({
+          tenant_id: tenantId,
+          phone_number: formData.phone,
+          message_body: waMessage
+        });
+      } catch (waErr) {
+        console.error("Error al encolar WhatsApp:", waErr);
+      }
+
       setSuccessOrderId(orderId);
       clearCart(tenantId);
     } catch (err) {
