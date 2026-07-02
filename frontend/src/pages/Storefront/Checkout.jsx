@@ -147,7 +147,12 @@ const StorefrontCheckout = ({ customTenantId }) => {
 
       // Enviar mensaje de WhatsApp a la cola
       try {
-        const waMessage = `¡Hola ${formData.name.split(' ')[0]}! Confirmamos tu pedido #${orderId.substring(0,6).toUpperCase()} por un total de $${finalTotal.toFixed(2)}. ¡Gracias por tu compra! Te avisaremos por aquí cuando vaya en camino.`;
+        const storePhone = tenantConfig?.whatsapp_number;
+        const storeName = tenantConfig?.name || 'la tienda';
+        const contactMessage = storePhone ? `\n\nSi tienes alguna duda sobre tu pedido, puedes responder a este mensaje, o contactar a la tienda directamente aquí: https://wa.me/${storePhone.replace(/\D/g, '')}` : '';
+        
+        const waMessage = `¡Hola ${formData.name.split(' ')[0]}! Somos el sistema de notificaciones de ${storeName}. Confirmamos tu pedido #${orderId.substring(0,6).toUpperCase()} por un total de $${finalTotal.toFixed(2)}. ¡Gracias por tu compra! Te avisaremos cuando vaya en camino.${contactMessage}`;
+        
         await supabase.from('whatsapp_queue').insert({
           tenant_id: tenantId,
           phone_number: formData.phone,
