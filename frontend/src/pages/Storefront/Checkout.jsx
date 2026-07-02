@@ -231,11 +231,21 @@ const StorefrontCheckout = ({ customTenantId }) => {
                   <input required type="text" name="name" value={formData.name} onChange={handleInputChange}
                     style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                 </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: 600 }}>Teléfono *</label>
-                  <input required type="tel" name="phone" value={formData.phone} onChange={handleInputChange}
-                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                </div>
+                <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '14px', color: '#1e293b' }}>Número de WhatsApp *</label>
+            <input 
+              type="tel" 
+              name="phone"
+              required
+              value={formData.phone}
+              onChange={handleInputChange}
+              placeholder="Ej: 79331571"
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '15px' }}
+            />
+            <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+              Te enviaremos la confirmación y el estado de tu pedido por WhatsApp.
+            </p>
+          </div>
                 <div>
                   <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', fontWeight: 600 }}>Dirección de Entrega *</label>
                   <textarea required name="address" value={formData.address} onChange={handleInputChange} rows={3}
