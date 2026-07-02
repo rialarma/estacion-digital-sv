@@ -3,6 +3,7 @@ import { Plus, Search, Edit2, Trash2, Package, X, UploadCloud, DownloadCloud, Se
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
 import CameraScanner from '../components/CameraScanner';
+import * as XLSX from 'xlsx';
 
 const Catalogo = () => {
   const { tenantInfo } = useTenantStore();
@@ -329,13 +330,24 @@ const Catalogo = () => {
   };
 
   const handleDownloadTemplate = () => {
-    const headers = "SKU,Nombre,Descripcion,Categoria,Precio,Costo,EsGravado,CodigoBarras\n";
-    const example = "PROD-001,Laptop HP,Laptop empresarial,Tecnologia,1000.00,800.00,SI,123456789\n";
-    const blob = new Blob([headers + example], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = "Plantilla_Catalogo.csv";
-    link.click();
+    const wb = XLSX.utils.book_new();
+    const headers = [
+      "SKU", "Proveedor (Nombre)", "Nombre", "Descripcion", "Categoria", "Marca", "Precio", "Costo", "EsGravado (SI/NO)", 
+      "CodigoBarras", "Unidades Por Caja", "Precio de Caja", "Stock Minimo", "Mostrar En Web (SI/NO)", 
+      "Es Servicio/POS (SI/NO)", "Es Suscripcion (SI/NO)", "Dias de Suscripcion", "Imagen URL"
+    ];
+    const example = [
+      "", "FREUND", "Laptop HP", "Laptop empresarial", "Tecnologia", "HP", 1000.00, 800.00, "SI", 
+      "123456789", 1, 1000.00, 2, "SI", 
+      "NO", "NO", 30, "https://ejemplo.com/foto.jpg"
+    ];
+    const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+    
+    // Auto-size columns slightly
+    ws['!cols'] = headers.map(h => ({ wch: h.length + 5 }));
+
+    XLSX.utils.book_append_sheet(wb, ws, "Productos");
+    XLSX.writeFile(wb, "Plantilla_Catalogo.xlsx");
   };
 
   const handleFileUpload = async (e) => {
@@ -347,62 +359,111 @@ const Catalogo = () => {
       const { data: userData } = await supabase.auth.getUser();
       const { data: profile } = await supabase.from('user_profiles').select('tenant_id, branch_id').eq('id', userData.user.id).single();
       
-      const text = await file.text();
-      const rows = text.split('\n').map(r => r.trim()).filter(r => r);
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: 'array' });
+      const wsname = wb.SheetNames[0];
+      const ws = wb.Sheets[wsname];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+      
+      if (rows.length < 2) throw new Error("El archivo Excel está vacío o no tiene el formato correcto.");
       rows.shift(); // Remove header
 
-      const parseCSVRow = (str) => {
-        const result = [];
-        let cur = '';
-        let inQuotes = false;
-        for (let i = 0; i < str.length; i++) {
-          if (str[i] === '"') {
-            inQuotes = !inQuotes;
-          } else if (str[i] === ',' && !inQuotes) {
-            result.push(cur.trim());
-            cur = '';
-          } else {
-            cur += str[i];
-          }
-        }
-        result.push(cur.trim());
-        return result;
-      };
-
       let insertedCount = 0;
-      for (const row of rows) {
-        const vals = parseCSVRow(row);
-        if (vals.length >= 6) {
-          const sku = vals[0];
-          const name = vals[1];
-          const desc = vals[2] || '';
-          const cat = vals[3] || '';
-          const price = parseFloat(vals[4]) || 0;
-          const cost = parseFloat(vals[5]) || 0;
-          const isTaxable = (vals[6] || '').toUpperCase() === 'SI';
-          const barcode = vals[7] || null;
-          
-          let margin = 0;
-          if (cost > 0) margin = (((price / cost) - 1) * 100).toFixed(2);
-
-          const { data: newProd, error: insertError } = await supabase.from('products').insert([{
-            tenant_id: profile.tenant_id,
-            sku, barcode, name, description: desc, category: cat, price, cost, target_margin: margin, is_taxable: isTaxable
-          }]).select().single();
-          
-          if (!insertError && profile.branch_id) {
-            await supabase.from('inventory').insert([{
-              tenant_id: profile.tenant_id,
-              branch_id: profile.branch_id,
-              product_id: newProd.id,
-              stock: 0
-            }]);
-          }
-          if(!insertError) insertedCount++;
+      let errorMessages = [];
+      
+      // Phase 1: Collect unique Categories, Brands, and Suppliers
+      const uniqueCats = new Set();
+      const uniqueBrands = new Set();
+      const uniqueSuppliers = new Set();
+      
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length < 3 || !row[2]) continue;
+        const suppName = String(row[1] || '').trim();
+        const catName = String(row[4] || '').trim();
+        const brandName = String(row[5] || '').trim();
+        if (suppName) uniqueSuppliers.add(suppName.toUpperCase());
+        if (catName) uniqueCats.add(catName.toUpperCase());
+        if (brandName) uniqueBrands.add(brandName.toUpperCase());
+      }
+      
+      // Phase 2: Upsert them if they don't exist
+      for (const c of uniqueCats) await supabase.from('product_categories').insert([{ tenant_id: profile.tenant_id, name: c }]).select();
+      for (const b of uniqueBrands) await supabase.from('product_brands').insert([{ tenant_id: profile.tenant_id, name: b }]).select();
+      for (const s of uniqueSuppliers) {
+        // Checking first to avoid creating duplicates if the trigger auto-generates codes on error
+        const { data: existingSupp } = await supabase.from('suppliers').select('id').eq('tenant_id', profile.tenant_id).ilike('name', s).maybeSingle();
+        if (!existingSupp) {
+          await supabase.from('suppliers').insert([{ tenant_id: profile.tenant_id, name: s }]);
         }
       }
       
-      alert(`✅ Carga Masiva completada.\nSe insertaron ${insertedCount} productos al catálogo.`);
+      // Phase 3: Fetch fresh list of suppliers to get their IDs
+      const { data: allSuppliers } = await supabase.from('suppliers').select('id, name').eq('tenant_id', profile.tenant_id);
+      const supplierMap = {};
+      if (allSuppliers) {
+        allSuppliers.forEach(s => supplierMap[s.name.toUpperCase()] = s.id);
+      }
+      
+      // Phase 4: Insert Products
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length < 3 || !row[2]) continue; // Skip empty rows or rows without Name (now in col 2)
+        
+        const sku = String(row[0] || '').trim() || null;
+        const supplierName = String(row[1] || '').trim().toUpperCase();
+        const name = String(row[2] || '').trim();
+        const desc = String(row[3] || '').trim();
+        const cat = String(row[4] || '').trim().toUpperCase();
+        const brand = String(row[5] || '').trim().toUpperCase();
+        const price = parseFloat(row[6]) || 0;
+        const cost = parseFloat(row[7]) || 0;
+        const isTaxable = (String(row[8] || '').toUpperCase() === 'SI' || String(row[8] || '').toUpperCase() === 'SÍ');
+        const barcode = String(row[9] || '').trim() || null;
+        const unitsPerBox = parseInt(row[10]) || 1;
+        const boxPrice = parseFloat(row[11]) || price;
+        const minStock = parseInt(row[12]) || 1;
+        const showOnWeb = (String(row[13] || '').toUpperCase() === 'SI' || String(row[13] || '').toUpperCase() === 'SÍ');
+        const isService = (String(row[14] || '').toUpperCase() === 'SI' || String(row[14] || '').toUpperCase() === 'SÍ');
+        const isSubscription = (String(row[15] || '').toUpperCase() === 'SI' || String(row[15] || '').toUpperCase() === 'SÍ');
+        const subscriptionDays = parseInt(row[16]) || 30;
+        const imageUrl = String(row[17] || '').trim() || '';
+        
+        if (!name) continue; // Name is required
+
+        let margin = 0;
+        if (cost > 0) margin = (((price / cost) - 1) * 100).toFixed(2);
+        
+        const supplierId = supplierName && supplierMap[supplierName] ? supplierMap[supplierName] : null;
+
+        const { data: newProd, error: insertError } = await supabase.from('products').insert([{
+          tenant_id: profile.tenant_id,
+          sku, supplier_id: supplierId, barcode, name, description: desc, category: cat, brand: brand, price, cost, 
+          target_margin: margin, is_taxable: isTaxable, units_per_box: unitsPerBox, box_price: boxPrice, 
+          min_stock: minStock, show_on_web: showOnWeb, is_service: isService, 
+          is_subscription: isSubscription, subscription_days: subscriptionDays, image_url: imageUrl
+        }]).select().single();
+        
+        if (!insertError && profile.branch_id) {
+          await supabase.from('inventory').insert([{
+            tenant_id: profile.tenant_id,
+            branch_id: profile.branch_id,
+            product_id: newProd.id,
+            stock: 0
+          }]);
+          insertedCount++;
+        } else if (insertError) {
+          console.error(`Error en fila ${i + 2}:`, insertError);
+          errorMessages.push(`Fila ${i + 2} (${name}): ${insertError.message || insertError.details || 'Error desconocido'}`);
+        }
+      }
+      
+      if (errorMessages.length > 0) {
+        alert(`Se insertaron ${insertedCount} productos.\n\nHubo errores en ${errorMessages.length} productos:\n` + errorMessages.slice(0, 5).join('\n') + (errorMessages.length > 5 ? '\n...y otros más.' : '\n\nNOTA: Si el error menciona "supplier_code" o "sku", ¿ya corriste el script SQL en Supabase?'));
+      } else {
+        alert(`✅ Carga Masiva completada.\nSe insertaron ${insertedCount} productos al catálogo.`);
+      }
+      
       setPage(0); fetchProducts(0, search);
     } catch (error) {
       console.error(error);
@@ -423,8 +484,8 @@ const Catalogo = () => {
           </button>
           
           <label className="glass-button" style={{ background: '#10b981', cursor: 'pointer', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <UploadCloud size={18} /> Subir CSV
-            <input type="file" accept=".csv" style={{ display: 'none' }} onChange={handleFileUpload} />
+            <UploadCloud size={18} /> Importar Excel
+            <input type="file" accept=".xlsx, .xls" style={{ display: 'none' }} onChange={handleFileUpload} />
           </label>
 
           <button className="glass-button" onClick={openNew}>
@@ -550,12 +611,15 @@ const Catalogo = () => {
                   onChange={e => setFormData({ ...formData, name: e.target.value })} />
               </div>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>SKU (Código Interno) *</label>
-                  <input required type="text" className="glass-input" value={formData.sku}
+                  <label>SKU (Código Interno)</label>
+                  <input type="text" className="glass-input" value={formData.sku} placeholder="Dejar en blanco para auto-generar"
                     onChange={e => setFormData({ ...formData, sku: e.target.value })} />
                 </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label>Código de Barras</label>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>

@@ -18,6 +18,7 @@ const Configuracion = () => {
     name: '',
     nrc: '',
     nit: '',
+    tenant_prefix: '',
     activity_desc: '',
     tax_iva: 13,
     receipt_message: '',
@@ -57,6 +58,7 @@ const Configuracion = () => {
         name: tenantInfo.company_name || tenantInfo.name || '',
         nrc: tenantInfo.nrc || '',
         nit: tenantInfo.nit || '',
+        tenant_prefix: tenantInfo.tenant_prefix || '',
         activity_desc: tenantInfo.activity_desc || '',
         tax_iva: tenantInfo.tax_iva || 13,
         receipt_message: tenantInfo.receipt_message || '',
@@ -179,6 +181,7 @@ const Configuracion = () => {
           name: formData.name,
           nrc: formData.nrc,
           nit: formData.nit,
+          tenant_prefix: formData.tenant_prefix,
           activity_desc: formData.activity_desc,
           tax_iva: formData.tax_iva,
           receipt_message: formData.receipt_message,
@@ -220,6 +223,7 @@ const Configuracion = () => {
         company_name: formData.name,
         nrc: formData.nrc,
         nit: formData.nit,
+        tenant_prefix: formData.tenant_prefix,
         activity_desc: formData.activity_desc,
         tax_iva: formData.tax_iva,
         receipt_message: formData.receipt_message,
@@ -440,6 +444,10 @@ const Configuracion = () => {
                 <div className="form-group">
                   <label>NIT</label>
                   <input type="text" className="glass-input" name="nit" value={formData.nit} onChange={handleInputChange} />
+                </div>
+                <div className="form-group">
+                  <label>Prefijo de Empresa (Para Usuarios)</label>
+                  <input type="text" className="glass-input" name="tenant_prefix" value={formData.tenant_prefix} onChange={handleInputChange} placeholder="Ej. miemp" />
                 </div>
               </div>
             </div>

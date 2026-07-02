@@ -9,6 +9,7 @@ const Onboarding = ({ onComplete }) => {
   const [formData, setFormData] = useState({
     companyName: '',
     companyNit: '',
+    companyPrefix: '',
     branchName: 'Sucursal Principal',
     firstName: '',
     lastName: '',
@@ -45,7 +46,8 @@ const Onboarding = ({ onComplete }) => {
           p_company_nit: formData.companyNit,
           p_branch_name: formData.branchName,
           p_first_name: formData.firstName,
-          p_last_name: formData.lastName
+          p_last_name: formData.lastName,
+          p_company_prefix: formData.companyPrefix
         });
 
         if (rpcError) throw rpcError;
@@ -168,6 +170,23 @@ const Onboarding = ({ onComplete }) => {
                     className="glass-input"
                     style={{ paddingLeft: '40px' }}
                     value={formData.companyNit}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label>Prefijo de Empresa (Para Usuarios)</label>
+                <div className="input-with-icon" style={{ position: 'relative' }}>
+                  <Building size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-muted)' }} />
+                  <input 
+                    type="text" 
+                    name="companyPrefix"
+                    placeholder="Ej. emp"
+                    className="glass-input"
+                    style={{ paddingLeft: '40px' }}
+                    value={formData.companyPrefix}
                     onChange={handleChange}
                     required
                   />
