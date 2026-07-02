@@ -526,6 +526,11 @@ const StorefrontHome = ({ customTenantId }) => {
         </a>
       )}
 
+      <AuthStoreModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+        tenantId={tenantId}
+      />
     </div>
   );
 };
