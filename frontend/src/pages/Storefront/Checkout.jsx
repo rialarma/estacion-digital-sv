@@ -131,6 +131,17 @@ const StorefrontCheckout = ({ customTenantId }) => {
 
       if (error) throw error;
 
+      // Actualizar el perfil del cliente para guardar su dirección y teléfono para futuras compras
+      if (currentUser) {
+        await supabase.rpc('register_store_customer', {
+          p_tenant_id: tenantId,
+          p_name: formData.name,
+          p_phone: formData.phone,
+          p_address: formData.address,
+          p_email: currentUser.email
+        });
+      }
+
       setSuccessOrderId(orderId);
       clearCart();
     } catch (err) {
