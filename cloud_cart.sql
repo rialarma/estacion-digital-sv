@@ -76,15 +76,21 @@ BEGIN
     END LOOP;
   END IF;
 
-  -- Devolver los items combinados actuales desde la BD (para recargar el estado local)
+  -- Devolver los items combinados actuales desde la BD con la data completa del producto
   RETURN (
     SELECT COALESCE(jsonb_agg(
       jsonb_build_object(
-        'product_id', ci.product_id,
+        'id', p.id,
+        'name', p.name,
+        'description', p.description,
+        'price', p.price,
+        'image_url', p.image_url,
+        'tenant_id', p.tenant_id,
         'quantity', ci.quantity
       )
     ), '[]'::jsonb)
     FROM public.store_cart_items ci
+    JOIN public.products p ON p.id = ci.product_id
     WHERE ci.cart_id = v_cart_id
   );
 END;

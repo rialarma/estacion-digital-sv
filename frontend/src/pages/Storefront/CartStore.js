@@ -98,56 +98,50 @@ export const useCartStore = create(
       },
 
       fetchCloudCart: async (tenantId) => {
-        if (!tenantId) return;
         try {
           const { data: { session } } = await supabase.auth.getSession();
-          if (!session?.user) return;
+          if (!session?.user) return; 
 
-          const { data: profile } = await supabase
+          let profile = null;
+          const { data: existingProfile } = await supabase
             .from('clients')
             .select('id')
             .eq('user_id', session.user.id)
             .eq('tenant_id', tenantId)
             .single();
 
+          if (existingProfile) {
+            profile = existingProfile;
+          } else {
+            const { data: newProfile } = await supabase
+              .from('clients')
+              .insert({
+                tenant_id: tenantId,
+                user_id: session.user.id,
+                name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
+                email: session.user.email
+              })
+              .select('id')
+              .single();
+            if (newProfile) profile = newProfile;
+          }
+
           if (!profile) return;
 
-          // Obtener carrito de la nube
-          const { data: cloudCart } = await supabase
-            .from('store_carts')
-            .select('id')
-            .eq('tenant_id', tenantId)
-            .eq('client_id', profile.id)
-            .single();
+          const { data: cloudItems, error: rpcError } = await supabase.rpc('sync_store_cart', {
+            p_tenant_id: tenantId,
+            p_client_id: profile.id,
+            p_items: [] 
+          });
 
-          if (cloudCart) {
-            const { data: cloudItems } = await supabase
-              .from('store_cart_items')
-              .select('quantity, products(*)')
-              .eq('cart_id', cloudCart.id);
-
-            if (cloudItems && cloudItems.length > 0) {
-              // Convertir items de la BD al formato del store
-              const mergedItems = cloudItems.map(item => ({
-                ...item.products,
-                quantity: item.quantity
-              }));
-              
-              // Combinar carrito local con el de la nube
-              const localItems = get().items;
-              if (localItems.length === 0) {
-                set({ items: mergedItems });
-              } else {
-                // Si ya hay local, idealmente los combinamos, pero por ahora solo forzamos 
-                // una subida a la nube de lo que ya tenemos localmente para que no se pierda
-                await get().syncWithCloud(tenantId);
-              }
-            } else if (get().items.length > 0) {
-              // Si la nube está vacía pero tenemos items locales, los subimos a la nube!
+          if (!rpcError && cloudItems) {
+            const localItems = get().items;
+            if (localItems.length === 0 && cloudItems.length > 0) {
+              set({ items: cloudItems });
+            } else if (localItems.length > 0) {
               await get().syncWithCloud(tenantId);
             }
           } else if (get().items.length > 0) {
-            // Si el carrito en la nube no existe pero tenemos items, lo creamos
             await get().syncWithCloud(tenantId);
           }
         } catch (err) {
