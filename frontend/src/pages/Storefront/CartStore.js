@@ -48,12 +48,30 @@ export const useCartStore = create(
           if (!session?.user) return; // Solo sincronizar si hay usuario logueado
 
           // Obtener el perfil del cliente para este tenant
-          const { data: profile } = await supabase
+          let profile = null;
+          const { data: existingProfile } = await supabase
             .from('clients')
             .select('id')
             .eq('user_id', session.user.id)
             .eq('tenant_id', tenantId)
             .single();
+
+          if (existingProfile) {
+            profile = existingProfile;
+          } else {
+            // Crear perfil silenciosamente si no existe, para poder guardar el carrito
+            const { data: newProfile } = await supabase
+              .from('clients')
+              .insert({
+                tenant_id: tenantId,
+                user_id: session.user.id,
+                name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
+                email: session.user.email
+              })
+              .select('id')
+              .single();
+            if (newProfile) profile = newProfile;
+          }
 
           if (!profile) return; // Si no tiene perfil, no podemos guardar el carrito
 
@@ -115,11 +133,22 @@ export const useCartStore = create(
                 quantity: item.quantity
               }));
               
-              // Si el carrito local está vacío pero hay en la nube, cargar el de la nube
-              if (get().items.length === 0) {
+              // Combinar carrito local con el de la nube
+              const localItems = get().items;
+              if (localItems.length === 0) {
                 set({ items: mergedItems });
+              } else {
+                // Si ya hay local, idealmente los combinamos, pero por ahora solo forzamos 
+                // una subida a la nube de lo que ya tenemos localmente para que no se pierda
+                await get().syncWithCloud(tenantId);
               }
+            } else if (get().items.length > 0) {
+              // Si la nube está vacía pero tenemos items locales, los subimos a la nube!
+              await get().syncWithCloud(tenantId);
             }
+          } else if (get().items.length > 0) {
+            // Si el carrito en la nube no existe pero tenemos items, lo creamos
+            await get().syncWithCloud(tenantId);
           }
         } catch (err) {
           console.error("Error obteniendo carrito de la nube:", err);
