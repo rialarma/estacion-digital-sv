@@ -133,3 +133,33 @@ supabase
 
 // Opcional: Revisión periódica de respaldo cada minuto por si la conexión de realtime falló
 setInterval(checkPendingMessages, 60 * 1000);
+
+// ==========================================
+// SERVIDOR WEB PARA MOSTRAR EL QR EN LA NUBE
+// ==========================================
+const express = require('express');
+const app = express();
+const path = require('path');
+const PORT = process.env.PORT || 3000;
+
+// Servir archivos estáticos (qr.png y qr.html)
+app.use(express.static(__dirname));
+
+// Ruta principal te redirige a ver el QR
+app.get('/', (req, res) => {
+    if (isReady) {
+        res.send('<h1>✅ Bot Conectado y Corriendo</h1><p>El bot de WhatsApp ya está vinculado. No necesitas escanear nada.</p>');
+    } else {
+        res.sendFile(path.join(__dirname, 'qr.html'));
+    }
+});
+
+// Ruta de estado para que la nube (Railway/Render) sepa que estamos vivos
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+});
+
+app.listen(PORT, () => {
+    console.log(`🌐 Servidor web iniciado en el puerto ${PORT}`);
+    console.log(`➡️  Para vincular tu WhatsApp, entra a la URL web cuando lo subas a la nube.`);
+});
