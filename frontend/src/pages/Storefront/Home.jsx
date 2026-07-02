@@ -310,7 +310,7 @@ const StorefrontHome = ({ customTenantId }) => {
               </button>
               <div style={{ width: '100%', height: '250px', background: '#f1f5f9' }}>
                 {(selectedVariant?.image_url || selectedProduct.image_url) ? (
-                  <img src={selectedVariant?.image_url || selectedProduct.image_url} alt={selectedProduct.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={selectedVariant?.image_url || selectedProduct.image_url} alt={selectedProduct.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 ) : (
                   <div className="product-image-placeholder">Sin Imagen</div>
                 )}
