@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Plus, Minus, Search, Save, User, PackageOpen, X } from 'lucide-react';
+import { Clock, Search, ShoppingCart, Send, Save, User, MapPin, Truck, Plus, Minus, FileText, CheckCircle, Navigation, PackageOpen, X, WifiOff, RefreshCw } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
+import { useAuth } from '../hooks/useAuth';
 
 const Preventa = () => {
   const { tenantInfo } = useTenantStore();
+  const { user } = useAuth();
   
   const [products, setProducts] = useState([]);
   const [clients, setClients] = useState([]);
@@ -16,29 +18,185 @@ const Preventa = () => {
   // Modal & Selection State
   const [selectedClientId, setSelectedClientId] = useState('');
   const [showCart, setShowCart] = useState(false);
+
+  // Offline / Network State
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [pendingOrders, setPendingOrders] = useState([]);
+  const [syncing, setSyncing] = useState(false);
+
+  // Attendance logic
+  const [activeShift, setActiveShift] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
   
   useEffect(() => {
-    fetchProducts();
-    fetchClients();
+    if (tenantInfo?.id) {
+      fetchProducts();
+      fetchClients();
+      fetchActiveShift();
+    }
+  }, [tenantInfo]);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOffline(false);
+      syncOfflineOrders();
+    };
+    const handleOffline = () => setIsOffline(true);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    const savedOrders = JSON.parse(localStorage.getItem('offline_orders') || '[]');
+    setPendingOrders(savedOrders);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
+
+  const syncOfflineOrders = async () => {
+    if (syncing || !navigator.onLine) return;
+    const savedOrders = JSON.parse(localStorage.getItem('offline_orders') || '[]');
+    if (savedOrders.length === 0) return;
+
+    setSyncing(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const { data: profile } = await supabase.from('user_profiles').select('tenant_id, branch_id').eq('id', userData.user.id).single();
+
+      for (const order of savedOrders) {
+        const { data: quote, error: quoteError } = await supabase
+          .from('quotes')
+          .insert([{
+            tenant_id: profile.tenant_id,
+            branch_id: profile.branch_id,
+            client_id: order.client_id,
+            seller_id: userData.user.id,
+            subtotal: order.subtotal,
+            tax_amount: order.tax_amount,
+            total: order.total,
+            valid_until: order.valid_until,
+            status: 'PENDING_PEDIDO'
+          }])
+          .select()
+          .single();
+
+        if (quoteError) continue;
+
+        const quoteItemsData = order.items.map(item => ({
+          tenant_id: profile.tenant_id,
+          quote_id: quote.id,
+          product_id: item.id,
+          quantity: item.quantity,
+          unit_price: item.price,
+          subtotal: item.total
+        }));
+
+        await supabase.from('quote_items').insert(quoteItemsData);
+      }
+      
+      localStorage.removeItem('offline_orders');
+      setPendingOrders([]);
+      alert(`✅ ${savedOrders.length} pedidos sincronizados exitosamente con la central.`);
+    } catch (e) {
+      console.error("Sync error:", e);
+    }
+    setSyncing(false);
+  };
+
+  const fetchActiveShift = async () => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const { data: shiftData } = await supabase
+        .from('employee_attendance')
+        .select('*')
+        .eq('user_id', userData.user.id)
+        .is('clock_out', null)
+        .order('clock_in', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setActiveShift(shiftData || null);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleClockIn = async () => {
+    setActionLoading(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const { data, error } = await supabase
+        .from('employee_attendance')
+        .insert([{ tenant_id: tenantInfo.id, user_id: userData.user.id }])
+        .select()
+        .single();
+      if (!error && data) setActiveShift(data);
+    } catch (e) { console.error(e); }
+    setActionLoading(false);
+  };
+
+  const handleClockOut = async () => {
+    if (!activeShift) return;
+    setActionLoading(true);
+    try {
+      const { error } = await supabase
+        .from('employee_attendance')
+        .update({ clock_out: new Date().toISOString() })
+        .eq('id', activeShift.id);
+      if (!error) setActiveShift(null);
+    } catch (e) { console.error(e); }
+    setActionLoading(false);
+  };
 
   const fetchProducts = async () => {
     setLoading(true);
-    const { data: prodData } = await supabase.from('products').select('id, name, price, sku, units_per_box, box_price, is_service, is_subscription, subscription_days').order('name');
-    const { data: invData } = await supabase.from('inventory').select('product_id, stock');
-    if (prodData) {
-      const merged = prodData.map(p => {
-        const inv = invData?.find(i => i.product_id === p.id);
-        return { ...p, stock: inv ? inv.stock : 0 };
-      });
-      setProducts(merged);
+    if (!navigator.onLine) {
+      const offline = JSON.parse(localStorage.getItem('offline_products') || '[]');
+      setProducts(offline);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { data: prodData } = await supabase.from('products').select('id, name, price, sku, units_per_box, box_price, is_service, is_subscription, subscription_days').eq('tenant_id', tenantInfo.id).order('name');
+      const { data: invData } = await supabase.from('inventory').select('product_id, stock').eq('tenant_id', tenantInfo.id);
+      if (prodData) {
+        const merged = prodData.map(p => {
+          const inv = invData?.find(i => i.product_id === p.id);
+          return { ...p, stock: inv ? inv.stock : 0 };
+        });
+        setProducts(merged);
+        localStorage.setItem('offline_products', JSON.stringify(merged));
+      }
+    } catch (e) {
+      setProducts(JSON.parse(localStorage.getItem('offline_products') || '[]'));
     }
     setLoading(false);
   };
 
   const fetchClients = async () => {
-    const { data } = await supabase.from('clients').select('id, name, business_name').order('name');
-    if (data) setClients(data);
+    if (!navigator.onLine) {
+      setClients(JSON.parse(localStorage.getItem('offline_clients') || '[]'));
+      return;
+    }
+    try {
+      const { data } = await supabase.from('clients').select('id, name, business_name').eq('tenant_id', tenantInfo.id).order('name');
+      if (data) {
+        const uniqueClients = [];
+        const seen = new Set();
+        for (const c of data) {
+          if (!seen.has(c.name)) {
+            seen.add(c.name);
+            uniqueClients.push(c);
+          }
+        }
+        setClients(uniqueClients);
+        localStorage.setItem('offline_clients', JSON.stringify(uniqueClients));
+      }
+    } catch (e) {
+      setClients(JSON.parse(localStorage.getItem('offline_clients') || '[]'));
+    }
   };
 
   const handleAddProduct = (product) => {
@@ -127,14 +285,34 @@ const Preventa = () => {
       setShowCart(false);
       return;
     }
-    
+    const validUntil = new Date();
+    validUntil.setDate(validUntil.getDate() + 15); // Preventas validas por 15 dias
+
+    if (!navigator.onLine) {
+      const newOrder = {
+        id: Date.now(),
+        client_id: selectedClientId,
+        items: items,
+        subtotal: subtotal,
+        tax_amount: tax_iva,
+        total: total,
+        valid_until: validUntil.toISOString()
+      };
+      const updatedPending = [...pendingOrders, newOrder];
+      localStorage.setItem('offline_orders', JSON.stringify(updatedPending));
+      setPendingOrders(updatedPending);
+      
+      alert("📶 Sin conexión: Pedido guardado en la memoria del teléfono. Se enviará automáticamente cuando recupere la señal.");
+      setItems([]);
+      setSelectedClientId('');
+      setShowCart(false);
+      return;
+    }
+
     setSaving(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
       const { data: profile } = await supabase.from('user_profiles').select('tenant_id, branch_id').eq('id', userData.user.id).single();
-
-      const validUntil = new Date();
-      validUntil.setDate(validUntil.getDate() + 15); // Preventas validas por 15 dias
 
       const { data: quote, error: quoteError } = await supabase
         .from('quotes')
@@ -187,9 +365,43 @@ const Preventa = () => {
         borderBottom: '1px solid var(--border-color)',
         backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)'
       }}>
-        <h2 style={{ fontSize: '20px', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-          <ShoppingCart size={24} color="var(--primary)" /> Toma de Pedido (Preventa)
-        </h2>
+        {isOffline && (
+          <div style={{ background: '#eab308', color: '#000', padding: '8px', borderRadius: '8px', marginBottom: '12px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
+            <WifiOff size={18} /> MODO OFFLINE ACTIVADO (Sin internet)
+          </div>
+        )}
+        
+        {!isOffline && pendingOrders.length > 0 && (
+          <div style={{ background: '#3b82f6', color: '#fff', padding: '8px', borderRadius: '8px', marginBottom: '12px', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 'bold' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <PackageOpen size={18} /> {pendingOrders.length} pedido(s) pendiente(s) de envío
+            </div>
+            <button onClick={syncOfflineOrders} disabled={syncing} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', padding: '4px 12px', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <RefreshCw size={14} className={syncing ? 'spin' : ''} /> {syncing ? 'Sincronizando...' : 'Sincronizar'}
+            </button>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '20px', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+            <ShoppingCart size={24} color="var(--primary)" /> Toma de Pedido (Preventa)
+          </h2>
+          
+          <button 
+            onClick={activeShift ? handleClockOut : handleClockIn}
+            disabled={actionLoading}
+            style={{
+              background: activeShift ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+              color: activeShift ? '#ef4444' : '#10b981',
+              border: `1px solid ${activeShift ? '#ef4444' : '#10b981'}`,
+              padding: '8px 16px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer',
+              fontWeight: 'bold', transition: 'all 0.3s'
+            }}
+          >
+            <Clock size={16} />
+            {actionLoading ? '...' : (activeShift ? 'Finalizar Turno' : 'Iniciar Turno')}
+          </button>
+        </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {/* Client Selector */}
@@ -200,8 +412,8 @@ const Preventa = () => {
               onChange={e => setSelectedClientId(e.target.value)}
               style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', width: '100%', outline: 'none', fontSize: '14px' }}
             >
-              <option value="">-- Seleccionar Cliente --</option>
-              {clients.map(c => <option key={c.id} value={c.id}>{c.name} {c.business_name ? `(${c.business_name})` : ''}</option>)}
+              <option value="" style={{ color: '#000' }}>-- Seleccionar Cliente --</option>
+              {clients.map(c => <option key={c.id} value={c.id} style={{ color: '#000' }}>{c.name} {c.business_name ? `(${c.business_name})` : ''}</option>)}
             </select>
           </div>
 

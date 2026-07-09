@@ -1,19 +1,30 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useAuth } from '../hooks/useAuth';
 import { useTenantStore } from '../store/useTenantStore';
-import { Save, Upload, Building2, Receipt, Image as ImageIcon, Package, Palette } from 'lucide-react';
+import { Save, Upload, Building2, Receipt, Image as ImageIcon, Package, Palette, Settings, Store } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 
 const Configuracion = () => {
   const { user } = useAuth();
   const { tenantInfo, updateTenantInfo } = useTenantStore();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const tabParam = searchParams.get('tab') || 'general';
+  
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [branches, setBranches] = useState([]);
   const [savingBranches, setSavingBranches] = useState(false);
-  const [activeTab, setActiveTab] = useState('general');
-  
+  const [activeTab, setActiveTab] = useState(tabParam);
+
+  useEffect(() => {
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
   const [formData, setFormData] = useState({
     name: '',
     nrc: '',
@@ -25,7 +36,6 @@ const Configuracion = () => {
     logo_url: '',
     whatsapp_number: '',
     facebook_url: '',
-    instagram_url: '',
     instagram_url: '',
     about_us: '',
     monthly_sales_goal: 15000,
@@ -45,6 +55,12 @@ const Configuracion = () => {
     store_show_whatsapp_float: true,
     store_primary_text_color: '#ffffff'
   });
+
+  const [passwordData, setPasswordData] = useState({
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const [logoFile, setLogoFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -322,13 +338,41 @@ const Configuracion = () => {
     }
   };
 
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      return alert('Las contraseñas no coinciden.');
+    }
+    if (passwordData.newPassword.length < 6) {
+      return alert('La contraseña debe tener al menos 6 caracteres.');
+    }
+
+    setChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword
+      });
+      if (error) throw error;
+      
+      alert('¡Contraseña actualizada exitosamente!');
+      setPasswordData({ newPassword: '', confirmPassword: '' });
+    } catch (err) {
+      console.error(err);
+      alert('Error al cambiar contraseña: ' + err.message);
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   if (!tenantInfo) return <div style={{ padding: '40px', textAlign: 'center' }}>Cargando...</div>;
 
   return (
     <div className="page-container" style={{ maxWidth: '800px', margin: '0 auto' }}>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 className="page-title">Configuración de Empresa</h1>
+          <h1 className="page-title">
+            Configuración {activeTab === 'facturacion' ? 'DTE' : activeTab === 'sistema' ? 'ERP' : activeTab === 'tienda' ? 'Tienda' : 'General'}
+          </h1>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px', fontFamily: 'monospace' }}>
             Tenant ID: {tenantInfo.id}
           </p>
@@ -345,37 +389,36 @@ const Configuracion = () => {
       </div>
 
       {/* Tabs Navigation */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', overflowX: 'auto' }}>
-        <button 
-          className={`glass-button ${activeTab === 'general' ? 'active' : ''}`}
-          onClick={() => setActiveTab('general')}
-          style={{ background: activeTab === 'general' ? 'var(--primary)' : 'rgba(255,255,255,0.05)' }}
-        >
-          General
-        </button>
-        <button 
-          className={`glass-button ${activeTab === 'facturacion' ? 'active' : ''}`}
-          onClick={() => setActiveTab('facturacion')}
-          style={{ background: activeTab === 'facturacion' ? 'var(--primary)' : 'rgba(255,255,255,0.05)' }}
-        >
-          Facturación & DTE
-        </button>
-        <button 
-          className={`glass-button ${activeTab === 'sistema' ? 'active' : ''}`}
-          onClick={() => setActiveTab('sistema')}
-          style={{ background: activeTab === 'sistema' ? 'var(--primary)' : 'rgba(255,255,255,0.05)' }}
-        >
-          Sistema ERP
-        </button>
-        <button 
-          className={`glass-button ${activeTab === 'tienda' ? 'active' : ''}`}
-          onClick={() => setActiveTab('tienda')}
-          style={{ background: activeTab === 'tienda' ? 'var(--primary)' : 'rgba(255,255,255,0.05)' }}
-        >
-          Tienda Virtual
-        </button>
+      <div style={{ display: 'flex', overflowX: 'auto', gap: '8px', paddingBottom: '8px', marginBottom: '16px', borderBottom: '1px solid var(--border-color)' }} className="hide-scrollbar">
+        {[
+          { id: 'general', label: 'General', icon: Building2 },
+          { id: 'facturacion', label: 'Facturación & DTE', icon: Receipt },
+          { id: 'sistema', label: 'Sistema ERP', icon: Settings },
+          { id: 'tienda', label: 'Tienda Virtual', icon: Store }
+        ].map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '10px 16px', borderRadius: '12px', border: 'none',
+                background: isActive ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
+                color: isActive ? '#fff' : 'var(--text-muted)',
+                cursor: 'pointer', fontWeight: 500, whiteSpace: 'nowrap',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
+              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+            >
+              <Icon size={18} />
+              {tab.label}
+            </button>
+          )
+        })}
       </div>
-
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         
         {/* ======================= TAB: GENERAL ======================= */}
@@ -452,6 +495,29 @@ const Configuracion = () => {
               </div>
             </div>
 
+            {/* Seguridad / Contraseña */}
+            <div className="glass-panel" style={{ padding: '24px' }}>
+              <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--primary)' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> 
+                Seguridad de la Cuenta
+              </h2>
+              <form onSubmit={handlePasswordChange} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'end' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Nueva Contraseña</label>
+                  <input type="password" required className="glass-input" minLength="6" value={passwordData.newPassword} onChange={e => setPasswordData({...passwordData, newPassword: e.target.value})} placeholder="Mínimo 6 caracteres" />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Confirmar Nueva Contraseña</label>
+                  <input type="password" required className="glass-input" minLength="6" value={passwordData.confirmPassword} onChange={e => setPasswordData({...passwordData, confirmPassword: e.target.value})} placeholder="Repite la contraseña" />
+                </div>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <button type="submit" disabled={changingPassword} className="glass-button" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                    {changingPassword ? 'Actualizando...' : 'Actualizar Contraseña'}
+                  </button>
+                </div>
+              </form>
+            </div>
+
             {/* Metas y Objetivos */}
             <div className="glass-panel" style={{ padding: '24px' }}>
               <h2 style={{ fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -493,6 +559,8 @@ const Configuracion = () => {
             >
               <option value="dark">Oscuro (Elegante y Moderno)</option>
               <option value="light">Claro (Limpio y Brillante)</option>
+              <option value="barbie">Barbie (Pink Glass)</option>
+              <option value="maxsteel">Max Steel (Cyan Tech)</option>
               <option value="mario">Mario Bros (Retro 8-bit)</option>
               <option value="cyberpunk">Cyberpunk (Neón)</option>
               <option value="retro">Terminal (Hacker Verde)</option>

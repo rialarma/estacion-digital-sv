@@ -1,4 +1,5 @@
-import React, { useState, Suspense, lazy } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Calendar, LayoutDashboard, PieChart, ShoppingCart, Package, Users, Truck } from 'lucide-react';
 import { useTenantStore } from '../store/useTenantStore';
 
@@ -12,8 +13,24 @@ const DashboardRRHH = lazy(() => import('./reportes/DashboardRRHH'));
 
 const Reportes = () => {
   const { tenantId } = useTenantStore();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const searchParams = new URLSearchParams(location.search);
+  const tabParam = searchParams.get('tab') || 'gerencial';
+  
   const [period, setPeriod] = useState('30days'); // 'today', '7days', '30days', 'year'
-  const [activeTab, setActiveTab] = useState('gerencial');
+  const [activeTab, setActiveTab] = useState(tabParam);
+
+  useEffect(() => {
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
+  const handleTabClick = (id) => {
+    setActiveTab(id);
+    navigate(`/reportes?tab=${id}`);
+  };
 
   // Calcular la fecha de inicio del filtro
   const getIsoStart = () => {
@@ -47,7 +64,7 @@ const Reportes = () => {
       {/* Cabecera y Filtros */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h2>Dashboards Empresariales</h2>
+          <h2>Dashboard {tabs.find(t => t.id === activeTab)?.label || 'Empresarial'}</h2>
           <p style={{ color: 'var(--text-muted)' }}>Métricas clave y rendimiento de tu negocio.</p>
         </div>
         
@@ -66,33 +83,31 @@ const Reportes = () => {
           </select>
         </div>
       </div>
-
-      {/* Menú de Pestañas */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', overflowX: 'auto', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            style={{
-              padding: '10px 16px',
-              borderRadius: '8px 8px 0 0',
-              border: 'none',
-              background: activeTab === tab.id ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-              color: activeTab === tab.id ? 'var(--primary)' : 'var(--text-muted)',
-              borderBottom: activeTab === tab.id ? '2px solid var(--primary)' : '2px solid transparent',
-              cursor: 'pointer',
-              fontWeight: activeTab === tab.id ? 'bold' : 'normal',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.2s'
-            }}
-          >
-            <tab.icon size={16} />
-            {tab.label}
-          </button>
-        ))}
+      {/* Tabs Navigation */}
+      <div style={{ display: 'flex', overflowX: 'auto', gap: '8px', paddingBottom: '8px', marginBottom: '24px', borderBottom: '1px solid var(--border-color)' }} className="hide-scrollbar">
+        {tabs.map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '10px 16px', borderRadius: '12px', border: 'none',
+                background: isActive ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
+                color: isActive ? '#fff' : 'var(--text-muted)',
+                cursor: 'pointer', fontWeight: 500, whiteSpace: 'nowrap',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
+              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+            >
+              <Icon size={18} />
+              {tab.label}
+            </button>
+          )
+        })}
       </div>
 
       {/* Contenido del Dashboard Seleccionado */}

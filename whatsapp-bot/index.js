@@ -19,12 +19,21 @@ const client = new Client({
 
 let isReady = false;
 
+async function updateBotStatus(statusText) {
+    try {
+        await supabase.from('bot_status').update({ status: statusText, last_ping: new Date() }).eq('id', 1);
+    } catch (err) {
+        console.error('Error actualizando estado del bot:', err);
+    }
+}
+
 client.on('qr', async (qr) => {
     // Save QR code as image locally
     const qrPath = './qr.png';
     try {
         await qrcode.toFile(qrPath, qr);
         console.log('¡QR Guardado en', qrPath, '!');
+        updateBotStatus('QR_READY');
     } catch (err) {
         console.error('Error guardando QR:', err);
     }
@@ -33,17 +42,23 @@ client.on('qr', async (qr) => {
 client.on('ready', () => {
     console.log('¡Bot de WhatsApp conectado y listo para enviar mensajes!');
     isReady = true;
+    updateBotStatus('CONNECTED');
     checkPendingMessages();
 });
 
 client.on('disconnected', (reason) => {
     console.log('Bot desconectado:', reason);
     isReady = false;
+    updateBotStatus('DISCONNECTED');
 });
 
 client.on('auth_failure', msg => {
     console.error('Error de autenticación:', msg);
+    updateBotStatus('DISCONNECTED');
 });
+
+// Reportar desconectado al iniciar antes de estar listo
+updateBotStatus('DISCONNECTED');
 
 // Iniciar sesión
 client.initialize();

@@ -38,9 +38,14 @@ export const useCartStore = create(
       getTotal: () => {
         return get().items.reduce((total, item) => total + (item.price * item.quantity), 0);
       },
-
+      
+      isSyncing: false,
+      
       syncWithCloud: async (tenantId) => {
         if (!tenantId) return;
+        if (get().isSyncing) return;
+        
+        set({ isSyncing: true });
         
         try {
           // Obtener sesión actual
@@ -94,24 +99,30 @@ export const useCartStore = create(
           }
         } catch (err) {
           console.error("Error sincronizando carrito con la nube:", err);
+        } finally {
+          set({ isSyncing: false });
         }
       },
 
+      isFetchingCloud: false,
       fetchCloudCart: async (tenantId) => {
+        if (get().isFetchingCloud) return;
+        set({ isFetchingCloud: true });
+
         try {
           const { data: { session } } = await supabase.auth.getSession();
           if (!session?.user) return; 
 
           let profile = null;
-          const { data: existingProfile } = await supabase
+          const { data: existingProfiles } = await supabase
             .from('clients')
             .select('id')
             .eq('user_id', session.user.id)
             .eq('tenant_id', tenantId)
-            .single();
+            .limit(1);
 
-          if (existingProfile) {
-            profile = existingProfile;
+          if (existingProfiles && existingProfiles.length > 0) {
+            profile = existingProfiles[0];
           } else {
             const { data: newProfile } = await supabase
               .from('clients')
@@ -146,6 +157,8 @@ export const useCartStore = create(
           }
         } catch (err) {
           console.error("Error obteniendo carrito de la nube:", err);
+        } finally {
+          set({ isFetchingCloud: false });
         }
       }
     }),

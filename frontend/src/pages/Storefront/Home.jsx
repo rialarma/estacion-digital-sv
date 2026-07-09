@@ -70,9 +70,9 @@ const StorefrontHome = ({ customTenantId }) => {
       }
     });
     
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setCurrentUser(session?.user || null);
-      if (session?.user && tenantId) {
+      if (session?.user && tenantId && event !== 'INITIAL_SESSION') {
         fetchCloudCart(tenantId);
       }
     });

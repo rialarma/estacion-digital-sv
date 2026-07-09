@@ -17,7 +17,6 @@ const Cotizaciones = () => {
   const [saving, setSaving] = useState(false);
   const [quotes, setQuotes] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
-  const [docTypeFilter, setDocTypeFilter] = useState('ALL');
   
   // Form state
   const [selectedClientId, setSelectedClientId] = useState('');
@@ -35,6 +34,7 @@ const Cotizaciones = () => {
     const { data } = await supabase
       .from('quotes')
       .select('*, clients(name), seller:user_profiles!quotes_seller_id_fkey(first_name, last_name)')
+      .in('status', ['PENDING', 'PENDING_PROFORMA'])
       .order('created_at', { ascending: false })
       .limit(20);
     if (data) setQuotes(data);
@@ -163,41 +163,22 @@ const Cotizaciones = () => {
     }
   };
 
-  const filteredQuotes = quotes.filter(q => {
-    if (docTypeFilter === 'ALL') return q.status.startsWith('PENDING');
-    if (docTypeFilter === 'PROFORMA') return q.status === 'PENDING' || q.status === 'PENDING_PROFORMA';
-    if (docTypeFilter === 'PEDIDO') return q.status === 'PENDING_PEDIDO';
-    return true;
-  });
+  const filteredQuotes = quotes;
 
   return (
     <div className="page-container">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 className="page-title">Documentos Pendientes</h1>
+        <h1 className="page-title">Cotizaciones</h1>
         <button className="glass-button" onClick={() => setShowHistory(!showHistory)}>
           {showHistory ? <Plus size={18} /> : <FileSignature size={18} />}
-          {showHistory ? 'Nueva Proforma' : 'Ver Documentos Pendientes'}
+          {showHistory ? 'Nueva Cotización' : 'Ver Cotizaciones'}
         </button>
       </div>
 
       {showHistory ? (
         <div className="glass-panel" style={{ padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 600 }}>Documentos Pendientes de Facturar</h2>
-            <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '8px' }}>
-              <button 
-                onClick={() => setDocTypeFilter('ALL')}
-                style={{ padding: '6px 12px', border: 'none', borderRadius: '6px', cursor: 'pointer', background: docTypeFilter === 'ALL' ? 'var(--primary)' : 'transparent', color: docTypeFilter === 'ALL' ? '#fff' : 'var(--text-muted)' }}
-              >Todos</button>
-              <button 
-                onClick={() => setDocTypeFilter('PROFORMA')}
-                style={{ padding: '6px 12px', border: 'none', borderRadius: '6px', cursor: 'pointer', background: docTypeFilter === 'PROFORMA' ? 'var(--primary)' : 'transparent', color: docTypeFilter === 'PROFORMA' ? '#fff' : 'var(--text-muted)' }}
-              >Proformas</button>
-              <button 
-                onClick={() => setDocTypeFilter('PEDIDO')}
-                style={{ padding: '6px 12px', border: 'none', borderRadius: '6px', cursor: 'pointer', background: docTypeFilter === 'PEDIDO' ? 'var(--primary)' : 'transparent', color: docTypeFilter === 'PEDIDO' ? '#fff' : 'var(--text-muted)' }}
-              >Pedidos (Preventa)</button>
-            </div>
+            <h2 style={{ fontSize: '18px', fontWeight: 600 }}>Cotizaciones Emitidas</h2>
           </div>
           
           <div className="table-container">
@@ -214,17 +195,15 @@ const Cotizaciones = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredQuotes.map(q => {
-                  const isPedido = q.status === 'PENDING_PEDIDO';
-                  return (
+                {filteredQuotes.map(q => (
                     <tr key={q.id}>
                       <td>
                         <span style={{ 
                           padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold',
-                          background: isPedido ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)',
-                          color: isPedido ? '#10b981' : '#3b82f6'
+                          background: 'rgba(59, 130, 246, 0.1)',
+                          color: '#3b82f6'
                         }}>
-                          {isPedido ? 'PEDIDO' : 'PROFORMA'}
+                          COTIZACIÓN
                         </span>
                       </td>
                       <td>{new Date(q.created_at).toLocaleDateString()}</td>
@@ -243,8 +222,7 @@ const Cotizaciones = () => {
                         </button>
                       </td>
                     </tr>
-                  );
-                })}
+                ))}
                 {filteredQuotes.length === 0 && (
                   <tr>
                     <td colSpan="7" style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>
@@ -260,7 +238,7 @@ const Cotizaciones = () => {
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
           {/* Builder */}
           <div className="glass-panel" style={{ padding: '24px' }}>
-            <h2 style={{ fontSize: '18px', marginBottom: '20px' }}>Construir Proforma</h2>
+            <h2 style={{ fontSize: '18px', marginBottom: '20px' }}>Construir Cotización</h2>
             
             <div style={{ marginBottom: '24px', zIndex: 10 }}>
               <ProductSearch products={products} onSelect={handleSelectProduct} />

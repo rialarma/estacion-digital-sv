@@ -29,14 +29,15 @@ const StoreProfile = () => {
   const fetchProfileData = async (userId) => {
     try {
       // Fetch client profile
-      const { data: profileData, error: profileError } = await supabase
+      const { data: profileDataArr, error: profileError } = await supabase
         .from('clients')
         .select('*')
         .eq('user_id', userId)
         .eq('tenant_id', tenantId)
-        .single();
+        .limit(1);
         
       if (profileError && profileError.code !== 'PGRST116') throw profileError;
+      const profileData = profileDataArr?.[0] || null;
       setClientProfile(profileData);
 
       if (profileData) {

@@ -47,13 +47,14 @@ const StorefrontCheckout = ({ customTenantId }) => {
         if (tenantId) {
           fetchCloudCart(tenantId);
         }
-        const { data: profile } = await supabase
+        const { data: profiles } = await supabase
           .from('clients')
           .select('*')
           .eq('user_id', session.user.id)
           .eq('tenant_id', tenantId)
-          .single();
+          .limit(1);
           
+        const profile = profiles?.[0];
         if (profile) {
           setClientProfile(profile);
           setFormData(prev => ({
@@ -74,7 +75,8 @@ const StorefrontCheckout = ({ customTenantId }) => {
           });
           if (!rpcError) {
             // Re-fetch para cargar el id del cliente
-            const { data: newProfile } = await supabase.from('clients').select('*').eq('user_id', session.user.id).eq('tenant_id', tenantId).single();
+            const { data: newProfiles } = await supabase.from('clients').select('*').eq('user_id', session.user.id).eq('tenant_id', tenantId).limit(1);
+            const newProfile = newProfiles?.[0];
             if (newProfile) {
               setClientProfile(newProfile);
               setFormData(prev => ({ ...prev, name: defaultName }));

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabase';
-import { Users, Plus, Edit2, Trash2, Search } from 'lucide-react';
+import { Users, Plus, Edit2, Trash2, Search, DownloadCloud, UploadCloud } from 'lucide-react';
 import { DEPARTAMENTOS, MUNICIPIOS_NUEVOS, getDistritosPorMunicipio, ACTIVIDADES_ECONOMICAS } from '../utils/svCatalogs';
 import { useTenantStore } from '../store/useTenantStore';
+import * as XLSX from 'xlsx';
 
 const Clients = () => {
   const { tenantInfo } = useTenantStore();
@@ -10,8 +11,10 @@ const Clients = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [selectedClients, setSelectedClients] = useState([]);
   
-  const [formData, setFormData] = useState({
+  const fileInputRef = useRef(null);
+  const INITIAL_FORM_STATE = {
     name: '',
     business_name: '',
     email: '',
@@ -20,12 +23,15 @@ const Clients = () => {
     document_number: '',
     nrc: '',
     economic_activity_code: '',
-    department_code: '',
-    district: '',
+    department_code: '12',
+    municipality_code: 'San Miguel Centro',
+    district: '1201',
     address: '',
     credit_limit: 0,
     points_balance: 0
-  });
+  };
+  
+  const [formData, setFormData] = useState(INITIAL_FORM_STATE);
 
   const [giroSearch, setGiroSearch] = useState('');
   const filteredGiros = ACTIVIDADES_ECONOMICAS.filter(act => 
@@ -81,7 +87,7 @@ const Clients = () => {
       }
       
       setShowModal(false);
-      setFormData({ name: '', business_name: '', email: '', phone: '', document_type: 'DUI', document_number: '', nrc: '', economic_activity_code: '', department_code: '', municipality_code: '', district: '', address: '', credit_limit: 0, points_balance: 0 });
+      setFormData(INITIAL_FORM_STATE);
       setGiroSearch('');
       setEditingId(null);
       fetchClients();
@@ -120,18 +126,143 @@ const Clients = () => {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedClients.length === 0) return;
+    if (window.confirm(`¿Estás seguro de eliminar ${selectedClients.length} cliente(s)?`)) {
+      setLoading(true);
+      const { error } = await supabase.from('clients').delete().in('id', selectedClients);
+      if (error) {
+        alert("Error eliminando clientes: " + error.message);
+      } else {
+        setSelectedClients([]);
+        fetchClients();
+      }
+      setLoading(false);
+    }
+  };
+
+  const toggleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedClients(clients.map(c => c.id));
+    } else {
+      setSelectedClients([]);
+    }
+  };
+
+  const toggleSelectClient = (id) => {
+    if (selectedClients.includes(id)) {
+      setSelectedClients(selectedClients.filter(cId => cId !== id));
+    } else {
+      setSelectedClients([...selectedClients, id]);
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    const wb = XLSX.utils.book_new();
+    const headers = [
+      "Nombre", "Nombre Comercial", "Email", "Telefono", "Tipo Documento (DUI, NIT, PASAPORTE, OTRO)", 
+      "Numero Documento", "NRC", "Codigo Actividad Economica", "Direccion"
+    ];
+    const example = [
+      "Juan Perez", "Comercial JP", "juan@example.com", "7777-7777", "DUI", 
+      "12345678-9", "123456-7", "01111", "San Miguel Centro"
+    ];
+    const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+    ws['!cols'] = headers.map(h => ({ wch: h.length + 5 }));
+    XLSX.utils.book_append_sheet(wb, ws, "Clientes");
+    XLSX.writeFile(wb, "Plantilla_Clientes.xlsx");
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setLoading(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const { data: profile } = await supabase.from('user_profiles').select('tenant_id').eq('id', userData.user.id).single();
+      
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: 'array' });
+      const wsname = wb.SheetNames[0];
+      const ws = wb.Sheets[wsname];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+      
+      if (rows.length < 2) throw new Error("El archivo Excel está vacío o no tiene el formato correcto.");
+      rows.shift(); // Remove header
+
+      let insertedCount = 0;
+      
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length === 0 || !row[0]) continue; // Skip empty rows or no name
+        
+        const name = String(row[0] || '').trim();
+        const business_name = String(row[1] || '').trim();
+        const email = String(row[2] || '').trim();
+        const phone = String(row[3] || '').trim();
+        const document_type = String(row[4] || 'DUI').trim().toUpperCase();
+        const document_number = String(row[5] || '').trim();
+        const nrc = String(row[6] || '').trim();
+        const economic_activity_code = String(row[7] || '').trim();
+        const address = String(row[8] || '').trim();
+        
+        // Defaults if missing (using same defaults as UI)
+        const department_code = '12';
+        const municipality_code = 'San Miguel Centro';
+        const district = '1201';
+
+        await supabase.from('clients').insert([{
+          tenant_id: profile.tenant_id,
+          name, business_name, email, phone, document_type, document_number, 
+          nrc, economic_activity_code, address, department_code, municipality_code, district
+        }]);
+        insertedCount++;
+      }
+      
+      alert(`Se han importado ${insertedCount} clientes exitosamente.`);
+      fetchClients();
+    } catch (error) {
+      console.error(error);
+      alert("Error al importar Excel: " + error.message);
+    } finally {
+      setLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="page-container">
+      <input
+        type="file"
+        accept=".xlsx, .xls"
+        style={{ display: 'none' }}
+        ref={fileInputRef}
+        onChange={handleFileUpload}
+      />
       <div className="page-header">
         <h1 className="page-title">Directorio de Clientes</h1>
-        <button className="glass-button" onClick={() => {
-          setEditingId(null);
-          setFormData({ name: '', business_name: '', email: '', phone: '', document_type: 'DUI', document_number: '', nrc: '', economic_activity_code: '', department_code: '', municipality_code: '', district: '', address: '', credit_limit: 0, points_balance: 0 });
-          setGiroSearch('');
-          setShowModal(true);
-        }}>
-          <Plus size={18} /> Nuevo Cliente
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          {selectedClients.length > 0 && (
+            <button className="glass-button" style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)' }} onClick={handleBulkDelete}>
+              <Trash2 size={18} /> Eliminar Seleccionados ({selectedClients.length})
+            </button>
+          )}
+          <button className="glass-button" onClick={handleDownloadTemplate} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+            <DownloadCloud size={18} /> Descargar Plantilla
+          </button>
+          <button className="glass-button" onClick={() => fileInputRef.current?.click()} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+            <UploadCloud size={18} /> Subir Excel
+          </button>
+          <button className="glass-button" onClick={() => {
+            setEditingId(null);
+            setFormData(INITIAL_FORM_STATE);
+            setGiroSearch('');
+            setShowModal(true);
+          }}>
+            <Plus size={18} /> Nuevo Cliente
+          </button>
+        </div>
       </div>
 
       <div className="glass-panel" style={{ padding: '24px' }}>
@@ -141,6 +272,14 @@ const Clients = () => {
           <table className="glass-table">
             <thead>
               <tr>
+                <th style={{ width: '40px' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={clients.length > 0 && selectedClients.length === clients.length}
+                    onChange={toggleSelectAll}
+                    style={{ cursor: 'pointer' }}
+                  />
+                </th>
                 <th>Nombre del Cliente</th>
                 <th>Razón Social</th>
                 <th>Documento</th>
@@ -157,8 +296,16 @@ const Clients = () => {
                   <td colSpan="5" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No hay clientes registrados.</td>
                 </tr>
               )}
-              {clients.map(client => (
-                <tr key={client.id}>
+               {clients.map(client => (
+                <tr key={client.id} style={{ background: selectedClients.includes(client.id) ? 'rgba(59, 130, 246, 0.1)' : 'transparent' }}>
+                  <td>
+                    <input 
+                      type="checkbox" 
+                      checked={selectedClients.includes(client.id)}
+                      onChange={() => toggleSelectClient(client.id)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  </td>
                   <td style={{ fontWeight: 500 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '8px', borderRadius: '50%', color: 'var(--primary)' }}>

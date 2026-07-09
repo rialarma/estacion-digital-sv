@@ -3,13 +3,24 @@ import { supabase } from '../supabase';
 import { MonitorDot } from 'lucide-react';
 
 const Auth = ({ onAuthSuccess }) => {
-  const [isLogin, setIsLogin] = useState(true);
+  const hasInvite = !!localStorage.getItem('pendingInviteCode');
+  const [isLogin, setIsLogin] = useState(hasInvite); // Default to login if they have an invite
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const handleAuthSuccess = (session) => {
+    const pendingCode = localStorage.getItem('pendingInviteCode');
+    if (pendingCode) {
+      window.location.href = `/join/${pendingCode}`;
+    } else {
+      window.history.replaceState(null, '', '/');
+      if (onAuthSuccess) onAuthSuccess(session);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,8 +47,7 @@ const Auth = ({ onAuthSuccess }) => {
         });
         if (loginError) throw loginError;
         if (data.session) {
-          window.history.replaceState(null, '', '/');
-          if (onAuthSuccess) onAuthSuccess(data.session);
+          handleAuthSuccess(data.session);
         }
 
       } else {
@@ -50,8 +60,7 @@ const Auth = ({ onAuthSuccess }) => {
 
         if (authData.user) {
           if (authData.session) {
-            window.history.replaceState(null, '', '/');
-            if (onAuthSuccess) onAuthSuccess(authData.session);
+            handleAuthSuccess(authData.session);
           } else {
             setError("Cuenta creada exitosamente. Por favor inicia sesión.");
             setIsLogin(true);
@@ -73,6 +82,12 @@ const Auth = ({ onAuthSuccess }) => {
           <h2 style={{ fontSize: '24px', fontWeight: 700 }}>Estación Digital SV</h2>
           <p style={{ color: 'var(--text-muted)' }}>{isLogin ? 'Ingresa a tu cuenta' : 'Registra tu empresa'}</p>
         </div>
+        
+        {hasInvite && (
+          <div style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+            Tienes una invitación pendiente. Por favor <strong>Inicia Sesión</strong> para aceptarla.
+          </div>
+        )}
 
         {error && (
           <div style={{ background: 'rgba(248, 113, 113, 0.1)', color: '#f87171', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px' }}>
@@ -102,7 +117,7 @@ const Auth = ({ onAuthSuccess }) => {
             onClick={() => { setIsLogin(!isLogin); setError(null); }} 
             style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', textDecoration: 'underline' }}
           >
-            {isLogin ? '¿No tienes cuenta? Registra tu empresa' : '¿Ya tienes cuenta? Inicia sesión'}
+            {isLogin ? '¿No tienes cuenta? Regístrate aquí' : '¿Ya tienes cuenta? Inicia sesión'}
           </button>
         </div>
       </div>

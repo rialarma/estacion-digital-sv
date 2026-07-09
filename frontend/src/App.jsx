@@ -5,7 +5,7 @@ import { useAuth } from './hooks/useAuth';
 import { useTenantStore } from './store/useTenantStore';
 import { Menu, UserCheck, Truck, FileText } from 'lucide-react';
 
-import Sidebar from './components/Sidebar';
+import Topbar from './components/Topbar';
 import Compras from './pages/Compras';
 import Ventas from './pages/Ventas';
 import Storefront from './pages/Storefront/Home';
@@ -21,6 +21,8 @@ const Despachos = lazy(() => import('./pages/Despachos'));
 const CheckIn = lazy(() => import('./pages/CheckIn'));
 const AsignacionRutas = lazy(() => import('./pages/AsignacionRutas'));
 const RevisionCargas = lazy(() => import('./pages/RevisionCargas'));
+const Repartidores = lazy(() => import('./pages/Repartidores'));
+const Usuarios = lazy(() => import('./pages/Usuarios'));
 const Configuracion = lazy(() => import('./pages/Configuracion'));
 const Reportes = lazy(() => import('./pages/Reportes'));
 const Taller = lazy(() => import('./pages/Taller'));
@@ -29,7 +31,8 @@ const LibroDiario = lazy(() => import('./pages/LibroDiario'));
 const EstadosFinancieros = lazy(() => import('./pages/EstadosFinancieros'));
 const KioskoAsistencia = lazy(() => import('./pages/KioskoAsistencia'));
 import Auth from './pages/Auth';
-import Onboarding from './pages/Onboarding';
+import PendingAssignment from './pages/PendingAssignment';
+import JoinTenant from './pages/JoinTenant';
 const GodMode = lazy(() => import('./pages/GodMode'));
 const Preventa = lazy(() => import('./pages/Preventa'));
 const WebOrders = lazy(() => import('./pages/WebOrders'));
@@ -41,6 +44,9 @@ const SuspendedSaaS = lazy(() => import('./pages/SuspendedSaaS'));
 import ProtectedRoute from './components/ProtectedRoute';
 const Caja = lazy(() => import('./pages/Caja'));
 const Cotizaciones = lazy(() => import('./pages/Cotizaciones'));
+const PedidosPreventa = lazy(() => import('./pages/PedidosPreventa'));
+const MiRuta = lazy(() => import('./pages/MiRuta'));
+const MapaLogistica = lazy(() => import('./pages/MapaLogistica'));
 const Kardex = lazy(() => import('./pages/Kardex'));
 const Traslados = lazy(() => import('./pages/Traslados'));
 import Home from './pages/Home';
@@ -53,10 +59,11 @@ const Departamentos = lazy(() => import('./pages/hr/Departamentos'));
 const Cargos = lazy(() => import('./pages/hr/Cargos'));
 const DirectorioRRHH = lazy(() => import('./pages/hr/DirectorioRRHH'));
 const Planilla = lazy(() => import('./pages/hr/Planilla'));
-const AsistenciaHR = lazy(() => import('./pages/hr/AsistenciaHR'));
-const Vacaciones = lazy(() => import('./pages/hr/Vacaciones'));
-const ReportesHR = lazy(() => import('./pages/hr/ReportesHR'));
 
+const Vacaciones = lazy(() => import('./pages/hr/Vacaciones'));
+import GPSBackgroundTracker from './components/GPSBackgroundTracker';
+const ReportesHR = lazy(() => import('./pages/hr/ReportesHR'));
+import SubNavTabs from './components/SubNavTabs';
 function App() {
   const { user, loading } = useAuth();
   const { tenantId, tenantInfo } = useTenantStore();
@@ -193,16 +200,33 @@ function App() {
     return <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center' }}>Cargando sistema...</div>;
   }
 
-  // 1. Si no hay usuario autenticado -> Login
+  // 1. Rutas de Invitación (debe evaluarse antes del bloqueo de login)
+  if (window.location.pathname.startsWith('/join')) {
+    return (
+      <Router>
+        <Routes>
+          <Route path="/join/:inviteCode" element={<JoinTenant />} />
+        </Routes>
+      </Router>
+    );
+  }
+
+  // 2. Si no hay usuario autenticado -> Login
   if (!user) {
     return <Auth />;
   }
 
-  // 2. Si el usuario está autenticado pero no tiene Empresa (Tenant) -> Onboarding
+  const isGodModeAdmin = user?.email === 'raam2508@gmail.com' || user?.email === 'admin@estaciondigital.sv';
+
+  // 3. Si el usuario está autenticado pero no tiene Empresa (Tenant) -> Cuenta en Espera
   // Excepto si está intentando acceder a God Mode
   const isGodModeRoute = window.location.pathname === '/godmode';
   if (user && !tenantId && !isGodModeRoute) {
-    return <Onboarding onComplete={() => window.location.reload()} />;
+    if (isGodModeAdmin) {
+      window.location.href = '/godmode';
+      return <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center' }}>Redirigiendo a God Mode...</div>;
+    }
+    return <PendingAssignment />;
   }
 
   // 2.5 SaaS Wall: Si la suscripción está suspendida
@@ -210,37 +234,44 @@ function App() {
     return <SuspendedSaaS />;
   }
 
+  const isImpersonating = isGodModeAdmin && tenantId && !isGodModeRoute;
+
+  const handleExitSupport = async () => {
+    try {
+      const { error } = await supabase.rpc('admin_exit_support');
+      if (error) throw error;
+      window.location.href = '/godmode';
+    } catch (err) {
+      console.error(err);
+      alert('Error al salir de soporte: ' + err.message);
+    }
+  };
+
   // 3. Autenticado y con Tenant -> Aplicación Principal
   return (
     <Router>
+      <GPSBackgroundTracker />
+      
+      {isImpersonating && (
+        <button 
+          onClick={handleExitSupport}
+          style={{
+            position: 'fixed', bottom: '20px', left: '20px', zIndex: 9999,
+            background: '#ef4444', color: 'white', padding: '12px 20px',
+            borderRadius: '30px', border: 'none', fontWeight: 'bold',
+            boxShadow: '0 4px 15px rgba(239, 68, 68, 0.4)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: '8px'
+          }}
+        >
+          Salir de Soporte ❌
+        </button>
+      )}
+
       <div className="app-container">
-        {/* Mobile Topbar */}
-        <div className="mobile-topbar" style={{ overflow: 'hidden', alignItems: 'flex-start' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '1.2em', fontWeight: 'bold', width: '100%' }}>
-            <span style={{ color: 'var(--primary)', flexShrink: 0 }}>Estación</span> 
-            <span style={{ display: 'block', wordBreak: 'break-word', lineHeight: '1.4' }}>Digital SV</span>
-          </div>
-          <button className="mobile-menu-btn" onClick={() => setIsSidebarOpen(true)}>
-            <Menu size={24} />
-          </button>
-        </div>
-
-        {/* Sidebar Overlay */}
-        {isSidebarOpen && (
-          <div 
-            className="modal-backdrop" 
-            style={{ zIndex: 99, background: 'rgba(0,0,0,0.5)' }}
-            onClick={() => setIsSidebarOpen(false)}
-          />
-        )}
-
-        <Sidebar 
-          onLogout={() => supabase.auth.signOut()} 
-          isOpen={isSidebarOpen} 
-          onClose={() => setIsSidebarOpen(false)}
-        />
+        <Topbar onLogout={() => supabase.auth.signOut()} />
         
         <main className="main-content">
+          <SubNavTabs />
           <Suspense fallback={<div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center' }}>Cargando pantalla...</div>}>
             <Routes>
               {/* Ruta Principal / Dashboard */}
@@ -250,6 +281,7 @@ function App() {
               <Route path="/caja" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Caja /></ProtectedRoute>} />
               <Route path="/ventas" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Ventas /></ProtectedRoute>} />
               <Route path="/preventa" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'VENDEDOR']}><Preventa /></ProtectedRoute>} />
+              <Route path="/pedidos-preventa" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><PedidosPreventa /></ProtectedRoute>} />
               <Route path="/pedidos-web" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO', 'BODEGUERO']}><WebOrders /></ProtectedRoute>} />
               <Route path="/cotizaciones" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Cotizaciones /></ProtectedRoute>} />
               <Route path="/taller" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO', 'TECNICO']}><Taller /></ProtectedRoute>} />
@@ -261,6 +293,10 @@ function App() {
               <Route path="/inventario" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO', 'CAJERO']}><Inventory /></ProtectedRoute>} />
               <Route path="/kardex" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Kardex /></ProtectedRoute>} />
               <Route path="/traslados" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Traslados /></ProtectedRoute>} />
+              <Route path="/despachos" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Despachos /></ProtectedRoute>} />
+              <Route path="/repartidores" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Repartidores /></ProtectedRoute>} />
+              <Route path="/mi-ruta" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'REPARTIDOR']}><MiRuta /></ProtectedRoute>} />
+              <Route path="/mapa-logistica" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><MapaLogistica /></ProtectedRoute>} />
               
               {/* Cartera (Cobros y Pagos) */}
               <Route path="/cartera/cxc" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><CuentasPorCobrar /></ProtectedRoute>} />
@@ -274,23 +310,25 @@ function App() {
               <Route path="/asignacion-rutas" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><AsignacionRutas /></ProtectedRoute>} />
               <Route path="/despachos" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Despachos /></ProtectedRoute>} />
               <Route path="/bodega/revision-cargas" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><RevisionCargas /></ProtectedRoute>} />
+              <Route path="/logistica/repartidores" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Repartidores /></ProtectedRoute>} />
               <Route path="/historial" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Historial /></ProtectedRoute>} />
               <Route path="/reportes" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Reportes /></ProtectedRoute>} />
               
               {/* Control de Asistencia */}
-              <Route path="/asistencia" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO', 'BODEGUERO']}><Asistencia /></ProtectedRoute>} />
+              <Route path="/rrhh/asistencia" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO', 'BODEGUERO']}><Asistencia /></ProtectedRoute>} />
               
               {/* Recursos Humanos (RRHH) */}
               <Route path="/rrhh/departamentos" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Departamentos /></ProtectedRoute>} />
               <Route path="/rrhh/cargos" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Cargos /></ProtectedRoute>} />
               <Route path="/rrhh/empleados" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><DirectorioRRHH /></ProtectedRoute>} />
-              <Route path="/rrhh/asistencia" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><AsistenciaHR /></ProtectedRoute>} />
+
               <Route path="/rrhh/vacaciones" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Vacaciones /></ProtectedRoute>} />
               <Route path="/rrhh/planilla" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Planilla /></ProtectedRoute>} />
               <Route path="/rrhh/reportes" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><ReportesHR /></ProtectedRoute>} />
               
               {/* Contabilidad y Configuración (Solo ADMIN) */}
               <Route path="/configuracion" element={<ProtectedRoute allowedRoles={['ADMIN']}><Configuracion /></ProtectedRoute>} />
+              <Route path="/configuracion/usuarios" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Usuarios /></ProtectedRoute>} />
               <Route path="/contabilidad/catalogo" element={<ProtectedRoute allowedRoles={['ADMIN']}><ConfigCatalogo /></ProtectedRoute>} />
               <Route path="/contabilidad/partidas" element={<ProtectedRoute allowedRoles={['ADMIN']}><LibroDiario /></ProtectedRoute>} />
               <Route path="/contabilidad/estados-financieros" element={<ProtectedRoute allowedRoles={['ADMIN']}><EstadosFinancieros /></ProtectedRoute>} />

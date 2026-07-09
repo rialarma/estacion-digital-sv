@@ -13,6 +13,9 @@ const DirectorioRRHH = () => {
   const [saving, setSaving] = useState(false);
   const [editingEmp, setEditingEmp] = useState(null);
   
+  const [systemUsers, setSystemUsers] = useState([]);
+  const [linkExistingUser, setLinkExistingUser] = useState(false);
+  
   const [giveAccess, setGiveAccess] = useState(false);
   const [isDriver, setIsDriver] = useState(false);
 
@@ -27,7 +30,10 @@ const DirectorioRRHH = () => {
     // Access fields
     email: '',
     password: '',
+    password: '',
     role: 'VENDEDOR',
+    // Existing user link
+    linked_user_id: '',
     // Driver fields
     plate_number: '',
     phone: ''
@@ -57,6 +63,17 @@ const DirectorioRRHH = () => {
     } else if (error) {
       console.error('Error fetching HR employees:', error);
     }
+
+    // Fetch System Users that could be linked
+    const { data: sysUsers, error: sysError } = await supabase
+      .from('user_profiles')
+      .select('id, first_name, last_name, username, role')
+      .eq('tenant_id', tenantInfo?.id)
+      .order('first_name');
+    
+    if (sysError) console.error("Error fetching system users:", sysError);
+    if (sysUsers) setSystemUsers(sysUsers);
+
     setLoading(false);
   };
 
@@ -82,8 +99,12 @@ const DirectorioRRHH = () => {
     let createdUserId = null;
 
     try {
-      // 1. Create System User if requested (and not editing an existing user access)
-      if (giveAccess && !editingEmp) {
+      // 1A. Link existing user
+      if (linkExistingUser && !editingEmp && formData.linked_user_id) {
+        createdUserId = formData.linked_user_id;
+      }
+      // 1B. Create System User if requested (and not editing an existing user access)
+      else if (giveAccess && !editingEmp) {
         const tempClient = createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: false } });
         const { data: authData, error: authError } = await tempClient.auth.signUp({
           email: formData.email,
@@ -176,6 +197,7 @@ const DirectorioRRHH = () => {
   const openEdit = (emp) => {
     setEditingEmp(emp);
     setGiveAccess(false);
+    setLinkExistingUser(false);
     setIsDriver(false);
     setFormData({
       first_name: emp.first_name,
@@ -192,11 +214,12 @@ const DirectorioRRHH = () => {
 
   const resetForm = () => {
     setGiveAccess(false);
+    setLinkExistingUser(false);
     setIsDriver(false);
     setFormData({
       first_name: '', last_name: '', document_id: '', hire_date: '',
       position_id: '', base_salary: '', status: 'ACTIVO',
-      email: '', password: '', role: 'VENDEDOR', plate_number: '', phone: ''
+      email: '', password: '', role: 'VENDEDOR', linked_user_id: '', plate_number: '', phone: ''
     });
   };
 
@@ -366,14 +389,49 @@ const DirectorioRRHH = () => {
               {/* Toggles Solo al Crear */}
               {!editingEmp && (
                 <>
-                  <div style={{ marginBottom: '24px', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ marginBottom: '16px', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '15px', fontWeight: 500 }}>
+                      <input 
+                        type="checkbox" 
+                        checked={linkExistingUser} 
+                        onChange={(e) => {
+                          setLinkExistingUser(e.target.checked);
+                          if (e.target.checked) setGiveAccess(false);
+                        }} 
+                        style={{ transform: 'scale(1.2)' }} 
+                      />
+                      <User size={18} color="var(--primary)" />
+                      Vincular a un Usuario de Sistema Existente
+                    </label>
+                    <p style={{ margin: '8px 0 0 24px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                      Si este empleado ya tiene una cuenta en el sistema (ej. el Administrador), selecciónalo aquí.
+                    </p>
+
+                    {linkExistingUser && (
+                      <div style={{ marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px', marginLeft: '24px' }}>
+                        <div className="form-group">
+                          <label>Seleccionar Usuario Existente</label>
+                          <select className="glass-input" name="linked_user_id" value={formData.linked_user_id} onChange={handleInputChange} required={linkExistingUser}>
+                            <option value="">-- Seleccionar --</option>
+                            {systemUsers.map(su => (
+                              <option key={su.id} value={su.id}>
+                                {su.first_name || su.last_name ? `${su.first_name || ''} ${su.last_name || ''}` : su.username || 'Sin Nombre'} ({su.role})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ marginBottom: '24px', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', opacity: linkExistingUser ? 0.5 : 1, pointerEvents: linkExistingUser ? 'none' : 'auto' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '15px', fontWeight: 500 }}>
                       <input type="checkbox" checked={giveAccess} onChange={(e) => setGiveAccess(e.target.checked)} style={{ transform: 'scale(1.2)' }} />
                       <Shield size={18} color="var(--primary)" />
-                      Otorgar Acceso al Sistema
+                      Crear Cuenta Nueva y Otorgar Acceso
                     </label>
                     <p style={{ margin: '8px 0 0 24px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                      Crea una cuenta de usuario para que pueda loguearse al POS, App Móvil o panel administrativo.
+                      Crea una cuenta de usuario NUEVA para que pueda loguearse al POS, App Móvil o panel administrativo.
                     </p>
                     
                     {giveAccess && (
