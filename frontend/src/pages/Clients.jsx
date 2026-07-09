@@ -15,7 +15,7 @@ const Clients = () => {
   
   const fileInputRef = useRef(null);
   const INITIAL_FORM_STATE = {
-    name: '',
+    name: 'Consumidor Final',
     business_name: '',
     email: '',
     phone: '',
@@ -26,7 +26,7 @@ const Clients = () => {
     department_code: '12',
     municipality_code: 'San Miguel Centro',
     district: '1201',
-    address: '',
+    address: 'San Miguel',
     credit_limit: 0,
     points_balance: 0
   };
@@ -160,17 +160,31 @@ const Clients = () => {
   const handleDownloadTemplate = () => {
     const wb = XLSX.utils.book_new();
     const headers = [
-      "Nombre", "Nombre Comercial", "Email", "Telefono", "Tipo Documento (DUI, NIT, PASAPORTE, OTRO)", 
+      "ID (Dejar vacío para crear nuevos)", "Nombre", "Nombre Comercial", "Email", "Telefono", "Tipo Documento (DUI, NIT, PASAPORTE, OTRO)", 
       "Numero Documento", "NRC", "Codigo Actividad Economica", "Direccion"
     ];
-    const example = [
-      "Juan Perez", "Comercial JP", "juan@example.com", "7777-7777", "DUI", 
-      "12345678-9", "123456-7", "01111", "San Miguel Centro"
-    ];
-    const ws = XLSX.utils.aoa_to_sheet([headers, example]);
-    ws['!cols'] = headers.map(h => ({ wch: h.length + 5 }));
+    
+    // Si ya hay clientes, exportarlos para que puedan ser editados masivamente. Si no, poner un ejemplo.
+    let dataToExport = [headers];
+    
+    if (clients.length > 0) {
+      clients.forEach(c => {
+        dataToExport.push([
+          c.id, c.name, c.business_name || '', c.email || '', c.phone || '', c.document_type || 'DUI',
+          c.document_number || '', c.nrc || '', c.economic_activity_code || '', c.address || ''
+        ]);
+      });
+    } else {
+      dataToExport.push([
+        "", "Consumidor Final", "Comercial JP", "juan@example.com", "7777-7777", "DUI", 
+        "12345678-9", "123456-7", "01111", "San Miguel Centro"
+      ]);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(dataToExport);
+    ws['!cols'] = headers.map(h => ({ wch: Math.max(h.length, 15) }));
     XLSX.utils.book_append_sheet(wb, ws, "Clientes");
-    XLSX.writeFile(wb, "Plantilla_Clientes.xlsx");
+    XLSX.writeFile(wb, "Directorio_Clientes_Masivo.xlsx");
   };
 
   const handleFileUpload = async (e) => {
@@ -192,35 +206,45 @@ const Clients = () => {
       rows.shift(); // Remove header
 
       let insertedCount = 0;
+      let updatedCount = 0;
       
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
-        if (!row || row.length === 0 || !row[0]) continue; // Skip empty rows or no name
+        if (!row || row.length === 0) continue;
         
-        const name = String(row[0] || '').trim();
-        const business_name = String(row[1] || '').trim();
-        const email = String(row[2] || '').trim();
-        const phone = String(row[3] || '').trim();
-        const document_type = String(row[4] || 'DUI').trim().toUpperCase();
-        const document_number = String(row[5] || '').trim();
-        const nrc = String(row[6] || '').trim();
-        const economic_activity_code = String(row[7] || '').trim();
-        const address = String(row[8] || '').trim();
+        const clientId = row[0] ? String(row[0]).trim() : null;
+        const name = String(row[1] || 'Consumidor Final').trim();
+        const business_name = String(row[2] || '').trim();
+        const email = String(row[3] || '').trim();
+        const phone = String(row[4] || '').trim();
+        const document_type = String(row[5] || 'DUI').trim().toUpperCase();
+        const document_number = String(row[6] || '').trim();
+        const nrc = String(row[7] || '').trim();
+        const economic_activity_code = String(row[8] || '').trim();
+        const address = String(row[9] || 'San Miguel').trim();
         
         // Defaults if missing (using same defaults as UI)
         const department_code = '12';
         const municipality_code = 'San Miguel Centro';
         const district = '1201';
 
-        await supabase.from('clients').insert([{
-          tenant_id: profile.tenant_id,
+        const payload = {
           name, business_name, email, phone, document_type, document_number, 
           nrc, economic_activity_code, address, department_code, municipality_code, district
-        }]);
-        insertedCount++;
+        };
+
+        if (clientId) {
+          // Update existing
+          await supabase.from('clients').update(payload).eq('id', clientId);
+          updatedCount++;
+        } else {
+          // Insert new
+          await supabase.from('clients').insert([{ ...payload, tenant_id: profile.tenant_id }]);
+          insertedCount++;
+        }
       }
       
-      alert(`Se han importado ${insertedCount} clientes exitosamente.`);
+      alert(`Importación completada: ${insertedCount} clientes creados, ${updatedCount} actualizados.`);
       fetchClients();
     } catch (error) {
       console.error(error);
