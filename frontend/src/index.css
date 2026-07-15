@@ -537,12 +537,13 @@ select.glass-input option {
 
 /* Mobile & Tablet Overrides */
 @media (max-width: 1200px) {
+  .hide-on-tablet { display: none !important; }
   .main-content {
     padding: 20px; /* Reduced padding on tablets */
   }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
   .app-container { flex-direction: column; }
   
   .mobile-menu-toggle { display: flex; }

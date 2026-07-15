@@ -389,7 +389,7 @@ const Configuracion = () => {
       </div>
 
       {/* Tabs Navigation */}
-      <div style={{ display: 'flex', overflowX: 'auto', gap: '8px', paddingBottom: '8px', marginBottom: '16px', borderBottom: '1px solid var(--border-color)' }} className="hide-scrollbar">
+      <div style={{ display: 'flex', overflowX: 'auto', gap: '8px', paddingBottom: '8px', marginBottom: '16px', borderBottom: '1px solid var(--border-color)' }} className="hide-scrollbar hide-on-tablet">
         {[
           { id: 'general', label: 'General', icon: Building2 },
           { id: 'facturacion', label: 'Facturación & DTE', icon: Receipt },

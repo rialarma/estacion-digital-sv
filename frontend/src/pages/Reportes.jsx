@@ -84,7 +84,7 @@ const Reportes = () => {
         </div>
       </div>
       {/* Tabs Navigation */}
-      <div style={{ display: 'flex', overflowX: 'auto', gap: '8px', paddingBottom: '8px', marginBottom: '24px', borderBottom: '1px solid var(--border-color)' }} className="hide-scrollbar">
+      <div style={{ display: 'flex', overflowX: 'auto', gap: '8px', paddingBottom: '8px', marginBottom: '24px', borderBottom: '1px solid var(--border-color)' }} className="hide-scrollbar hide-on-tablet">
         {tabs.map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
