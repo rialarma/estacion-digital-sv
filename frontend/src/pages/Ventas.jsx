@@ -729,7 +729,7 @@ const Ventas = () => {
                 <label style={{ fontSize: '12px', marginBottom: '4px' }}>Cliente</label>
                 <select 
                   className="glass-input"
-                  style={{ height: '38px', fontSize: '13px' }}
+                  style={{ height: '38px', fontSize: '13px', padding: '6px 12px' }}
                   value={selectedClientId}
                   onChange={(e) => {
                     setSelectedClientId(e.target.value);
@@ -747,7 +747,7 @@ const Ventas = () => {
                 <label style={{ fontSize: '12px', marginBottom: '4px' }}>Vendedor *</label>
                 <select 
                   className="glass-input"
-                  style={{ height: '38px', fontSize: '13px' }}
+                  style={{ height: '38px', fontSize: '13px', padding: '6px 12px' }}
                   value={selectedSellerId}
                   onChange={(e) => setSelectedSellerId(e.target.value)}
                   required
@@ -763,7 +763,7 @@ const Ventas = () => {
                 <label style={{ fontSize: '12px', marginBottom: '4px' }}>Método de Pago</label>
                 <select 
                   className="glass-input"
-                  style={{ height: '38px', fontSize: '13px' }}
+                  style={{ height: '38px', fontSize: '13px', padding: '6px 12px' }}
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                 >
@@ -778,7 +778,7 @@ const Ventas = () => {
                 <label style={{ fontSize: '12px', marginBottom: '4px' }}>Entrega</label>
                 <select 
                   className="glass-input" 
-                  style={{ height: '38px', fontSize: '13px' }}
+                  style={{ height: '38px', fontSize: '13px', padding: '6px 12px' }}
                   value={selectedDriverId} 
                   onChange={(e) => setSelectedDriverId(e.target.value)}
                 >
