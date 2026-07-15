@@ -224,8 +224,8 @@ const DirectorioRRHH = () => {
   };
 
   return (
-    <div className="page-container">
-      <div className="page-header" style={{ marginBottom: '24px' }}>
+    <div className="page-full-height" style={{ gap: '24px' }}>
+      <div className="page-header" style={{ flexShrink: 0 }}>
         <div>
           <h1 className="page-title">Directorio de Personal y RRHH</h1>
           <p className="page-subtitle">Gestiona de forma unificada la información de tus empleados y sus accesos.</p>
@@ -239,20 +239,20 @@ const DirectorioRRHH = () => {
         </button>
       </div>
       
-      <div className="glass-panel" style={{ padding: '24px' }}>
+      <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>Cargando empleados...</div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div className="panel-scrollable">
             <table className="glass-table">
               <thead>
                 <tr>
-                  <th>Empleado</th>
-                  <th>DUI / Doc.</th>
-                  <th>Cargo / Salario</th>
-                  <th>Estado</th>
-                  <th>Acceso al Sistema</th>
-                  <th>Acciones</th>
+                  <th style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-card)' }}>Empleado</th>
+                  <th style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-card)' }}>DUI / Doc.</th>
+                  <th style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-card)' }}>Cargo / Salario</th>
+                  <th style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-card)' }}>Estado</th>
+                  <th style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-card)' }}>Acceso al Sistema</th>
+                  <th style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-card)' }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>

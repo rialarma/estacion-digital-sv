@@ -106,8 +106,10 @@ const Departamentos = () => {
   };
 
   return (
-    <div className="page-container">
-      <div className="page-header" style={{ marginBottom: '24px' }}>
+    <div className="page-full-height" style={{ gap: '24px' }}>
+      
+      {/* Header */}
+      <div className="page-header" style={{ flexShrink: 0 }}>
         <div>
           <h1 className="page-title">Departamentos</h1>
           <p className="page-subtitle">Gestiona las áreas o departamentos de la empresa.</p>
@@ -121,18 +123,19 @@ const Departamentos = () => {
         </button>
       </div>
       
-      <div className="glass-panel" style={{ padding: '24px' }}>
+      <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>Cargando departamentos...</div>
         ) : (
-          <table className="glass-table">
-            <thead>
-              <tr>
-                <th>Nombre del Departamento</th>
-                <th>Descripción</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
+          <div className="panel-scrollable">
+            <table className="glass-table">
+              <thead>
+                <tr>
+                  <th style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-card)' }}>Nombre del Departamento</th>
+                  <th style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-card)' }}>Descripción</th>
+                  <th style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-card)' }}>Acciones</th>
+                </tr>
+              </thead>
             <tbody>
               {departments.length === 0 && (
                 <tr>
@@ -172,8 +175,9 @@ const Departamentos = () => {
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

@@ -115,8 +115,8 @@ const Cargos = () => {
   };
 
   return (
-    <div className="page-container">
-      <div className="page-header" style={{ marginBottom: '24px' }}>
+    <div className="page-full-height" style={{ gap: '24px' }}>
+      <div className="page-header" style={{ flexShrink: 0 }}>
         <div>
           <h1 className="page-title">Cargos</h1>
           <p className="page-subtitle">Define los cargos o puestos de trabajo y su salario base.</p>
@@ -130,19 +130,20 @@ const Cargos = () => {
         </button>
       </div>
       
-      <div className="glass-panel" style={{ padding: '24px' }}>
+      <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>Cargando cargos...</div>
         ) : (
-          <table className="glass-table">
-            <thead>
-              <tr>
-                <th>Cargo</th>
-                <th>Departamento</th>
-                <th>Salario Base (Ref)</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
+          <div className="panel-scrollable">
+            <table className="glass-table">
+              <thead>
+                <tr>
+                  <th style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-card)' }}>Cargo</th>
+                  <th style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-card)' }}>Departamento</th>
+                  <th style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-card)' }}>Salario Base</th>
+                  <th style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-card)' }}>Acciones</th>
+                </tr>
+              </thead>
             <tbody>
               {positions.length === 0 && (
                 <tr>
@@ -183,8 +184,9 @@ const Cargos = () => {
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

@@ -202,10 +202,20 @@ h1, h2, h3, h4, h5, h6 {
   100% { background-position: 0% 50%; }
 }
 
+html {
+  height: 100vh;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   background-color: var(--bg-dark);
   color: var(--text-main);
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
   /* Premium Liquid Gradient */
   background: linear-gradient(-45deg, var(--bg-dark), var(--bg-gradient-1), var(--bg-gradient-2), var(--bg-dark));
   background-size: 400% 400%;
@@ -293,7 +303,34 @@ select.glass-input option {
 .app-container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  padding: 40px;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Clases utilitarias para vistas 100% de altura interna */
+.page-full-height {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
+.panel-scrollable {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .topbar {
