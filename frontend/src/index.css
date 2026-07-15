@@ -536,7 +536,29 @@ select.glass-input option {
 }
 
 /* Mobile & Tablet Overrides */
-@media (max-width: 1200px) {
+@media (min-width: 1025px) and (max-width: 1366px) {
+  /* En tablets horizontales y laptops pequeñas, hacemos que el menú quepa en una fila */
+  .topbar-link {
+    padding: 6px 4px;
+    font-size: 11px;
+    gap: 4px;
+  }
+  .topbar-link svg {
+    width: 14px;
+    height: 14px;
+  }
+  .topbar-nav {
+    gap: 0;
+  }
+  .topbar-logo span {
+    display: none; /* Ocultar el nombre de la empresa, solo dejar el ícono para ahorrar espacio */
+  }
+  .topbar-profile span {
+    display: none; /* Ocultar el rol/nombre, dejar solo el ícono del perfil */
+  }
+}
+
+@media (max-width: 1024px) {
   .hide-on-tablet { display: none !important; }
   .main-content {
     padding: 20px; /* Reduced padding on tablets */
