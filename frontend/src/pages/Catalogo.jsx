@@ -172,7 +172,8 @@ const Catalogo = () => {
     const c = parseFloat(formData.cost) || 0;
     if (c > 0) {
       const p = c * (1 + m / 100);
-      setFormData({ ...formData, target_margin: val, price: p.toFixed(2) });
+      const newBoxPrice = (p * Number(formData.units_per_box || 1)).toFixed(2);
+      setFormData({ ...formData, target_margin: val, price: p.toFixed(2), box_price: newBoxPrice });
     } else {
       setFormData({ ...formData, target_margin: val });
     }
@@ -187,7 +188,8 @@ const Catalogo = () => {
     } else {
       m = 100;
     }
-    setFormData({ ...formData, price: val, target_margin: m });
+    const newBoxPrice = (p * Number(formData.units_per_box || 1)).toFixed(2);
+    setFormData({ ...formData, price: val, target_margin: m, box_price: newBoxPrice });
   };
 
   const handleImageUpload = async (e) => {
@@ -764,7 +766,11 @@ const Catalogo = () => {
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label style={{ color: 'var(--primary)' }}>Unidades por Caja</label>
                   <input type="number" min="1" className="glass-input" value={formData.units_per_box}
-                    onChange={e => setFormData({ ...formData, units_per_box: e.target.value })} />
+                    onChange={e => {
+                      const units = e.target.value;
+                      const newBoxPrice = (Number(formData.price || 0) * Number(units || 1)).toFixed(2);
+                      setFormData({ ...formData, units_per_box: units, box_price: newBoxPrice });
+                    }} />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label style={{ color: 'var(--primary)' }}>Precio de Caja Mayorista ($)</label>

@@ -33,6 +33,7 @@ const KioskoAsistencia = lazy(() => import('./pages/KioskoAsistencia'));
 import Auth from './pages/Auth';
 import PendingAssignment from './pages/PendingAssignment';
 import JoinTenant from './pages/JoinTenant';
+import UpdatePassword from './pages/UpdatePassword';
 const GodMode = lazy(() => import('./pages/GodMode'));
 const Preventa = lazy(() => import('./pages/Preventa'));
 const WebOrders = lazy(() => import('./pages/WebOrders'));
@@ -209,6 +210,11 @@ function App() {
         </Routes>
       </Router>
     );
+  }
+
+  // 1.5 Ruta de Actualización de Contraseña
+  if (window.location.pathname === '/update-password') {
+    return <UpdatePassword />;
   }
 
   // 2. Si no hay usuario autenticado -> Login

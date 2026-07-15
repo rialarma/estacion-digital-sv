@@ -315,13 +315,25 @@ const GodMode = () => {
     }
     
     try {
+      // 1. Eliminar imágenes del storage asociadas a este tenant
+      try {
+        const { data: files } = await supabase.storage.from('product_images').list(tenantId);
+        if (files && files.length > 0) {
+          const filePaths = files.map(file => `${tenantId}/${file.name}`);
+          await supabase.storage.from('product_images').remove(filePaths);
+        }
+      } catch (storageErr) {
+        console.warn('Error al borrar archivos de storage (puede que no existan):', storageErr);
+      }
+
+      // 2. Eliminar la BD y usuarios usando el RPC actualizado
       const { error } = await supabase.rpc('godmode_delete_tenant', {
         p_tenant_id: tenantId
       });
         
       if (error) throw error;
       
-      alert('Empresa eliminada exitosamente.');
+      alert('Empresa y todos sus datos eliminados exitosamente.');
       fetchTenants();
     } catch (err) {
       console.error(err);

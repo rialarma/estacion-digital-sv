@@ -25,7 +25,7 @@ const Clients = () => {
     economic_activity_code: '',
     department_code: '12',
     municipality_code: 'San Miguel Centro',
-    district: '1201',
+    district: 'San Miguel',
     address: 'San Miguel',
     credit_limit: 0,
     points_balance: 0
@@ -226,7 +226,7 @@ const Clients = () => {
         // Defaults if missing (using same defaults as UI)
         const department_code = '12';
         const municipality_code = 'San Miguel Centro';
-        const district = '1201';
+        const district = 'San Miguel';
 
         const payload = {
           name, business_name, email, phone, document_type, document_number, 

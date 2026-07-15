@@ -4,13 +4,12 @@ import { MonitorDot } from 'lucide-react';
 
 const Auth = ({ onAuthSuccess }) => {
   const hasInvite = !!localStorage.getItem('pendingInviteCode');
-  const [isLogin, setIsLogin] = useState(hasInvite); // Default to login if they have an invite
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [message, setMessage] = useState(null);
 
   const handleAuthSuccess = (session) => {
     const pendingCode = localStorage.getItem('pendingInviteCode');
@@ -26,9 +25,18 @@ const Auth = ({ onAuthSuccess }) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setMessage(null);
 
     try {
-      if (isLogin) {
+      if (isForgotPassword) {
+        // FORGOT PASSWORD
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: `${window.location.origin}/update-password`,
+        });
+        if (resetError) throw resetError;
+        setMessage("Se han enviado las instrucciones de recuperación a tu correo.");
+        setEmail('');
+      } else {
         // LOGIN
         let loginEmail = email.trim();
         
@@ -49,23 +57,6 @@ const Auth = ({ onAuthSuccess }) => {
         if (data.session) {
           handleAuthSuccess(data.session);
         }
-
-      } else {
-        // SIGNUP - Solo crear el usuario en auth.users
-        const { data: authData, error: signupError } = await supabase.auth.signUp({
-          email,
-          password
-        });
-        if (signupError) throw signupError;
-
-        if (authData.user) {
-          if (authData.session) {
-            handleAuthSuccess(authData.session);
-          } else {
-            setError("Cuenta creada exitosamente. Por favor inicia sesión.");
-            setIsLogin(true);
-          }
-        }
       }
     } catch (err) {
       setError(err.message);
@@ -80,10 +71,12 @@ const Auth = ({ onAuthSuccess }) => {
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <MonitorDot size={48} style={{ color: 'var(--primary)', margin: '0 auto 16px' }} />
           <h2 style={{ fontSize: '24px', fontWeight: 700 }}>Estación Digital SV</h2>
-          <p style={{ color: 'var(--text-muted)' }}>{isLogin ? 'Ingresa a tu cuenta' : 'Registra tu empresa'}</p>
+          <p style={{ color: 'var(--text-muted)' }}>
+            {isForgotPassword ? 'Recuperar Contraseña' : 'Ingresa a tu cuenta'}
+          </p>
         </div>
         
-        {hasInvite && (
+        {hasInvite && !isForgotPassword && (
           <div style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
             Tienes una invitación pendiente. Por favor <strong>Inicia Sesión</strong> para aceptarla.
           </div>
@@ -95,30 +88,48 @@ const Auth = ({ onAuthSuccess }) => {
           </div>
         )}
 
+        {message && (
+          <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px' }}>
+            {message}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label>{isLogin ? 'Usuario o Correo Electrónico' : 'Correo Electrónico'}</label>
-            <input required type={isLogin ? 'text' : 'email'} className="glass-input" value={email} onChange={e => setEmail(e.target.value)} />
+            <label>{!isForgotPassword ? 'Usuario o Correo Electrónico' : 'Correo Electrónico'}</label>
+            <input required type={!isForgotPassword ? 'text' : 'email'} className="glass-input" value={email} onChange={e => setEmail(e.target.value)} />
           </div>
 
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label>Contraseña</label>
-            <input required type="password" className="glass-input" value={password} onChange={e => setPassword(e.target.value)} />
-          </div>
+          {!isForgotPassword && (
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label>Contraseña</label>
+              <input required type="password" className="glass-input" value={password} onChange={e => setPassword(e.target.value)} />
+            </div>
+          )}
 
           <button type="submit" className="glass-button" style={{ width: '100%', justifyContent: 'center', marginTop: '8px' }} disabled={loading}>
-            {loading ? 'Cargando...' : (isLogin ? 'Iniciar Sesión' : 'Crear Cuenta')}
+            {loading ? 'Cargando...' : (isForgotPassword ? 'Enviar Enlace de Recuperación' : 'Iniciar Sesión')}
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: '24px' }}>
-          <button 
-            type="button" 
-            onClick={() => { setIsLogin(!isLogin); setError(null); }} 
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', textDecoration: 'underline' }}
-          >
-            {isLogin ? '¿No tienes cuenta? Regístrate aquí' : '¿Ya tienes cuenta? Inicia sesión'}
-          </button>
+        <div style={{ textAlign: 'center', marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {isForgotPassword ? (
+            <button 
+              type="button" 
+              onClick={() => { setIsForgotPassword(false); setError(null); setMessage(null); }} 
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              Volver al inicio de sesión
+            </button>
+          ) : (
+            <button 
+              type="button" 
+              onClick={() => { setIsForgotPassword(true); setError(null); setMessage(null); }} 
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          )}
         </div>
       </div>
     </div>

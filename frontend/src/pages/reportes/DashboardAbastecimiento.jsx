@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { ShoppingCart, Truck, Calendar, ArrowRight, Printer } from 'lucide-react';
+import { printPurchaseOrder } from '../../utils/printUtils';
 
 const DashboardAbastecimiento = ({ tenantId }) => {
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [selectedSupplier, setSelectedSupplier] = useState('ALL');
+  const [tenantInfo, setTenantInfo] = useState({});
 
   useEffect(() => {
     if (tenantId) {
@@ -17,44 +19,23 @@ const DashboardAbastecimiento = ({ tenantId }) => {
   const fetchAbastecimientoData = async () => {
     setLoading(true);
     try {
-      // 1. Obtener la fecha de hace 90 días (3 meses) para sacar el promedio
-      const ninetyDaysAgo = new Date();
-      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-      const dateString = ninetyDaysAgo.toISOString();
-
-      // 2. Traer todas las ventas de esos 90 días
-      const { data: salesData, error: salesError } = await supabase
-        .from('sale_items')
-        .select(`
-          quantity,
-          product_id,
-          sales!inner ( created_at, tenant_id )
-        `)
-        .eq('sales.tenant_id', tenantId)
-        .gte('sales.created_at', dateString);
-
-      if (salesError) throw salesError;
-
-      // Agrupar ventas por producto
-      const salesCount = {};
-      salesData?.forEach(item => {
-        if (!salesCount[item.product_id]) salesCount[item.product_id] = 0;
-        salesCount[item.product_id] += Number(item.quantity || 0);
-      });
-
-      // 3. Traer el inventario físico real y los datos del producto (incluyendo su proveedor)
+      const { data: tInfo } = await supabase.from('tenants').select('*').eq('id', tenantId).single();
+      if (tInfo) setTenantInfo(tInfo);
+      // 1. Traer el inventario físico real y los datos del producto
       const { data: invData, error: invError } = await supabase
         .from('inventory')
         .select(`
           stock, 
           product_id, 
-          products ( id, name, cost, supplier_id )
+          products ( id, name, cost, supplier_id, min_stock )
         `)
         .eq('tenant_id', tenantId);
 
       if (invError) throw invError;
 
-      // 4. Traer lista de proveedores para el filtro
+
+
+      // 2. Traer lista de proveedores para el filtro
       const { data: suppData } = await supabase
         .from('suppliers')
         .select('id, name')
@@ -66,22 +47,20 @@ const DashboardAbastecimiento = ({ tenantId }) => {
       const suppMap = {};
       suppData?.forEach(s => suppMap[s.id] = s.name);
 
-      // 5. Unir los datos para crear la Sugerencia
+      // 3. Unir los datos para crear la Sugerencia
       const report = [];
       invData?.forEach(item => {
         const prod = item.products;
         if (!prod) return;
 
-        const soldLast90Days = salesCount[prod.id] || 0;
-        const monthlyAverage = soldLast90Days / 3; // Promedio mensual
-        
-        // Política de Abastecimiento: Queremos tener stock para cubrir 1.5 meses de ventas
-        const targetStock = Math.ceil(monthlyAverage * 1.5);
         const currentStock = Number(item.stock || 0);
+        const minStock = Number(prod.min_stock !== undefined ? prod.min_stock : 1);
         
-        // Si el inventario físico es menor que nuestro Target, necesitamos pedir
-        let suggestOrderQty = targetStock - currentStock;
-        if (suggestOrderQty < 0) suggestOrderQty = 0;
+        // Política de Abastecimiento: Si el inventario actual toca o baja del mínimo, sugerimos pedir exactamente 1 lote mínimo (1 semana)
+        let suggestOrderQty = 0;
+        if (currentStock <= minStock) {
+          suggestOrderQty = minStock;
+        }
 
         report.push({
           productId: prod.id,
@@ -90,7 +69,7 @@ const DashboardAbastecimiento = ({ tenantId }) => {
           supplierId: prod.supplier_id || 'SIN_PROVEEDOR',
           supplierName: prod.supplier_id ? suppMap[prod.supplier_id] : 'Sin Proveedor Asignado',
           currentStock,
-          monthlyAverage,
+          minStock,
           suggestOrderQty,
           suggestOrderValue: suggestOrderQty * Number(prod.cost || 0)
         });
@@ -124,7 +103,14 @@ const DashboardAbastecimiento = ({ tenantId }) => {
   const totalToInvest = dataToOrder.reduce((acc, item) => acc + item.suggestOrderValue, 0);
 
   const handlePrintOrder = () => {
-    window.print();
+    let supplierName = 'Todos los Proveedores';
+    if (selectedSupplier !== 'ALL' && selectedSupplier !== 'SIN_PROVEEDOR') {
+      supplierName = suppliers.find(s => s.id === selectedSupplier)?.name || supplierName;
+    } else if (selectedSupplier === 'SIN_PROVEEDOR') {
+      supplierName = 'Sin Proveedor Asignado';
+    }
+    
+    printPurchaseOrder(supplierName, dataToOrder, totalToInvest, tenantInfo);
   };
 
   if (loading) return <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Analizando el historial de ventas para generar proyecciones...</div>;
@@ -137,7 +123,7 @@ const DashboardAbastecimiento = ({ tenantId }) => {
             <ShoppingCart style={{ color: 'var(--primary)' }} /> Proyección de Compras
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '4px 0 0 0' }}>
-            Basado en tu promedio de ventas de los últimos 3 meses, esto es lo que necesitas pedir para no quedarte sin stock.
+            Basado en tu Alerta de Stock Mínimo (1 semana). Cuando el stock toque el mínimo, se sugerirá pedir esa misma cantidad para no sobre-stockearte.
           </p>
         </div>
         
@@ -183,7 +169,7 @@ const DashboardAbastecimiento = ({ tenantId }) => {
                 {selectedSupplier === 'ALL' && <th>Proveedor</th>}
                 <th>Producto</th>
                 <th>Stock Actual</th>
-                <th>Promedio Venta /mes</th>
+                <th>Alerta (Stock Mín)</th>
                 <th style={{ color: '#f59e0b' }}>Sugerencia a Pedir</th>
                 <th>Costo Total Pedido</th>
               </tr>
@@ -204,7 +190,7 @@ const DashboardAbastecimiento = ({ tenantId }) => {
                       {item.currentStock}
                     </span>
                   </td>
-                  <td style={{ color: 'var(--text-muted)' }}>{item.monthlyAverage.toFixed(1)} unds</td>
+                  <td style={{ color: 'var(--text-muted)' }}>{item.minStock} unds</td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f59e0b', fontWeight: 'bold', fontSize: '16px' }}>
                       <ArrowRight size={14} />

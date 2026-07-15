@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell
-} from 'recharts';
-import { Package, DollarSign, AlertTriangle, ShoppingCart } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } from 'recharts';
+import { Package, DollarSign, AlertTriangle, ShoppingCart, RefreshCw } from 'lucide-react';
 
 const DashboardInventario = ({ tenantId }) => {
   const [loading, setLoading] = useState(true);
   const [kpis, setKpis] = useState({ totalProductos: 0, valorTotal: 0, criticos: 0, comprasPendientes: 0 });
   const [criticalStock, setCriticalStock] = useState([]);
   const [categoryData, setCategoryData] = useState([]);
+  const [optimizing, setOptimizing] = useState(false);
 
   const COLORS = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6'];
 
@@ -88,10 +87,39 @@ const DashboardInventario = ({ tenantId }) => {
 
   const formatCurrency = (val) => `$${Number(val).toFixed(2)}`;
 
-  if (loading) return <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Cargando estado del inventario...</div>;
+  const handleOptimizeMinStock = async () => {
+    if (!window.confirm('¿Deseas recalcular el stock mínimo de TODOS tus productos basado en las ventas de los últimos 30 días?\n\nLa regla será: "1 semana de ventas" (Ventas del mes / 4).')) return;
+    
+    setOptimizing(true);
+    try {
+      const { error } = await supabase.rpc('optimize_min_stock', { p_tenant_id: tenantId });
+      if (error) throw error;
+      alert('¡Stocks mínimos optimizados con éxito según el rendimiento del último mes!');
+      fetchData();
+    } catch (err) {
+      console.error('Error optimizando stock:', err);
+      alert('No se pudo optimizar el stock: ' + err.message);
+    } finally {
+      setOptimizing(false);
+    }
+  };
+
+  if (loading && !optimizing) return <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Cargando estado del inventario...</div>;
 
   return (
     <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+        <button 
+          className="glass-button" 
+          style={{ background: 'var(--bg-card)', color: 'var(--primary)', border: '1px solid var(--primary)', fontSize: '13px' }}
+          onClick={handleOptimizeMinStock}
+          disabled={optimizing}
+        >
+          <RefreshCw size={16} className={optimizing ? "spin" : ""} />
+          {optimizing ? 'Optimizando...' : 'Optimizar Alertas de Stock Mínimo'}
+        </button>
+      </div>
+
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         <div className="glass-panel" style={{ padding: '20px' }}>

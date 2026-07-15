@@ -214,3 +214,94 @@ export const printDocument = (sale, items, tenant, format = 'TICKET') => {
     }, 500); // Dar un poco de tiempo para renderizar
   };
 };
+
+const PurchaseOrderTemplate = ({ supplierName, items, total, tenant }) => {
+  const date = new Date().toLocaleString('es-SV');
+
+  return (
+    <div style={{ fontFamily: 'Arial, sans-serif', width: '210mm', minHeight: '297mm', padding: '20mm', margin: '0 auto', background: '#fff', color: '#000', boxSizing: 'border-box' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #000', paddingBottom: '20px', marginBottom: '20px' }}>
+        <div style={{ width: '50%' }}>
+          {tenant?.logo_url && <img src={tenant.logo_url} alt="Logo" style={{ maxHeight: '80px', marginBottom: '10px' }} />}
+          <h1 style={{ fontSize: '24px', margin: '0 0 10px 0' }}>{tenant?.name || 'EMPRESA'}</h1>
+          <p style={{ margin: '0 0 4px 0', fontSize: '12px' }}><strong>NIT:</strong> {tenant?.nit}</p>
+        </div>
+        <div style={{ width: '40%', border: '1px solid #000', borderRadius: '8px', padding: '15px', textAlign: 'center' }}>
+          <h2 style={{ fontSize: '18px', margin: '0 0 10px 0', color: '#f59e0b' }}>ORDEN DE COMPRA</h2>
+          <p style={{ fontSize: '12px', margin: '0' }}><strong>Fecha:</strong> {date}</p>
+        </div>
+      </div>
+
+      <div style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '15px', marginBottom: '20px', fontSize: '12px', display: 'flex', flexWrap: 'wrap' }}>
+        <div style={{ width: '100%', marginBottom: '10px' }}>
+          <strong>Proveedor:</strong> {supplierName || 'Todos los Proveedores'}
+        </div>
+      </div>
+
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px', fontSize: '12px' }}>
+        <thead>
+          <tr style={{ background: '#f5f5f5' }}>
+            <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'center', width: '15%' }}>CANTIDAD SUGERIDA</th>
+            <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'left', width: '65%' }}>PRODUCTO</th>
+            <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'right', width: '20%' }}>COSTO APROX.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item, i) => (
+            <tr key={i}>
+              <td style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'center', fontWeight: 'bold', color: '#f59e0b' }}>{item.suggestOrderQty}</td>
+              <td style={{ border: '1px solid #ccc', padding: '8px' }}>{item.productName}</td>
+              <td style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'right' }}>${Number(item.suggestOrderValue).toFixed(2)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ width: '40%', border: '1px solid #ccc', borderRadius: '8px', padding: '15px', fontSize: '14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '16px' }}>
+            <span>INVERSIÓN SUGERIDA:</span>
+            <span>${Number(total).toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const printPurchaseOrder = (supplierName, items, total, tenant) => {
+  const htmlContent = renderToString(<PurchaseOrderTemplate supplierName={supplierName} items={items} total={total} tenant={tenant} />);
+
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'absolute';
+  iframe.style.width = '0px';
+  iframe.style.height = '0px';
+  iframe.style.border = 'none';
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(`
+    <html>
+      <head>
+        <title>Orden de Compra</title>
+        <style>
+          @page { margin: 0; size: letter; }
+          body { margin: 0; padding: 0; background: #fff; }
+        </style>
+      </head>
+      <body>
+        ${htmlContent}
+      </body>
+    </html>
+  `);
+  doc.close();
+
+  iframe.onload = () => {
+    setTimeout(() => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      setTimeout(() => document.body.removeChild(iframe), 1000);
+    }, 500);
+  };
+};

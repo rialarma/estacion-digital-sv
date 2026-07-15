@@ -120,7 +120,13 @@ const Ventas = () => {
 
   const fetchClients = async () => {
     const { data } = await supabase.from('clients').select('*').order('name');
-    if (data) setClients(data);
+    if (data) {
+      setClients(data);
+      const genericClient = data.find(c => c.name === 'Consumidor Final' && (c.document_number === '00000000-0' || c.document_number === '000000000-0'));
+      if (genericClient && !selectedClientId) {
+        setSelectedClientId(genericClient.id);
+      }
+    }
   };
 
   const fetchProducts = async () => {
@@ -231,7 +237,7 @@ const Ventas = () => {
         price: Number(product.price) || 0,
         cost: Number(product.cost) || 0,
         units_per_box: product.units_per_box || 1,
-        box_price: product.box_price || product.price,
+        box_price: Number(product.box_price) > 0 ? Number(product.box_price) : (Number(product.price || 0) * Number(product.units_per_box || 1)),
         is_service: product.is_service || false,
         is_subscription: product.is_subscription || false,
         subscription_days: product.subscription_days || 30,
@@ -301,8 +307,18 @@ const Ventas = () => {
   const changeSaleType = (index, type) => {
     const newItems = [...items];
     const item = newItems[index];
+    const product = products.find(p => p.id === item.id) || {};
     item.sale_type = type;
-    item.price = type === 'CAJA' ? item.box_price : (products.find(p => p.id === item.id)?.price || 0);
+    
+    // Si no tiene precio de caja definido explícitamente en BD, lo calculamos: precio * unidades
+    const calculatedBoxPrice = Number(product.box_price) > 0 
+      ? Number(product.box_price) 
+      : (Number(product.price || 0) * Number(product.units_per_box || 1));
+      
+    item.price = type === 'CAJA' ? calculatedBoxPrice : (Number(product.price) || 0);
+    // Aseguramos que box_price en el item también esté actualizado
+    item.box_price = calculatedBoxPrice;
+    
     item.total = item.quantity * item.price;
     setItems(newItems);
   };
@@ -439,15 +455,21 @@ const Ventas = () => {
       if (rpcError) console.error("Error contabilidad:", rpcError);
 
       // 4.5 Registrar los items de la venta
-      const saleItemsData = items.map(item => ({
-        tenant_id,
-        sale_id: sale.id,
-        product_id: item.id,
-        quantity: item.quantity,
-        unit_price: item.price,
-        unit_cost: item.cost || 0,
-        subtotal: item.total
-      }));
+      const saleItemsData = items.map(item => {
+        const isBox = item.sale_type === 'CAJA';
+        const qty = isBox ? (item.quantity * (item.units_per_box || 1)) : item.quantity;
+        const price = isBox ? (item.price / (item.units_per_box || 1)) : item.price;
+        
+        return {
+          tenant_id,
+          sale_id: sale.id,
+          product_id: item.id,
+          quantity: qty,
+          unit_price: price,
+          unit_cost: item.cost || 0,
+          subtotal: item.total
+        };
+      });
       
       const { error: itemsError } = await supabase.from('sale_items').insert(saleItemsData);
       if (itemsError) throw itemsError;
@@ -611,8 +633,11 @@ const Ventas = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header">
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1 className="page-title">Ventas (POS)</h1>
+        <Link to="/caja" className="glass-button" style={{ background: '#ef4444', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Lock size={16} /> Cerrar Turno
+        </Link>
       </div>
 
       <div className="grid-2-1" style={{ alignItems: 'flex-start' }}>
@@ -631,7 +656,7 @@ const Ventas = () => {
                     setPointsToUse(0);
                   }}
                 >
-                  <option value="">Consumidor Final (Sin nombre)</option>
+                  <option value="">-- Sin Cliente Asociado --</option>
                   {clients.map(c => (
                     <option key={c.id} value={c.id}>{c.name} ({c.document_number || 'Sin Doc'})</option>
                   ))}

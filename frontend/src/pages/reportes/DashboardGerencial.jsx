@@ -63,7 +63,7 @@ const DashboardGerencial = ({ tenantId, isoStart }) => {
       });
 
       const utilidad = totalIngresos - totalCosto;
-      const margen = totalIngresos > 0 ? (utilidad / totalIngresos) * 100 : 0;
+      const margen = totalCosto > 0 ? (utilidad / totalCosto) * 100 : 0;
 
       setKpis({
         ingresos: totalIngresos,

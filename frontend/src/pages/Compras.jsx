@@ -130,9 +130,7 @@ const Compras = () => {
           product_id: item.product_id,
           quantity: totalUnits, // Guardamos la cantidad real de unidades ingresadas al inventario
           unit_cost: item.unit_cost, // Es el costo de 1 unidad
-          subtotal: item.subtotal,
-          batch_number: item.batch_number || null,
-          expiration_date: item.expiration_date || null
+          subtotal: item.subtotal
         };
       });
       

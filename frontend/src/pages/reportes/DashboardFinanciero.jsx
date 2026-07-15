@@ -88,7 +88,7 @@ const DashboardFinanciero = ({ tenantId, isoStart }) => {
 
       const totalGastos = totalCompras + totalNomina;
       const utilidad = totalIngresos - totalGastos;
-      const margen = totalIngresos > 0 ? (utilidad / totalIngresos) * 100 : 0;
+      const margen = totalGastos > 0 ? (utilidad / totalGastos) * 100 : 0;
 
       setKpis({
         ingresos: totalIngresos,

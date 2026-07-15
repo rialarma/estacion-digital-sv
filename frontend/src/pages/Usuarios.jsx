@@ -78,19 +78,15 @@ const Usuarios = () => {
 
     try {
       if (editingUser) {
-        // Solo podemos actualizar nombres y rol
-        const { error } = await supabase
-          .from('user_profiles')
-          .update({
-            first_name: formData.first_name,
-            last_name: formData.last_name,
-            role: formData.role,
-            pin: formData.pin || null
-          })
-          .eq('id', editingUser.id)
-          .eq('tenant_id', tenantId);
+        const { error: rpcError } = await supabase.rpc('admin_update_user_profile_v2', {
+          p_user_id: editingUser.id,
+          p_role: formData.role,
+          p_first_name: formData.first_name,
+          p_last_name: formData.last_name,
+          p_pin: formData.pin || null
+        });
 
-        if (error) throw error;
+        if (rpcError) throw rpcError;
       } else {
         // Crear nuevo usuario usando cliente temporal para no perder la sesión
         const tempClient = createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: false } });
@@ -110,20 +106,16 @@ const Usuarios = () => {
         const lName = sanitize(formData.last_name);
         const generatedUsername = `${prefix}${fName}${lName}`;
 
-        const { error: rpcError } = await supabase.rpc('admin_create_user_profile', {
+        const { error: rpcError } = await supabase.rpc('admin_create_user_profile_v2', {
           p_user_id: createdUserId,
           p_role: formData.role,
           p_first_name: formData.first_name,
           p_last_name: formData.last_name,
-          p_username: generatedUsername
+          p_username: generatedUsername,
+          p_pin: formData.pin || null
         });
 
         if (rpcError) throw rpcError;
-
-        // Si ingresaron un PIN, lo guardamos aparte ya que la RPC actual quizás no lo soporte
-        if (formData.pin) {
-          await supabase.from('user_profiles').update({ pin: formData.pin }).eq('id', createdUserId).eq('tenant_id', tenantId);
-        }
 
         if (formData.role === 'REPARTIDOR') {
           const driverName = `${formData.first_name} ${formData.last_name}`;

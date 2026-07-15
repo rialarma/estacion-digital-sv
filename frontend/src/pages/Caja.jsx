@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
 import { useAuth } from '../hooks/useAuth';
-import { Monitor, Lock, Unlock, DollarSign, Calculator, FileText } from 'lucide-react';
+import { Monitor, Lock, Unlock, DollarSign, Calculator, FileText, ShoppingCart, PieChart } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Caja = () => {
   const { tenantId } = useTenantStore();
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
@@ -18,7 +20,7 @@ const Caja = () => {
   // States para cierre
   const [actualBalance, setActualBalance] = useState('');
   const [closingNotes, setClosingNotes] = useState('');
-  const [shiftStats, setShiftStats] = useState({ salesTotal: 0, salesCount: 0, cardTotal: 0, transferTotal: 0, returnsTotal: 0 });
+  const [shiftStats, setShiftStats] = useState({ salesTotal: 0, salesCount: 0, cardTotal: 0, transferTotal: 0, returnsTotal: 0, totalRevenue: 0, totalCost: 0, totalProfit: 0, profitMargin: 0 });
   
   // Historial de Cortes
   const [closedShifts, setClosedShifts] = useState([]);
@@ -41,10 +43,10 @@ const Caja = () => {
     setActiveShift(shift || null);
 
     if (shift) {
-      // Calcular ventas durante este turno
+      // Calcular ventas y utilidad durante este turno
       const { data: sales } = await supabase
         .from('sales')
-        .select('total, payment_method')
+        .select('total, payment_method, sale_items(quantity, unit_cost)')
         .eq('shift_id', shift.id);
       
       const efecSales = sales?.filter(s => s.payment_method === 'EFECTIVO').reduce((sum, s) => sum + Number(s.total), 0) || 0;
@@ -59,12 +61,31 @@ const Caja = () => {
         
       const returnsTotal = returns?.reduce((sum, r) => sum + Number(r.total_amount), 0) || 0;
 
+      let totalRevenue = 0;
+      let totalCost = 0;
+
+      sales?.forEach(s => {
+        totalRevenue += Number(s.total);
+        if (s.sale_items) {
+          s.sale_items.forEach(item => {
+            totalCost += (Number(item.quantity) * Number(item.unit_cost || 0));
+          });
+        }
+      });
+
+      const totalProfit = totalRevenue - totalCost;
+      const profitMargin = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
+
       setShiftStats({
         salesTotal: efecSales,
         salesCount: sales?.length || 0,
         cardTotal: cardSales,
         transferTotal: transferSales,
-        returnsTotal: returnsTotal
+        returnsTotal: returnsTotal,
+        totalRevenue,
+        totalCost,
+        totalProfit,
+        profitMargin
       });
     }
 
@@ -101,7 +122,7 @@ const Caja = () => {
       }]);
       if (error) throw error;
       setOpeningBalance('');
-      fetchState();
+      navigate('/ventas');
     } catch (error) {
       alert("Error abriendo caja: " + error.message);
     }
@@ -140,9 +161,16 @@ const Caja = () => {
 
   return (
     <div className="page-container" style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <div className="page-header" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-        <Monitor size={32} color="var(--primary)" />
-        <h1 className="page-title">Gestión de Caja (Turno)</h1>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <Monitor size={32} color="var(--primary)" />
+          <h1 className="page-title">Gestión de Caja (Turno)</h1>
+        </div>
+        {activeShift && (
+          <button onClick={() => navigate('/ventas')} className="glass-button" style={{ background: '#3b82f6', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ShoppingCart size={16} /> Ir a Ventas
+          </button>
+        )}
       </div>
 
       {!activeShift ? (
@@ -221,6 +249,34 @@ const Caja = () => {
                 </span>
               </div>
             </div>
+
+            {/* Rendimiento (Utilidad) del turno - Solo para Administradores */}
+            {profile?.role === 'ADMIN' && (
+              <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', fontSize: '14px', color: '#60a5fa' }}>
+                  <PieChart size={16} /> Rendimiento de Ventas (Todas las formas de pago)
+                </h3>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '13px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Venta Total (Ingresos)</span>
+                    <span style={{ fontWeight: 'bold' }}>${shiftStats.totalRevenue.toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Costo de los Productos</span>
+                    <span style={{ fontWeight: 'bold', color: '#ef4444' }}>- ${shiftStats.totalCost.toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: 'rgba(74, 222, 128, 0.1)', borderRadius: '6px' }}>
+                    <span style={{ color: '#4ade80', fontWeight: 'bold' }}>Utilidad Libre (Ganancia)</span>
+                    <span style={{ fontWeight: 'bold', color: '#4ade80' }}>${shiftStats.totalProfit.toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Margen Neto %</span>
+                    <span style={{ fontWeight: 'bold' }}>{shiftStats.profitMargin.toFixed(1)}%</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Cierre de Turno */}
