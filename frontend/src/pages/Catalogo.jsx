@@ -171,7 +171,8 @@ const Catalogo = () => {
     const m = parseFloat(val) || 0;
     const c = parseFloat(formData.cost) || 0;
     if (c > 0) {
-      const p = c * (1 + m / 100);
+      const effectiveMargin = m >= 100 ? 99.99 : m;
+      const p = c / (1 - effectiveMargin / 100);
       const newBoxPrice = (p * Number(formData.units_per_box || 1)).toFixed(2);
       setFormData({ ...formData, target_margin: val, price: p.toFixed(2), box_price: newBoxPrice });
     } else {
@@ -183,10 +184,12 @@ const Catalogo = () => {
     const p = parseFloat(val) || 0;
     const c = parseFloat(formData.cost) || 0;
     let m = formData.target_margin;
-    if (c > 0) {
-      m = (((p / c) - 1) * 100).toFixed(2);
-    } else {
+    if (c > 0 && p > 0) {
+      m = ((1 - (c / p)) * 100).toFixed(2);
+    } else if (c === 0 && p > 0) {
       m = 100;
+    } else {
+      m = 0;
     }
     const newBoxPrice = (p * Number(formData.units_per_box || 1)).toFixed(2);
     setFormData({ ...formData, price: val, target_margin: m, box_price: newBoxPrice });

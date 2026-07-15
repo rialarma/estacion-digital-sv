@@ -17,8 +17,11 @@ BEGIN
     SELECT target_margin INTO v_margin FROM public.products WHERE id = p_product_id;
     
     IF v_margin > 0 THEN
-        -- Calcular nuevo precio basado en el markup
-        v_new_price := p_new_cost * (1 + (v_margin / 100.0));
+        -- Calcular nuevo precio basado en el margen sobre precio de venta
+        IF v_margin >= 100 THEN
+            v_margin := 99.99;
+        END IF;
+        v_new_price := p_new_cost / (1 - (v_margin / 100.0));
         
         -- Actualizar costo y precio
         UPDATE public.products 
