@@ -641,79 +641,10 @@ const Ventas = () => {
       </div>
 
       <div className="grid-2-1" style={{ alignItems: 'flex-start', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-        {/* Left side: Form & Current Items */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', overflow: 'hidden' }}>
-          <div className="glass-panel" style={{ padding: '24px' }}>
-            <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: 600 }}>1. Datos de la Venta</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Cliente</label>
-                <select 
-                  className="glass-input"
-                  value={selectedClientId}
-                  onChange={(e) => {
-                    setSelectedClientId(e.target.value);
-                    setPointsToUse(0);
-                  }}
-                >
-                  <option value="">-- Sin Cliente Asociado --</option>
-                  {clients.map(c => (
-                    <option key={c.id} value={c.id}>{c.name} ({c.document_number || 'Sin Doc'})</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Vendedor *</label>
-                <select 
-                  className="glass-input"
-                  value={selectedSellerId}
-                  onChange={(e) => setSelectedSellerId(e.target.value)}
-                  required
-                >
-                  <option value="">-- Selecciona Vendedor --</option>
-                  {sellers.map(s => (
-                    <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div style={{ marginTop: '16px' }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Método de Pago</label>
-                <select 
-                  className="glass-input"
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                >
-                  <option value="EFECTIVO">Efectivo</option>
-                  <option value="TARJETA">Tarjeta (Crédito/Débito)</option>
-                  <option value="TRANSFERENCIA">Transferencia Bancaria</option>
-                  <option value="CREDITO">Crédito (Cuenta por Cobrar)</option>
-                </select>
-              </div>
-
-              {tenantInfo?.module_logistics !== false && (
-                <div className="form-group">
-                  <label>Repartidor / Ruta (Opcional)</label>
-                  <select 
-                    className="glass-input" 
-                    value={selectedDriverId} 
-                    onChange={(e) => setSelectedDriverId(e.target.value)}
-                  >
-                    <option value="">-- Entregado en tienda --</option>
-                    <option value="PENDING">-- Enviar luego (Asignar después) --</option>
-                    {drivers.map(d => (
-                      <option key={d.id} value={d.id}>{d.name} {d.plate_number ? `(${d.plate_number})` : ''}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-          </div>
-
+        {/* Left side: Current Items (Focus on Products) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', overflow: 'hidden', height: '100%' }}>
           <div className="glass-panel" style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: 600 }}>Detalle del Pedido</h3>
-            <h2 style={{ fontSize: '18px', marginBottom: '20px' }}>Construir Venta</h2>
+            <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: 600 }}>1. Construir Venta</h3>
             
             <div style={{ marginBottom: '24px', zIndex: 10 }}>
               <ProductSearch 
@@ -784,12 +715,81 @@ const Ventas = () => {
           </div>
         </div>
 
-        {/* Right side: Summary */}
-        <div className="glass-panel" style={{ padding: '24px', height: 'fit-content' }}>
-          <h3 style={{ marginBottom: '24px', fontSize: '18px', fontWeight: 600 }}>Resumen</h3>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <span style={{ color: 'var(--text-muted)' }}>Subtotal (Sin IVA):</span>
-            <span>${subtotal.toFixed(2)}</span>
+        {/* Right side: Summary & Settings */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', overflowY: 'auto', paddingRight: '4px', height: '100%' }}>
+          
+          <div className="glass-panel" style={{ padding: '24px' }}>
+            <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: 600 }}>2. Datos de la Venta</h3>
+            
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label>Cliente</label>
+              <select 
+                className="glass-input"
+                value={selectedClientId}
+                onChange={(e) => {
+                  setSelectedClientId(e.target.value);
+                  setPointsToUse(0);
+                }}
+              >
+                <option value="">-- Sin Cliente Asociado --</option>
+                {clients.map(c => (
+                  <option key={c.id} value={c.id}>{c.name} ({c.document_number || 'Sin Doc'})</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label>Vendedor *</label>
+              <select 
+                className="glass-input"
+                value={selectedSellerId}
+                onChange={(e) => setSelectedSellerId(e.target.value)}
+                required
+              >
+                <option value="">-- Selecciona Vendedor --</option>
+                {sellers.map(s => (
+                  <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label>Método de Pago</label>
+              <select 
+                className="glass-input"
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              >
+                <option value="EFECTIVO">Efectivo</option>
+                <option value="TARJETA">Tarjeta (Crédito/Débito)</option>
+                <option value="TRANSFERENCIA">Transferencia Bancaria</option>
+                <option value="CREDITO">Crédito (Cuenta por Cobrar)</option>
+              </select>
+            </div>
+
+            {tenantInfo?.module_logistics !== false && (
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>Repartidor / Ruta (Opcional)</label>
+                <select 
+                  className="glass-input" 
+                  value={selectedDriverId} 
+                  onChange={(e) => setSelectedDriverId(e.target.value)}
+                >
+                  <option value="">-- Entregado en tienda --</option>
+                  <option value="PENDING">-- Enviar luego (Asignar después) --</option>
+                  {drivers.map(d => (
+                    <option key={d.id} value={d.id}>{d.name} {d.plate_number ? `(${d.plate_number})` : ''}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          <div className="glass-panel" style={{ padding: '24px', height: 'fit-content' }}>
+            <h3 style={{ marginBottom: '24px', fontSize: '18px', fontWeight: 600 }}>Resumen</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <span style={{ color: 'var(--text-muted)' }}>Subtotal (Sin IVA):</span>
+              <span>${subtotal.toFixed(2)}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
             <span style={{ color: 'var(--text-muted)' }}>IVA ({(tenantInfo?.tax_iva || 13)}%):</span>
