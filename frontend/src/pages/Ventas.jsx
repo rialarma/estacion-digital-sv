@@ -716,38 +716,40 @@ const Ventas = () => {
         </div>
 
         {/* Right side: Summary & Settings */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', paddingRight: '4px', height: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', paddingRight: '4px', height: '100%' }}>
           
-          <div className="glass-panel" style={{ padding: '16px' }}>
-            <h3 style={{ marginBottom: '12px', fontSize: '18px', fontWeight: 600 }}>2. Datos de la Venta</h3>
+          <div className="glass-panel" style={{ padding: '12px' }}>
+            <h3 style={{ marginBottom: '8px', fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Datos Venta</h3>
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Cliente</label>
+                <label style={{ fontSize: '12px', marginBottom: '4px' }}>Cliente</label>
                 <select 
                   className="glass-input"
+                  style={{ height: '36px', fontSize: '13px' }}
                   value={selectedClientId}
                   onChange={(e) => {
                     setSelectedClientId(e.target.value);
                     setPointsToUse(0);
                   }}
                 >
-                  <option value="">-- Sin Cliente Asociado --</option>
+                  <option value="">-- Sin Cliente --</option>
                   {clients.map(c => (
-                    <option key={c.id} value={c.id}>{c.name} ({c.document_number || 'Sin Doc'})</option>
+                    <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
               </div>
               
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Vendedor *</label>
+                <label style={{ fontSize: '12px', marginBottom: '4px' }}>Vendedor *</label>
                 <select 
                   className="glass-input"
+                  style={{ height: '36px', fontSize: '13px' }}
                   value={selectedSellerId}
                   onChange={(e) => setSelectedSellerId(e.target.value)}
                   required
                 >
-                  <option value="">-- Selecciona Vendedor --</option>
+                  <option value="">-- Seleccionar --</option>
                   {sellers.map(s => (
                     <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>
                   ))}
@@ -755,132 +757,121 @@ const Ventas = () => {
               </div>
               
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Método de Pago</label>
+                <label style={{ fontSize: '12px', marginBottom: '4px' }}>Método Pago</label>
                 <select 
                   className="glass-input"
+                  style={{ height: '36px', fontSize: '13px' }}
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                 >
                   <option value="EFECTIVO">Efectivo</option>
-                  <option value="TARJETA">Tarjeta (Crédito/Débito)</option>
-                  <option value="TRANSFERENCIA">Transferencia Bancaria</option>
-                  <option value="CREDITO">Crédito (Cuenta por Cobrar)</option>
+                  <option value="TARJETA">Tarjeta</option>
+                  <option value="TRANSFERENCIA">Transferencia</option>
+                  <option value="CREDITO">Crédito</option>
                 </select>
               </div>
 
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Entrega / Repartidor</label>
+                <label style={{ fontSize: '12px', marginBottom: '4px' }}>Entrega</label>
                 <select 
                   className="glass-input" 
+                  style={{ height: '36px', fontSize: '13px' }}
                   value={selectedDriverId} 
                   onChange={(e) => setSelectedDriverId(e.target.value)}
                 >
-                  <option value="">-- Entrega Inmediata (En Tienda) --</option>
-                  <option value="PENDING">-- Enviar Luego (A Despacho) --</option>
-                  <optgroup label="Asignar Repartidor Inmediatamente">
-                    {drivers.map(d => (
-                      <option key={d.id} value={d.id}>{d.name} {d.plate_number ? `(${d.plate_number})` : ''}</option>
-                    ))}
-                  </optgroup>
+                  <option value="">-- En Tienda --</option>
+                  {tenantInfo?.module_logistics !== false && (
+                    <>
+                      <option value="PENDING">-- A Despacho --</option>
+                      <optgroup label="Repartidores">
+                        {drivers.map(d => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                      </optgroup>
+                    </>
+                  )}
                 </select>
               </div>
             </div>
           </div>
 
-          <div className="glass-panel" style={{ padding: '16px', height: 'fit-content' }}>
-            <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: 600 }}>Resumen</h3>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Subtotal (Sin IVA):</span>
+          <div className="glass-panel" style={{ padding: '12px', height: 'fit-content' }}>
+            <h3 style={{ marginBottom: '8px', fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Resumen</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '14px' }}>
+              <span style={{ color: 'var(--text-muted)' }}>Subtotal:</span>
               <span>${subtotal.toFixed(2)}</span>
-          </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span style={{ color: 'var(--text-muted)' }}>IVA ({(tenantInfo?.tax_iva || 13)}%):</span>
-            <span>${tax_iva.toFixed(2)}</span>
-          </div>
-          {pointsToUse > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#10b981' }}>
-              <span>Descuento por Puntos:</span>
-              <span>-${pointsToUse.toFixed(2)}</span>
             </div>
-          )}
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            paddingTop: '12px', 
-            borderTop: '1px solid var(--border-color)',
-            marginBottom: '16px'
-          }}>
-            <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--primary)' }}>Total a Cobrar:</span>
-            <span style={{ fontSize: '24px', fontWeight: 800, color: 'var(--primary)' }}>
-              ${Math.max(0, totalOrder - pointsToUse).toFixed(2)}
-            </span>
-          </div>
-
-          {selectedClientId && (() => {
-            const client = clients.find(c => c.id === selectedClientId);
-            const balance = client?.points_balance || 0;
-            const pointsEarned = Math.floor(Math.max(0, totalOrder - pointsToUse));
-            return (
-              <div style={{ background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.3)', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ color: '#8b5cf6', fontWeight: 'bold' }}>⭐ Puntos: {balance}</span>
-                  <span style={{ color: '#10b981', fontSize: '12px' }}>+ {pointsEarned} pts hoy</span>
-                </div>
-                {balance > 0 && (
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <input 
-                      type="number" 
-                      className="glass-input" 
-                      style={{ padding: '6px', fontSize: '12px', flex: 1 }}
-                      placeholder="Pts a usar"
-                      max={balance}
-                      min={0}
-                      value={pointsToUse || ''}
-                      onChange={(e) => {
-                        let val = Number(e.target.value) || 0;
-                        if (val > balance) val = balance;
-                        if (val > totalOrder) val = Math.floor(totalOrder); // Can't discount more than total
-                        setPointsToUse(val);
-                      }}
-                    />
-                  </div>
-                )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
+              <span style={{ color: 'var(--text-muted)' }}>IVA ({(tenantInfo?.tax_iva || 13)}%):</span>
+              <span>${tax_iva.toFixed(2)}</span>
+            </div>
+            {pointsToUse > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#10b981', fontSize: '14px' }}>
+                <span>Pts Descuento:</span>
+                <span>-${pointsToUse.toFixed(2)}</span>
               </div>
-            );
-          })()}
+            )}
+            
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              paddingTop: '8px', 
+              borderTop: '1px solid var(--border-color)',
+              marginBottom: '12px'
+            }}>
+              <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--primary)' }}>Total:</span>
+              <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--primary)' }}>
+                ${Math.max(0, totalOrder - pointsToUse).toFixed(2)}
+              </span>
+            </div>
 
-          <button
-            id="btn-emitir"
-            className="glass-button"
-            style={{ width: '100%', justifyContent: 'center' }}
-            disabled={items.length === 0 || saving || !selectedSellerId}
-            onClick={handleSaveOrder}
-          >
-            <Save size={18} /> {saving ? 'Enviando...' : 'Emitir Documento (F4)'}
-          </button>
+            {selectedClientId && clientData && tenantInfo?.loyalty_points_enabled && (
+              <div style={{ marginBottom: '12px', padding: '10px', background: 'var(--bg-color)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Star size={14} color="#f59e0b" fill="#f59e0b" />
+                    <span style={{ fontWeight: 600, color: 'var(--primary)', fontSize: '13px' }}>Pts: {clientData.points_balance}</span>
+                  </div>
+                  <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>+ {Math.floor(subtotal * (tenantInfo.loyalty_points_multiplier || 1))} hoy</span>
+                </div>
+                <input 
+                  type="number"
+                  className="glass-input"
+                  style={{ height: '32px', fontSize: '13px' }}
+                  placeholder="Canjear pts..."
+                  max={clientData.points_balance}
+                  value={pointsToUse || ''}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value) || 0;
+                    if(val <= clientData.points_balance) {
+                      setPointsToUse(val);
+                    }
+                  }}
+                />
+              </div>
+            )}
 
-          {/* Nota sobre el estado inicial del DTE */}
-          <div style={{
-            marginTop: '16px',
-            padding: '10px 12px',
-            background: 'rgba(251, 191, 36, 0.08)',
-            border: '1px solid rgba(251, 191, 36, 0.2)',
-            borderRadius: '8px',
-            fontSize: '12px',
-            color: 'var(--text-muted)',
-            display: 'flex',
-            gap: '8px',
-            alignItems: 'flex-start',
-          }}>
-            <Info size={14} color="#fbbf24" style={{ marginTop: '1px', flexShrink: 0 }} />
-            <span>
+            <button
+              id="btn-emitir"
+              className="glass-button"
+              style={{ width: '100%', justifyContent: 'center', height: '44px' }}
+              disabled={items.length === 0 || saving || !selectedSellerId}
+              onClick={handleSaveOrder}
+            >
+              <Save size={16} /> {saving ? 'Enviando...' : 'Emitir Documento (F4)'}
+            </button>
+
+            <div style={{
+              marginTop: '8px',
+              textAlign: 'center',
+              fontSize: '11px',
+              color: 'var(--text-muted)'
+            }}>
               El documento se creará en estado <strong style={{ color: '#fbbf24' }}>Pendiente</strong>.
-              El firmador lo sellará cuando Hacienda lo apruebe.
-            </span>
+            </div>
           </div>
         </div>
-      </div>
       </div>
       {printModalOpen && (
         <div className="modal-overlay">
