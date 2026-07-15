@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Save, Lock, Monitor, Plus, Info } from 'lucide-react';
+import { ShoppingCart, Save, Lock, Monitor, Plus, Info, Users, FileText, Star } from 'lucide-react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
