@@ -1,0 +1,17 @@
+{
+  "name": "Estación Digital SV",
+  "short_name": "Estación SV",
+  "description": "Sistema POS y ERP para Estación Digital SV",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0ea5e9",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
