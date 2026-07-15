@@ -633,18 +633,16 @@ const Ventas = () => {
 
   return (
     <div className="page-full-height" style={{ gap: '24px' }}>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-        <h1 className="page-title">Ventas (POS)</h1>
-        <Link to="/caja" className="glass-button" style={{ background: '#ef4444', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Lock size={16} /> Cerrar Turno
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+        <Link to="/caja" className="glass-button" style={{ background: '#ef4444', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', fontSize: '13px' }}>
+          <Lock size={14} /> Cerrar Turno
         </Link>
       </div>
 
       <div className="grid-2-1" style={{ alignItems: 'flex-start', flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {/* Left side: Current Items (Focus on Products) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', overflow: 'hidden', height: '100%' }}>
-          <div className="glass-panel" style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: 600 }}>1. Construir Venta</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflow: 'hidden', height: '100%' }}>
+          <div className="glass-panel" style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             
             <div style={{ marginBottom: '24px', zIndex: 10 }}>
               <ProductSearch 
@@ -719,7 +717,10 @@ const Ventas = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', paddingRight: '4px', height: '100%' }}>
           
           <div className="glass-panel" style={{ padding: '12px' }}>
-            <h3 style={{ marginBottom: '8px', fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Datos Venta</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: 'var(--text-muted)' }}>
+              <Users size={14} />
+              <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase' }}>Datos</span>
+            </div>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
@@ -796,7 +797,10 @@ const Ventas = () => {
           </div>
 
           <div className="glass-panel" style={{ padding: '12px', height: 'fit-content' }}>
-            <h3 style={{ marginBottom: '8px', fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Resumen</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: 'var(--text-muted)' }}>
+              <FileText size={14} />
+              <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase' }}>Totales</span>
+            </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '14px' }}>
               <span style={{ color: 'var(--text-muted)' }}>Subtotal:</span>
               <span>${subtotal.toFixed(2)}</span>
