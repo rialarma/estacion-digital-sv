@@ -714,27 +714,29 @@ const Ventas = () => {
         </div>
 
         {/* Right side: Summary & Settings */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', paddingRight: '4px', height: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
           
-          <div className="glass-panel" style={{ padding: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: 'var(--text-muted)' }}>
-              <Users size={14} />
-              <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase' }}>Datos</span>
-            </div>
+          <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            {/* Scrollable Data Section */}
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)' }}>
+                <Users size={14} />
+                <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase' }}>Datos de la Venta</span>
+              </div>
+              
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label style={{ fontSize: '12px', marginBottom: '4px' }}>Cliente</label>
                 <select 
                   className="glass-input"
-                  style={{ height: '36px', fontSize: '13px' }}
+                  style={{ height: '38px', fontSize: '13px' }}
                   value={selectedClientId}
                   onChange={(e) => {
                     setSelectedClientId(e.target.value);
                     setPointsToUse(0);
                   }}
                 >
-                  <option value="">-- Sin Cliente --</option>
+                  <option value="">-- Consumidor Final --</option>
                   {clients.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
@@ -745,7 +747,7 @@ const Ventas = () => {
                 <label style={{ fontSize: '12px', marginBottom: '4px' }}>Vendedor *</label>
                 <select 
                   className="glass-input"
-                  style={{ height: '36px', fontSize: '13px' }}
+                  style={{ height: '38px', fontSize: '13px' }}
                   value={selectedSellerId}
                   onChange={(e) => setSelectedSellerId(e.target.value)}
                   required
@@ -758,10 +760,10 @@ const Ventas = () => {
               </div>
               
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label style={{ fontSize: '12px', marginBottom: '4px' }}>Método Pago</label>
+                <label style={{ fontSize: '12px', marginBottom: '4px' }}>Método de Pago</label>
                 <select 
                   className="glass-input"
-                  style={{ height: '36px', fontSize: '13px' }}
+                  style={{ height: '38px', fontSize: '13px' }}
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                 >
@@ -776,7 +778,7 @@ const Ventas = () => {
                 <label style={{ fontSize: '12px', marginBottom: '4px' }}>Entrega</label>
                 <select 
                   className="glass-input" 
-                  style={{ height: '36px', fontSize: '13px' }}
+                  style={{ height: '38px', fontSize: '13px' }}
                   value={selectedDriverId} 
                   onChange={(e) => setSelectedDriverId(e.target.value)}
                 >
@@ -793,90 +795,91 @@ const Ventas = () => {
                   )}
                 </select>
               </div>
-            </div>
-          </div>
 
-          <div className="glass-panel" style={{ padding: '12px', height: 'fit-content' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: 'var(--text-muted)' }}>
-              <FileText size={14} />
-              <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase' }}>Totales</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '14px' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Subtotal:</span>
-              <span>${subtotal.toFixed(2)}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
-              <span style={{ color: 'var(--text-muted)' }}>IVA ({(tenantInfo?.tax_iva || 13)}%):</span>
-              <span>${tax_iva.toFixed(2)}</span>
-            </div>
-            {pointsToUse > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#10b981', fontSize: '14px' }}>
-                <span>Pts Descuento:</span>
-                <span>-${pointsToUse.toFixed(2)}</span>
-              </div>
-            )}
-            
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              paddingTop: '8px', 
-              borderTop: '1px solid var(--border-color)',
-              marginBottom: '12px'
-            }}>
-              <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--primary)' }}>Total:</span>
-              <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--primary)' }}>
-                ${Math.max(0, totalOrder - pointsToUse).toFixed(2)}
-              </span>
-            </div>
-
-            {selectedClientId && tenantInfo?.loyalty_points_enabled && (() => {
-              const clientData = clients.find(c => c.id === selectedClientId);
-              if (!clientData) return null;
-              return (
-                <div style={{ marginBottom: '12px', padding: '10px', background: 'var(--bg-color)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Star size={14} color="#f59e0b" fill="#f59e0b" />
-                      <span style={{ fontWeight: 600, color: 'var(--primary)', fontSize: '13px' }}>Pts: {clientData.points_balance}</span>
+              {selectedClientId && tenantInfo?.loyalty_points_enabled && (() => {
+                const clientData = clients.find(c => c.id === selectedClientId);
+                if (!clientData) return null;
+                return (
+                  <div style={{ marginTop: '8px', padding: '10px', background: 'var(--bg-color)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Star size={14} color="#f59e0b" fill="#f59e0b" />
+                        <span style={{ fontWeight: 600, color: 'var(--primary)', fontSize: '13px' }}>Pts: {clientData.points_balance}</span>
+                      </div>
+                      <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>+ {Math.floor(subtotal * (tenantInfo.loyalty_points_multiplier || 1))} hoy</span>
                     </div>
-                    <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>+ {Math.floor(subtotal * (tenantInfo.loyalty_points_multiplier || 1))} hoy</span>
+                    <input 
+                      type="number"
+                      className="glass-input"
+                      style={{ height: '32px', fontSize: '13px' }}
+                      placeholder="Canjear pts..."
+                      max={clientData.points_balance}
+                      value={pointsToUse || ''}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value) || 0;
+                        if(val <= clientData.points_balance) {
+                          setPointsToUse(val);
+                        }
+                      }}
+                    />
                   </div>
-                  <input 
-                    type="number"
-                    className="glass-input"
-                    style={{ height: '32px', fontSize: '13px' }}
-                    placeholder="Canjear pts..."
-                    max={clientData.points_balance}
-                    value={pointsToUse || ''}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value) || 0;
-                      if(val <= clientData.points_balance) {
-                        setPointsToUse(val);
-                      }
-                    }}
-                  />
+                );
+              })()}
+            </div>
+
+            {/* Fixed Totals Section */}
+            <div style={{ flexShrink: 0, marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', color: 'var(--text-muted)' }}>
+                <FileText size={14} />
+                <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase' }}>Totales</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '14px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Subtotal:</span>
+                <span>${subtotal.toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>IVA ({(tenantInfo?.tax_iva || 13)}%):</span>
+                <span>${tax_iva.toFixed(2)}</span>
+              </div>
+              {pointsToUse > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#10b981', fontSize: '14px' }}>
+                  <span>Pts Descuento:</span>
+                  <span>-${pointsToUse.toFixed(2)}</span>
                 </div>
-              );
-            })()}
+              )}
+              
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                paddingTop: '8px', 
+                borderTop: '1px solid var(--border-color)',
+                marginBottom: '16px'
+              }}>
+                <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--primary)' }}>Total:</span>
+                <span style={{ fontSize: '24px', fontWeight: 800, color: 'var(--primary)' }}>
+                  ${Math.max(0, totalOrder - pointsToUse).toFixed(2)}
+                </span>
+              </div>
 
-            <button
-              id="btn-emitir"
-              className="glass-button"
-              style={{ width: '100%', justifyContent: 'center', height: '44px' }}
-              disabled={items.length === 0 || saving || !selectedSellerId}
-              onClick={handleSaveOrder}
-            >
-              <Save size={16} /> {saving ? 'Enviando...' : 'Emitir Documento (F4)'}
-            </button>
+              <button
+                id="btn-emitir"
+                className="glass-button"
+                style={{ width: '100%', justifyContent: 'center', height: '48px', fontSize: '15px' }}
+                disabled={items.length === 0 || saving || !selectedSellerId}
+                onClick={handleSaveOrder}
+              >
+                <Save size={18} /> {saving ? 'Enviando...' : 'Emitir Documento (F4)'}
+              </button>
 
-            <div style={{
-              marginTop: '8px',
-              textAlign: 'center',
-              fontSize: '11px',
-              color: 'var(--text-muted)'
-            }}>
-              El documento se creará en estado <strong style={{ color: '#fbbf24' }}>Pendiente</strong>.
+              <div style={{
+                marginTop: '12px',
+                textAlign: 'center',
+                fontSize: '11px',
+                color: 'var(--text-muted)'
+              }}>
+                El documento se creará en estado <strong style={{ color: '#fbbf24' }}>Pendiente</strong>.
+              </div>
             </div>
           </div>
         </div>
