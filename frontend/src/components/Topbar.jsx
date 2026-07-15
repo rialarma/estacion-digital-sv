@@ -130,7 +130,7 @@ const Topbar = ({ onLogout }) => {
       {/* Menus and Profile */}
       <div className={`topbar-menu ${isMobileOpen ? 'open' : ''}`}>
         {/* Navigation */}
-        <div className="topbar-nav" style={{ flex: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <div className="topbar-nav" style={{ flex: 1, overflowX: 'auto', whiteSpace: 'nowrap' }}>
         <NavLink to="/" className={({ isActive }) => `topbar-link ${isActive ? 'active' : ''}`} onClick={closeMenu} end>
           <Home size={18} /> Inicio
         </NavLink>

@@ -330,6 +330,12 @@ select.glass-input option {
   display: flex;
   align-items: center;
   gap: 2px;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.topbar-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .topbar-item {
@@ -420,7 +426,7 @@ select.glass-input option {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 32px;
+  margin-bottom: 20px; /* Reduced from 32px for better tablet space */
 }
 
 .page-title {
@@ -530,6 +536,12 @@ select.glass-input option {
 }
 
 /* Mobile & Tablet Overrides */
+@media (max-width: 1200px) {
+  .main-content {
+    padding: 20px; /* Reduced padding on tablets */
+  }
+}
+
 @media (max-width: 1024px) {
   .app-container { flex-direction: column; }
   
