@@ -632,17 +632,17 @@ const Ventas = () => {
   }
 
   return (
-    <div className="page-container">
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="page-full-height" style={{ gap: '24px' }}>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
         <h1 className="page-title">Ventas (POS)</h1>
         <Link to="/caja" className="glass-button" style={{ background: '#ef4444', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Lock size={16} /> Cerrar Turno
         </Link>
       </div>
 
-      <div className="grid-2-1" style={{ alignItems: 'flex-start' }}>
+      <div className="grid-2-1" style={{ alignItems: 'flex-start', flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {/* Left side: Form & Current Items */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', overflow: 'hidden' }}>
           <div className="glass-panel" style={{ padding: '24px' }}>
             <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: 600 }}>1. Datos de la Venta</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -711,7 +711,7 @@ const Ventas = () => {
             </div>
           </div>
 
-          <div className="glass-panel" style={{ padding: '24px', flex: 1 }}>
+          <div className="glass-panel" style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: 600 }}>Detalle del Pedido</h3>
             <h2 style={{ fontSize: '18px', marginBottom: '20px' }}>Construir Venta</h2>
             
@@ -732,17 +732,18 @@ const Ventas = () => {
               </div>
             )}
 
-            <table className="glass-table">
-              <thead>
-                <tr>
-                  <th>Producto</th>
-                  <th>Tipo</th>
-                  <th>Cant.</th>
-                  <th>Precio Unit.</th>
-                  <th>Subtotal</th>
-                  <th>Acción</th>
-                </tr>
-              </thead>
+            <div className="panel-scrollable">
+              <table className="glass-table">
+                <thead>
+                  <tr>
+                    <th style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-card)' }}>Producto</th>
+                    <th style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-card)' }}>Tipo</th>
+                    <th style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-card)' }}>Cant.</th>
+                    <th style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-card)' }}>Precio Unit.</th>
+                    <th style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-card)' }}>Subtotal</th>
+                    <th style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-card)' }}>Acción</th>
+                  </tr>
+                </thead>
               <tbody>
                 {items.map((item, index) => (
                   <tr key={index}>
@@ -778,7 +779,8 @@ const Ventas = () => {
                   </tr>
                 ))}
               </tbody>
-            </table>
+              </table>
+            </div>
           </div>
         </div>
 
