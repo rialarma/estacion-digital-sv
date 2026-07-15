@@ -716,12 +716,12 @@ const Ventas = () => {
         </div>
 
         {/* Right side: Summary & Settings */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', overflowY: 'auto', paddingRight: '4px', height: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', paddingRight: '4px', height: '100%' }}>
           
-          <div className="glass-panel" style={{ padding: '24px' }}>
-            <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: 600 }}>2. Datos de la Venta</h3>
+          <div className="glass-panel" style={{ padding: '16px' }}>
+            <h3 style={{ marginBottom: '12px', fontSize: '18px', fontWeight: 600 }}>2. Datos de la Venta</h3>
             
-            <div className="form-group" style={{ marginBottom: '16px' }}>
+            <div className="form-group" style={{ marginBottom: '12px' }}>
               <label>Cliente</label>
               <select 
                 className="glass-input"
@@ -738,7 +738,7 @@ const Ventas = () => {
               </select>
             </div>
             
-            <div className="form-group" style={{ marginBottom: '16px' }}>
+            <div className="form-group" style={{ marginBottom: '12px' }}>
               <label>Vendedor *</label>
               <select 
                 className="glass-input"
@@ -753,7 +753,7 @@ const Ventas = () => {
               </select>
             </div>
             
-            <div className="form-group" style={{ marginBottom: '16px' }}>
+            <div className="form-group" style={{ marginBottom: '12px' }}>
               <label>Método de Pago</label>
               <select 
                 className="glass-input"
@@ -785,18 +785,18 @@ const Ventas = () => {
             )}
           </div>
 
-          <div className="glass-panel" style={{ padding: '24px', height: 'fit-content' }}>
-            <h3 style={{ marginBottom: '24px', fontSize: '18px', fontWeight: 600 }}>Resumen</h3>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <div className="glass-panel" style={{ padding: '16px', height: 'fit-content' }}>
+            <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: 600 }}>Resumen</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span style={{ color: 'var(--text-muted)' }}>Subtotal (Sin IVA):</span>
               <span>${subtotal.toFixed(2)}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <span style={{ color: 'var(--text-muted)' }}>IVA ({(tenantInfo?.tax_iva || 13)}%):</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ color: 'var(--text-muted)' }}>IVA ({(tenantInfo?.tax_iva || 13)}%):</span>
             <span>${tax_iva.toFixed(2)}</span>
           </div>
           {pointsToUse > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', color: '#10b981' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#10b981' }}>
               <span>Descuento por Puntos:</span>
               <span>-${pointsToUse.toFixed(2)}</span>
             </div>
@@ -805,9 +805,9 @@ const Ventas = () => {
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center',
-            paddingTop: '16px', 
+            paddingTop: '12px', 
             borderTop: '1px solid var(--border-color)',
-            marginBottom: '24px'
+            marginBottom: '16px'
           }}>
             <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--primary)' }}>Total a Cobrar:</span>
             <span style={{ fontSize: '24px', fontWeight: 800, color: 'var(--primary)' }}>
