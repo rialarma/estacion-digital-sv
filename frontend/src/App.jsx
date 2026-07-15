@@ -277,7 +277,7 @@ function App() {
         <Topbar onLogout={() => supabase.auth.signOut()} />
         
         <main className="main-content">
-          <SubNavTabs />
+          {/* <SubNavTabs /> */}
           <Suspense fallback={<div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center' }}>Cargando pantalla...</div>}>
             <Routes>
               {/* Ruta Principal / Dashboard */}
