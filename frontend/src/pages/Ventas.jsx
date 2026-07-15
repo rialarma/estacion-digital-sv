@@ -830,31 +830,35 @@ const Ventas = () => {
               </span>
             </div>
 
-            {selectedClientId && clientData && tenantInfo?.loyalty_points_enabled && (
-              <div style={{ marginBottom: '12px', padding: '10px', background: 'var(--bg-color)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Star size={14} color="#f59e0b" fill="#f59e0b" />
-                    <span style={{ fontWeight: 600, color: 'var(--primary)', fontSize: '13px' }}>Pts: {clientData.points_balance}</span>
+            {selectedClientId && tenantInfo?.loyalty_points_enabled && (() => {
+              const clientData = clients.find(c => c.id === selectedClientId);
+              if (!clientData) return null;
+              return (
+                <div style={{ marginBottom: '12px', padding: '10px', background: 'var(--bg-color)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Star size={14} color="#f59e0b" fill="#f59e0b" />
+                      <span style={{ fontWeight: 600, color: 'var(--primary)', fontSize: '13px' }}>Pts: {clientData.points_balance}</span>
+                    </div>
+                    <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>+ {Math.floor(subtotal * (tenantInfo.loyalty_points_multiplier || 1))} hoy</span>
                   </div>
-                  <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>+ {Math.floor(subtotal * (tenantInfo.loyalty_points_multiplier || 1))} hoy</span>
+                  <input 
+                    type="number"
+                    className="glass-input"
+                    style={{ height: '32px', fontSize: '13px' }}
+                    placeholder="Canjear pts..."
+                    max={clientData.points_balance}
+                    value={pointsToUse || ''}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 0;
+                      if(val <= clientData.points_balance) {
+                        setPointsToUse(val);
+                      }
+                    }}
+                  />
                 </div>
-                <input 
-                  type="number"
-                  className="glass-input"
-                  style={{ height: '32px', fontSize: '13px' }}
-                  placeholder="Canjear pts..."
-                  max={clientData.points_balance}
-                  value={pointsToUse || ''}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value) || 0;
-                    if(val <= clientData.points_balance) {
-                      setPointsToUse(val);
-                    }
-                  }}
-                />
-              </div>
-            )}
+              );
+            })()}
 
             <button
               id="btn-emitir"
