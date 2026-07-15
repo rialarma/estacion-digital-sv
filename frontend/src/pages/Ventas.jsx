@@ -721,68 +721,70 @@ const Ventas = () => {
           <div className="glass-panel" style={{ padding: '16px' }}>
             <h3 style={{ marginBottom: '12px', fontSize: '18px', fontWeight: 600 }}>2. Datos de la Venta</h3>
             
-            <div className="form-group" style={{ marginBottom: '12px' }}>
-              <label>Cliente</label>
-              <select 
-                className="glass-input"
-                value={selectedClientId}
-                onChange={(e) => {
-                  setSelectedClientId(e.target.value);
-                  setPointsToUse(0);
-                }}
-              >
-                <option value="">-- Sin Cliente Asociado --</option>
-                {clients.map(c => (
-                  <option key={c.id} value={c.id}>{c.name} ({c.document_number || 'Sin Doc'})</option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="form-group" style={{ marginBottom: '12px' }}>
-              <label>Vendedor *</label>
-              <select 
-                className="glass-input"
-                value={selectedSellerId}
-                onChange={(e) => setSelectedSellerId(e.target.value)}
-                required
-              >
-                <option value="">-- Selecciona Vendedor --</option>
-                {sellers.map(s => (
-                  <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="form-group" style={{ marginBottom: '12px' }}>
-              <label>Método de Pago</label>
-              <select 
-                className="glass-input"
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-              >
-                <option value="EFECTIVO">Efectivo</option>
-                <option value="TARJETA">Tarjeta (Crédito/Débito)</option>
-                <option value="TRANSFERENCIA">Transferencia Bancaria</option>
-                <option value="CREDITO">Crédito (Cuenta por Cobrar)</option>
-              </select>
-            </div>
-
-            {tenantInfo?.module_logistics !== false && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Repartidor / Ruta (Opcional)</label>
+                <label>Cliente</label>
                 <select 
-                  className="glass-input" 
-                  value={selectedDriverId} 
-                  onChange={(e) => setSelectedDriverId(e.target.value)}
+                  className="glass-input"
+                  value={selectedClientId}
+                  onChange={(e) => {
+                    setSelectedClientId(e.target.value);
+                    setPointsToUse(0);
+                  }}
                 >
-                  <option value="">-- Entregado en tienda --</option>
-                  <option value="PENDING">-- Enviar luego (Asignar después) --</option>
-                  {drivers.map(d => (
-                    <option key={d.id} value={d.id}>{d.name} {d.plate_number ? `(${d.plate_number})` : ''}</option>
+                  <option value="">-- Sin Cliente Asociado --</option>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.document_number || 'Sin Doc'})</option>
                   ))}
                 </select>
               </div>
-            )}
+              
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>Vendedor *</label>
+                <select 
+                  className="glass-input"
+                  value={selectedSellerId}
+                  onChange={(e) => setSelectedSellerId(e.target.value)}
+                  required
+                >
+                  <option value="">-- Selecciona Vendedor --</option>
+                  {sellers.map(s => (
+                    <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>Método de Pago</label>
+                <select 
+                  className="glass-input"
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                >
+                  <option value="EFECTIVO">Efectivo</option>
+                  <option value="TARJETA">Tarjeta (Crédito/Débito)</option>
+                  <option value="TRANSFERENCIA">Transferencia Bancaria</option>
+                  <option value="CREDITO">Crédito (Cuenta por Cobrar)</option>
+                </select>
+              </div>
+
+              {tenantInfo?.module_logistics !== false && (
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Repartidor (Opcional)</label>
+                  <select 
+                    className="glass-input" 
+                    value={selectedDriverId} 
+                    onChange={(e) => setSelectedDriverId(e.target.value)}
+                  >
+                    <option value="">-- En tienda --</option>
+                    <option value="PENDING">-- Enviar luego --</option>
+                    {drivers.map(d => (
+                      <option key={d.id} value={d.id}>{d.name} {d.plate_number ? `(${d.plate_number})` : ''}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="glass-panel" style={{ padding: '16px', height: 'fit-content' }}>
