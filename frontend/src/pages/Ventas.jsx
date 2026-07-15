@@ -879,7 +879,7 @@ const Ventas = () => {
           </div>
         </div>
       </div>
-
+      </div>
       {printModalOpen && (
         <div className="modal-overlay">
           <div className="glass-panel" style={{ padding: '24px', width: '400px', textAlign: 'center' }}>
