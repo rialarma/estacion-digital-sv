@@ -83,32 +83,7 @@ const Reportes = () => {
           </select>
         </div>
       </div>
-      {/* Tabs Navigation */}
-      <div style={{ display: 'flex', overflowX: 'auto', gap: '8px', paddingBottom: '8px', marginBottom: '24px', borderBottom: '1px solid var(--border-color)' }} className="hide-scrollbar hide-on-tablet">
-        {tabs.map(tab => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                padding: '10px 16px', borderRadius: '12px', border: 'none',
-                background: isActive ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
-                color: isActive ? '#fff' : 'var(--text-muted)',
-                cursor: 'pointer', fontWeight: 500, whiteSpace: 'nowrap',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
-              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
-            >
-              <Icon size={18} />
-              {tab.label}
-            </button>
-          )
-        })}
-      </div>
+      {/* Tabs Navigation Removed - Replaced by Topbar Dropdown */}
 
       {/* Contenido del Dashboard Seleccionado */}
       <Suspense fallback={<div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>Cargando módulo de inteligencia de negocios...</div>}>

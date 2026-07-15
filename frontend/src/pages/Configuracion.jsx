@@ -388,37 +388,7 @@ const Configuracion = () => {
         </button>
       </div>
 
-      {/* Tabs Navigation */}
-      <div style={{ display: 'flex', overflowX: 'auto', gap: '8px', paddingBottom: '8px', marginBottom: '16px', borderBottom: '1px solid var(--border-color)' }} className="hide-scrollbar hide-on-tablet">
-        {[
-          { id: 'general', label: 'General', icon: Building2 },
-          { id: 'facturacion', label: 'Facturación & DTE', icon: Receipt },
-          { id: 'sistema', label: 'Sistema ERP', icon: Settings },
-          { id: 'tienda', label: 'Tienda Virtual', icon: Store }
-        ].map(tab => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                padding: '10px 16px', borderRadius: '12px', border: 'none',
-                background: isActive ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
-                color: isActive ? '#fff' : 'var(--text-muted)',
-                cursor: 'pointer', fontWeight: 500, whiteSpace: 'nowrap',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
-              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
-            >
-              <Icon size={18} />
-              {tab.label}
-            </button>
-          )
-        })}
-      </div>
+      {/* Tabs Navigation Removed - Replaced by Topbar Dropdown */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         
         {/* ======================= TAB: GENERAL ======================= */}
