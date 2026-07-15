@@ -768,24 +768,22 @@ const Ventas = () => {
                 </select>
               </div>
 
-              {tenantInfo?.module_logistics !== false && (
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>Entrega / Repartidor</label>
-                  <select 
-                    className="glass-input" 
-                    value={selectedDriverId} 
-                    onChange={(e) => setSelectedDriverId(e.target.value)}
-                  >
-                    <option value="">-- Entrega Inmediata (En Tienda) --</option>
-                    <option value="PENDING">-- Enviar Luego (A Despacho) --</option>
-                    <optgroup label="Asignar Repartidor Inmediatamente">
-                      {drivers.map(d => (
-                        <option key={d.id} value={d.id}>{d.name} {d.plate_number ? `(${d.plate_number})` : ''}</option>
-                      ))}
-                    </optgroup>
-                  </select>
-                </div>
-              )}
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>Entrega / Repartidor</label>
+                <select 
+                  className="glass-input" 
+                  value={selectedDriverId} 
+                  onChange={(e) => setSelectedDriverId(e.target.value)}
+                >
+                  <option value="">-- Entrega Inmediata (En Tienda) --</option>
+                  <option value="PENDING">-- Enviar Luego (A Despacho) --</option>
+                  <optgroup label="Asignar Repartidor Inmediatamente">
+                    {drivers.map(d => (
+                      <option key={d.id} value={d.id}>{d.name} {d.plate_number ? `(${d.plate_number})` : ''}</option>
+                    ))}
+                  </optgroup>
+                </select>
+              </div>
             </div>
           </div>
 
