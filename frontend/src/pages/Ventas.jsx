@@ -661,7 +661,7 @@ const Ventas = () => {
               </div>
             )}
 
-            <div className="panel-scrollable">
+            <div className="table-responsive">
               <table className="glass-table">
                 <thead>
                   <tr>

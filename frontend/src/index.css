@@ -204,18 +204,20 @@ h1, h2, h3, h4, h5, h6 {
 
 html {
   height: 100vh;
-  overflow: hidden;
+  overflow-x: hidden;
   margin: 0;
   padding: 0;
+  width: 100%;
 }
 
 body {
   background-color: var(--bg-dark);
   color: var(--text-main);
   height: 100vh;
-  overflow: hidden;
+  overflow-x: hidden;
   margin: 0;
   padding: 0;
+  width: 100%;
   /* Premium Liquid Gradient */
   background: linear-gradient(-45deg, var(--bg-dark), var(--bg-gradient-1), var(--bg-gradient-2), var(--bg-dark));
   background-size: 400% 400%;
@@ -550,7 +552,15 @@ select.glass-input option {
 .grid-1-1-1 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
 
 /* Table Wrapper for horizontal scroll on mobile */
-.table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-responsive { 
+  width: 100%; 
+  max-width: 100%;
+  overflow-x: auto; 
+  -webkit-overflow-scrolling: touch; 
+  margin-bottom: 16px;
+  /* Forzar a que no empuje a los padres */
+  min-width: 0;
+}
 
 /* Mobile Menu Toggle */
 .mobile-menu-toggle {
@@ -674,7 +684,10 @@ select.glass-input option {
   /* Table horizontal scroll */
   .glass-table {
     display: block;
+    width: 100%;
+    max-width: 100%;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     white-space: nowrap;
   }
   
@@ -698,12 +711,16 @@ select.glass-input option {
   
   .pos-left-column .glass-panel {
     height: auto !important;
-    overflow: visible !important;
+    overflow-y: visible !important;
+    overflow-x: hidden !important;
   }
 
   .pos-left-column .table-responsive {
-    max-height: 50vh;
+    max-height: 60vh;
     overflow-y: auto;
+    overflow-x: auto;
+    width: 100%;
+    margin-bottom: 16px;
   }
   
   .pos-right-column {
