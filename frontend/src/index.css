@@ -683,4 +683,41 @@ select.glass-input option {
   .page-header button { width: 100%; justify-content: center; }
   
   .modal-content { max-width: 95%; padding: 20px; max-height: 90vh; overflow-y: auto; }
+  
+  /* POS Mobile overrides */
+  .page-full-height {
+    height: auto !important;
+    overflow: visible !important;
+    min-height: 100vh;
+  }
+  
+  .pos-left-column {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  
+  .pos-left-column .glass-panel {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .pos-left-column .table-responsive {
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+  
+  .pos-right-column {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  
+  .pos-right-column .glass-panel {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  
+  .pos-right-column .scrollable-data {
+    overflow-y: visible !important;
+    height: auto !important;
+  }
 }

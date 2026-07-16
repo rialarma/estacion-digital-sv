@@ -641,7 +641,7 @@ const Ventas = () => {
 
       <div className="grid-2-1" style={{ alignItems: 'flex-start', flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {/* Left side: Current Items (Focus on Products) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflow: 'hidden', height: '100%' }}>
+        <div className="pos-left-column" style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflow: 'hidden', height: '100%' }}>
           <div className="glass-panel" style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             
             <div style={{ marginBottom: '24px', zIndex: 10 }}>
@@ -714,12 +714,12 @@ const Ventas = () => {
         </div>
 
         {/* Right side: Summary & Settings */}
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+        <div className="pos-right-column" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
           
           <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
             
             {/* Scrollable Data Section */}
-            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="scrollable-data" style={{ flex: 1, overflowY: 'auto', paddingRight: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)' }}>
                 <Users size={14} />
                 <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase' }}>Datos de la Venta</span>
