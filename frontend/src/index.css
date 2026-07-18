@@ -1002,3 +1002,12 @@ select.glass-input option {
     right: 16px !important;
   }
 }
+
+/* GLOBAL SYMMETRY FOR LARGE SCREENS */
+/* Overrides inline maxWidth constraints on specific pages to ensure all screens look identical in width on 32-inch monitors */
+@media (min-width: 1025px) {
+  .page-container, .page-full-height {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+}
