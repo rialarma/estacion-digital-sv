@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { Search, UserCheck, UserX, User } from 'lucide-react';
+import PageHeader from '../components/PageHeader';
 
 const CheckIn = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,10 +64,9 @@ const CheckIn = () => {
 
   return (
     <div className="page-container" style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <div className="page-header" style={{ textAlign: 'center' }}>
-        <h1 className="page-title">Control de Acceso / Check-In</h1>
+      <PageHeader title="Check-In de Asistencia" icon={UserCheck}>
         <p style={{ color: 'var(--text-muted)' }}>Busca al cliente por nombre, teléfono o DUI para verificar su membresía.</p>
-      </div>
+      </PageHeader>
 
       <div className="glass-panel" style={{ padding: '24px', position: 'relative', zIndex: 10 }}>
         <div style={{ position: 'relative' }}>

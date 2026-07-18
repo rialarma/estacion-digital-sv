@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Package } from 'lucide-react';
+import { Search, Package, Layers } from 'lucide-react';
 import { supabase } from '../supabase';
 
 import { useTenantStore } from '../store/useTenantStore';
+import PageHeader from '../components/PageHeader';
 
 const Inventory = () => {
   const { tenantId } = useTenantStore();
@@ -81,9 +82,9 @@ const Inventory = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title">Inventario de Sucursal</h1>
-      </div>
+      <PageHeader title="Inventario de Sucursal" icon={Layers}>
+        
+      </PageHeader>
 
       {(() => {
         const today = new Date();

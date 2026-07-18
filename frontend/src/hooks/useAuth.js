@@ -9,33 +9,50 @@ export const useAuth = () => {
 
   useEffect(() => {
     const fetchUserAndTenant = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        setUser(session.user);
-        // Load tenant profile
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('tenant_id')
-          .eq('id', session.user.id)
-          .single();
-          
-        if (profile?.tenant_id) {
-          const { data: tenant } = await supabase
-            .from('tenants')
-            .select('*')
-            .eq('id', profile.tenant_id)
+      console.log("fetchUserAndTenant: START");
+      try {
+        console.log("fetchUserAndTenant: getting session...");
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        console.log("fetchUserAndTenant: got session", session);
+        
+        if (sessionError) throw sessionError;
+
+        if (session?.user) {
+          setUser(session.user);
+          // Load tenant profile
+          console.log("fetchUserAndTenant: fetching profile...");
+          const { data: profile, error: profileError } = await supabase
+            .from('user_profiles')
+            .select('tenant_id')
+            .eq('id', session.user.id)
             .single();
+          console.log("fetchUserAndTenant: got profile", profile);
             
-          setTenant(profile.tenant_id, tenant);
+          if (profile?.tenant_id) {
+            console.log("fetchUserAndTenant: fetching tenant...");
+            const { data: tenant } = await supabase
+              .from('tenants')
+              .select('*')
+              .eq('id', profile.tenant_id)
+              .single();
+            console.log("fetchUserAndTenant: got tenant", tenant);
+              
+            setTenant(profile.tenant_id, tenant);
+          } else {
+            clearTenant();
+          }
         } else {
+          setUser(null);
           clearTenant();
         }
-      } else {
+      } catch (err) {
+        console.error("Error fetching user session/tenant:", err);
         setUser(null);
         clearTenant();
+      } finally {
+        console.log("fetchUserAndTenant: FINALLY, setting loading to false");
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchUserAndTenant();

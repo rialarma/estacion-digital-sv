@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Search, Plus, Edit2, Shield, X } from 'lucide-react';
+import { Users, Search, Plus, Edit2, Shield, X, Clock, MapPin, Activity } from 'lucide-react';
 import { supabase, supabaseUrl, supabaseAnonKey } from '../supabase';
 import { createClient } from '@supabase/supabase-js';
 import { useTenantStore } from '../store/useTenantStore';
 import { useAuth } from '../hooks/useAuth';
+import PageHeader from '../components/PageHeader';
 
 const Usuarios = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [selectedHistoryUser, setSelectedHistoryUser] = useState(null);
+  const [sessionHistory, setSessionHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [saving, setSaving] = useState(false);
@@ -56,6 +61,23 @@ const Usuarios = () => {
   const openNewModal = () => {
     resetForm();
     setShowModal(true);
+  };
+
+  const openHistoryModal = async (u) => {
+    setSelectedHistoryUser(u);
+    setShowHistoryModal(true);
+    setLoadingHistory(true);
+    const { data, error } = await supabase
+      .from('user_sessions_log')
+      .select('*')
+      .eq('user_id', u.id)
+      .order('login_time', { ascending: false })
+      .limit(50);
+    
+    if (!error && data) {
+      setSessionHistory(data);
+    }
+    setLoadingHistory(false);
   };
 
   const openEditModal = (userProfile) => {
@@ -160,11 +182,11 @@ const Usuarios = () => {
 
   return (
     <div className="page-container fade-in">
-      <div className="page-header">
+      <PageHeader title="Usuarios del Sistema" icon={Users}>
         <div className="header-title">
           <Users size={32} color="var(--primary)" />
           <div>
-            <h1>Usuarios del Sistema</h1>
+            
             <p style={{ color: 'var(--text-muted)' }}>Administra las cuentas de acceso, roles y permisos.</p>
           </div>
         </div>
@@ -172,9 +194,9 @@ const Usuarios = () => {
           <Plus size={20} />
           Nuevo Usuario
         </button>
-      </div>
+      </PageHeader>
 
-      <div className="glass-container" style={{ padding: '24px', marginBottom: '24px' }}>
+      <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px' }}>
         <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', alignItems: 'center' }}>
           <div className="search-bar" style={{ flex: 1, margin: 0 }}>
             <Search size={20} color="var(--text-muted)" />
@@ -197,6 +219,8 @@ const Usuarios = () => {
                   <th>Nombre</th>
                   <th>Username de Acceso</th>
                   <th>Rol / Permisos</th>
+                  <th style={{ textAlign: 'center' }}>Accesos</th>
+                  <th>Último Acceso</th>
                   <th>PIN Kiosko</th>
                   <th style={{ textAlign: 'right' }}>Acciones</th>
                 </tr>
@@ -236,11 +260,29 @@ const Usuarios = () => {
                           {u.role}
                         </span>
                       </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <span className="badge" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
+                          {u.login_count || 0}
+                        </span>
+                      </td>
+                      <td>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                          {u.last_login_at ? new Date(u.last_login_at).toLocaleString() : 'Nunca'}
+                        </span>
+                      </td>
                       <td>
                         {u.pin ? <span style={{ color: 'var(--primary)', fontWeight: 'bold', fontFamily: 'monospace' }}>****</span> : <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Sin PIN</span>}
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button 
+                            className="glass-button" 
+                            style={{ padding: '8px', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', borderColor: 'rgba(59, 130, 246, 0.2)' }} 
+                            title="Bitácora de Sesiones"
+                            onClick={() => openHistoryModal(u)}
+                          >
+                            <Activity size={16} />
+                          </button>
                           <button 
                             className="glass-button" 
                             style={{ padding: '8px' }} 
@@ -268,7 +310,7 @@ const Usuarios = () => {
 
       {showModal && (
         <div className="modal-backdrop">
-          <div className="modal-content glass-container" style={{ maxWidth: '600px', width: '90%' }}>
+          <div className="modal-content glass-panel" style={{ maxWidth: '600px', width: '90%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <Shield size={24} color="var(--primary)" />
@@ -385,6 +427,89 @@ const Usuarios = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* History Modal */}
+      {showHistoryModal && selectedHistoryUser && (
+        <div className="modal-backdrop">
+          <div className="modal-content glass-panel" style={{ maxWidth: '800px', width: '90%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Activity size={24} color="var(--primary)" />
+                Bitácora de Sesiones: {selectedHistoryUser.first_name} {selectedHistoryUser.last_name}
+              </h2>
+              <button className="glass-button" style={{ padding: '8px' }} onClick={() => setShowHistoryModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+              {loadingHistory ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Cargando bitácora...</div>
+              ) : sessionHistory.length > 0 ? (
+                <div className="table-responsive">
+                  <table className="glass-table">
+                    <thead>
+                      <tr>
+                        <th>Hora Entrada</th>
+                        <th>Último Pulso</th>
+                        <th>Hora Salida</th>
+                        <th>Tiempo en Sistema</th>
+                        <th>Ubicación (GPS)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sessionHistory.map(session => {
+                        const inTime = new Date(session.login_time);
+                        const outTime = session.logout_time ? new Date(session.logout_time) : new Date(session.last_ping_time);
+                        const durationMs = outTime.getTime() - inTime.getTime();
+                        const durationMins = Math.floor(durationMs / 60000);
+                        const durationHours = Math.floor(durationMins / 60);
+                        const mins = durationMins % 60;
+                        const durationStr = durationHours > 0 ? `${durationHours}h ${mins}m` : `${mins} min`;
+                        const isOnline = !session.logout_time && (Date.now() - new Date(session.last_ping_time).getTime() < 5 * 60 * 1000);
+
+                        return (
+                          <tr key={session.id}>
+                            <td>{inTime.toLocaleString()}</td>
+                            <td>{new Date(session.last_ping_time).toLocaleTimeString()}</td>
+                            <td>
+                              {session.logout_time ? (
+                                <span style={{ color: 'var(--primary)' }}>{new Date(session.logout_time).toLocaleString()} (Cierre)</span>
+                              ) : isOnline ? (
+                                <span style={{ color: '#10b981', fontWeight: 'bold' }}>En línea (Activa)</span>
+                              ) : (
+                                <span style={{ color: 'var(--text-muted)' }}>-- (Asumida: {outTime.toLocaleTimeString()})</span>
+                              )}
+                            </td>
+                            <td><strong style={{ color: 'var(--text-main)' }}>{durationStr}</strong></td>
+                            <td>
+                              {session.latitude && session.longitude ? (
+                                <a 
+                                  href={`https://www.google.com/maps/search/?api=1&query=${session.latitude},${session.longitude}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  style={{ color: '#3b82f6', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                >
+                                  <MapPin size={14} /> Ver en Mapa
+                                </a>
+                              ) : (
+                                <span style={{ color: 'var(--text-muted)' }}>Sin GPS</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                  No hay sesiones registradas para este usuario.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

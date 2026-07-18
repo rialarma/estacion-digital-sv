@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Clock, Truck, MapPin, CheckCircle, Package, DollarSign, Users, Navigation } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useAuth } from '../hooks/useAuth';
+import PageHeader from '../components/PageHeader';
 
 const MiRuta = () => {
   const { user } = useAuth();
@@ -195,7 +196,7 @@ const MiRuta = () => {
               <Truck size={24} color="#10b981" />
             </div>
             <div>
-              <h1 style={{ fontSize: '24px', margin: 0 }}>Mi Ruta Móvil</h1>
+              <PageHeader title="Mi Ruta Móvil" icon={Navigation} />
               <p style={{ color: 'var(--text-muted)', margin: 0 }}>Entregas pendientes</p>
             </div>
           </div>

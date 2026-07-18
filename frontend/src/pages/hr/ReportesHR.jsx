@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { useTenantStore } from '../../store/useTenantStore';
 import { PieChart, Download } from 'lucide-react';
+import PageHeader from '../../components/PageHeader';
 
 const ReportesHR = () => {
   const { tenantInfo } = useTenantStore();
@@ -28,12 +29,12 @@ const ReportesHR = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header" style={{ marginBottom: '24px' }}>
+      <PageHeader title="Reportes Consolidados RRHH" icon={PieChart}>
         <div>
-          <h1 className="page-title">Reportes Consolidados RRHH</h1>
+          
           <p className="page-subtitle">Totales retenidos de ISSS, AFP y Renta para declaraciones.</p>
         </div>
-      </div>
+      </PageHeader>
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>Generando reportes...</div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Truck, Search, Plus, Edit2, Trash2, X } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
+import PageHeader from '../components/PageHeader';
 
 const Repartidores = () => {
   const [drivers, setDrivers] = useState([]);
@@ -127,21 +128,21 @@ const Repartidores = () => {
 
   return (
     <div className="page-container fade-in">
-      <div className="page-header">
+      <PageHeader title="Gestión de Repartidores" icon={Truck}>
         <div className="header-title">
-          <Truck size={32} color="var(--primary)" />
+          
           <div>
-            <h1>Repartidores</h1>
+            
             <p style={{ color: 'var(--text-muted)' }}>Administra tu personal de entregas y logística.</p>
           </div>
         </div>
         <button className="glass-button" onClick={openNewModal}>
-          <Plus size={20} />
+          
           Nuevo Repartidor
         </button>
-      </div>
+      </PageHeader>
 
-      <div className="glass-container" style={{ padding: '24px', marginBottom: '24px' }}>
+      <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px' }}>
         <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', alignItems: 'center' }}>
           <div className="search-bar" style={{ flex: 1, margin: 0 }}>
             <Search size={20} color="var(--text-muted)" />
@@ -231,7 +232,7 @@ const Repartidores = () => {
 
       {showModal && (
         <div className="modal-backdrop">
-          <div className="modal-content glass-container" style={{ maxWidth: '500px', width: '90%' }}>
+          <div className="modal-content glass-panel" style={{ maxWidth: '500px', width: '90%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <Truck size={24} color="var(--primary)" />

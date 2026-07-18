@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Search, ShoppingCart, Send, Save, User, MapPin, Truck, Plus, Minus, FileText, CheckCircle, Navigation, PackageOpen, X, WifiOff, RefreshCw } from 'lucide-react';
+import { Clock, Search, ShoppingCart, Send, Save, User, MapPin, Truck, Plus, Minus, FileText, CheckCircle, Navigation, PackageOpen, X, WifiOff, RefreshCw, UserCheck } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
 import { useAuth } from '../hooks/useAuth';
+import PageHeader from '../components/PageHeader';
 
 const Preventa = () => {
   const { tenantInfo } = useTenantStore();
@@ -381,12 +382,7 @@ const Preventa = () => {
             </button>
           </div>
         )}
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '20px', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-            <ShoppingCart size={24} color="var(--primary)" /> Toma de Pedido (Preventa)
-          </h2>
-          
+        <PageHeader title="Punto de Preventa" icon={ShoppingCart}>
           <button 
             onClick={activeShift ? handleClockOut : handleClockIn}
             disabled={actionLoading}
@@ -398,11 +394,10 @@ const Preventa = () => {
               fontWeight: 'bold', transition: 'all 0.3s'
             }}
           >
-            <Clock size={16} />
-            {actionLoading ? '...' : (activeShift ? 'Finalizar Turno' : 'Iniciar Turno')}
+            <UserCheck size={16} /> 
+            {actionLoading ? 'Cargando...' : (activeShift ? 'Cerrar Turno' : 'Marcar Ingreso')}
           </button>
-        </div>
-
+        </PageHeader>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {/* Client Selector */}
           <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '8px 12px', border: '1px solid var(--border-color)' }}>

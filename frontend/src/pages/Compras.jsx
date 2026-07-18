@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, ShoppingBag, Truck, X, Check } from 'lucide-react';
+import { Plus, ShoppingBag, Truck, X, Check, ShoppingCart } from 'lucide-react';
 import { supabase } from '../supabase';
 import ProductSearch from '../components/ProductSearch';
+import PageHeader from '../components/PageHeader';
 
 const Compras = () => {
   const [suppliers, setSuppliers] = useState([]);
@@ -258,12 +259,11 @@ const Compras = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title">Compras</h1>
+      <PageHeader title="Compras y Abastecimiento" icon={ShoppingCart}>
         <button className="glass-button" onClick={() => setShowModal(true)}>
           <Plus size={18} /> Nueva Compra
         </button>
-      </div>
+      </PageHeader>
 
       {/* Historial de Compras */}
       <div className="glass-panel" style={{ padding: '24px' }}>

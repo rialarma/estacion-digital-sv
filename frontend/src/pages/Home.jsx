@@ -3,11 +3,12 @@ import { supabase } from '../supabase';
 import { useAuth } from '../hooks/useAuth';
 import { useTenantStore } from '../store/useTenantStore';
 import { Link } from 'react-router-dom';
+import PageHeader from '../components/PageHeader';
 import { 
   ShoppingCart, Monitor, FileSignature, 
   Package, Layers, ClipboardList, ArrowRightLeft,
   Briefcase, DollarSign, Settings, Clock, LogIn, LogOut,
-  TrendingUp, AlertCircle, Users
+  TrendingUp, AlertCircle, Users, LayoutDashboard
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend
@@ -195,6 +196,7 @@ const Home = () => {
 
   return (
     <div className="page-container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <PageHeader title="Panel Principal" icon={LayoutDashboard} />
       
       {/* Saludo Principal */}
       <div className="glass-panel" style={{ padding: '32px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

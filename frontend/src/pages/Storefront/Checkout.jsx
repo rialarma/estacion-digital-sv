@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabase';
 import { useCartStore } from './CartStore';
-import { ArrowLeft, CheckCircle, CreditCard, Banknote, User } from 'lucide-react';
+import { ArrowLeft, CheckCircle, CreditCard, Banknote, User, ShoppingBag } from 'lucide-react';
 import AuthStoreModal from './AuthStoreModal';
 import './Storefront.css';
+import PageHeader from '../../components/PageHeader';
 
 const StorefrontCheckout = ({ customTenantId }) => {
   const params = useParams();
@@ -222,7 +223,7 @@ const StorefrontCheckout = ({ customTenantId }) => {
           <button onClick={() => navigate(customTenantId ? '/' : `/tienda/${tenantId}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
             <ArrowLeft size={24} color="#475569" />
           </button>
-          <h1>Completar Pedido</h1>
+          <PageHeader title="Confirmación de Pedido" icon={ShoppingBag} />
         </div>
       </header>
 

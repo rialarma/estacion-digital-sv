@@ -4,6 +4,7 @@ import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
 import { useNavigate } from 'react-router-dom';
 import ProductSearch from '../components/ProductSearch';
+import PageHeader from '../components/PageHeader';
 
 const Cotizaciones = () => {
   const { tenantInfo } = useTenantStore();
@@ -167,13 +168,12 @@ const Cotizaciones = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 className="page-title">Cotizaciones</h1>
+      <PageHeader title="Cotizaciones" icon={FileSignature}>
         <button className="glass-button" onClick={() => setShowHistory(!showHistory)}>
           {showHistory ? <Plus size={18} /> : <FileSignature size={18} />}
           {showHistory ? 'Nueva Cotización' : 'Ver Cotizaciones'}
         </button>
-      </div>
+      </PageHeader>
 
       {showHistory ? (
         <div className="glass-panel" style={{ padding: '24px' }}>

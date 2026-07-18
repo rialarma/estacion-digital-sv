@@ -1,6 +1,7 @@
 import React from 'react';
-import { ShieldAlert, CreditCard } from 'lucide-react';
+import { ShieldAlert, CreditCard, AlertTriangle } from 'lucide-react';
 import { supabase } from '../supabase';
+import PageHeader from '../components/PageHeader';
 
 const SuspendedSaaS = () => {
   const handleLogout = async () => {
@@ -25,7 +26,7 @@ const SuspendedSaaS = () => {
           <ShieldAlert size={40} color="#ef4444" />
         </div>
         
-        <h1 style={{ fontSize: '24px', marginBottom: '16px', color: 'var(--text-main)' }}>Suscripción Suspendida</h1>
+        <PageHeader title="Suscripción Suspendida" icon={AlertTriangle} />
         
         <p style={{ color: 'var(--text-muted)', marginBottom: '32px', lineHeight: '1.6' }}>
           Lo sentimos, el acceso a tu plataforma ha sido bloqueado porque tu suscripción se encuentra suspendida o ha expirado. 

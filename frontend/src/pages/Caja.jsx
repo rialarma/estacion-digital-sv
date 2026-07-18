@@ -4,6 +4,7 @@ import { useTenantStore } from '../store/useTenantStore';
 import { useAuth } from '../hooks/useAuth';
 import { Monitor, Lock, Unlock, DollarSign, Calculator, FileText, ShoppingCart, PieChart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import PageHeader from '../components/PageHeader';
 
 const Caja = () => {
   const { tenantId } = useTenantStore();
@@ -161,17 +162,13 @@ const Caja = () => {
 
   return (
     <div className="page-container" style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-          <Monitor size={32} color="var(--primary)" />
-          <h1 className="page-title">Gestión de Caja (Turno)</h1>
-        </div>
+      <PageHeader title="Gestión de Caja (Turno)" icon={Monitor}>
         {activeShift && (
           <button onClick={() => navigate('/ventas')} className="glass-button" style={{ background: '#3b82f6', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ShoppingCart size={16} /> Ir a Ventas
           </button>
         )}
-      </div>
+      </PageHeader>
 
       {!activeShift ? (
         <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', marginTop: '20px' }}>

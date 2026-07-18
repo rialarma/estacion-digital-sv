@@ -4,6 +4,7 @@ import { Users, Plus, Edit2, Trash2, Search, DownloadCloud, UploadCloud } from '
 import { DEPARTAMENTOS, MUNICIPIOS_NUEVOS, getDistritosPorMunicipio, ACTIVIDADES_ECONOMICAS } from '../utils/svCatalogs';
 import { useTenantStore } from '../store/useTenantStore';
 import * as XLSX from 'xlsx';
+import PageHeader from '../components/PageHeader';
 
 const Clients = () => {
   const { tenantInfo } = useTenantStore();
@@ -264,8 +265,7 @@ const Clients = () => {
         ref={fileInputRef}
         onChange={handleFileUpload}
       />
-      <div className="page-header">
-        <h1 className="page-title">Directorio de Clientes</h1>
+      <PageHeader title="Directorio de Clientes" icon={Users}>
         <div style={{ display: 'flex', gap: '10px' }}>
           {selectedClients.length > 0 && (
             <button className="glass-button" style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)' }} onClick={handleBulkDelete}>
@@ -287,7 +287,7 @@ const Clients = () => {
             <Plus size={18} /> Nuevo Cliente
           </button>
         </div>
-      </div>
+      </PageHeader>
 
       <div className="glass-panel" style={{ padding: '24px' }}>
         {loading ? (
@@ -408,7 +408,7 @@ const Clients = () => {
 
       {showModal && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <div className="modal-content glass-panel">
             <h2 style={{ marginBottom: '24px' }}>{editingId ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
             <form onSubmit={handleSave}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', marginBottom: '16px' }}>

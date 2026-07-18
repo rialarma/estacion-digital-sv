@@ -362,7 +362,36 @@ select.glass-input option {
   color: transparent;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 6px 12px;
+  border-radius: 12px;
+  margin-left: -12px; /* Compensate for padding */
+}
+
+.topbar-logo:hover {
+  background: linear-gradient(to right, #3b82f6, #a855f7);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  transform: translateY(-1px);
+  background-color: rgba(255, 255, 255, 0.05); /* Subtle background hover highlight */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.topbar-logo:active {
+  transform: translateY(1px);
+}
+
+.topbar-logo img,
+.topbar-logo svg {
+  transition: transform 0.3s ease;
+}
+
+.topbar-logo:hover img,
+.topbar-logo:hover svg {
+  transform: scale(1.1) rotate(-5deg);
 }
 
 .topbar-nav {
@@ -448,10 +477,97 @@ select.glass-input option {
   border-color: var(--primary);
 }
 
+.topbar-profile-container {
+  position: relative;
+}
+
 .topbar-profile {
   display: flex;
   align-items: center;
   gap: 12px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 12px;
+  transition: background 0.2s;
+}
+
+.topbar-profile:hover {
+  background: var(--border-color);
+}
+
+.profile-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 280px;
+  border-radius: 16px;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  z-index: 1002;
+}
+
+.topbar-profile-container:hover .profile-popover {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.popover-header {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.popover-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.popover-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-main);
+}
+
+.popover-row svg {
+  color: var(--text-muted);
+}
+
+.popover-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.logout-button-full {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: none;
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.logout-button-full:hover {
+  background: rgba(239, 68, 68, 0.2);
 }
 
 .main-content {
@@ -649,11 +765,7 @@ select.glass-input option {
   }
   
   .topbar-profile {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    width: 100%;
-    justify-content: space-between;
+    padding: 0;
   }
   
   /* Convert Dropdowns to Accordion on Mobile */
@@ -698,21 +810,10 @@ select.glass-input option {
   .modal-content { max-width: 95%; padding: 20px; max-height: 90vh; overflow-y: auto; }
   
   /* POS Mobile overrides */
-  .page-full-height {
+  .page-full-height, .grid-2-1, .pos-left-column, .pos-right-column, .pos-left-column .glass-panel, .pos-right-column .glass-panel, .pos-right-column .scrollable-data {
     height: auto !important;
     overflow: visible !important;
-    min-height: 100vh;
-  }
-  
-  .pos-left-column {
-    height: auto !important;
-    overflow: visible !important;
-  }
-  
-  .pos-left-column .glass-panel {
-    height: auto !important;
-    overflow-y: visible !important;
-    overflow-x: hidden !important;
+    min-height: 0 !important;
   }
 
   .pos-left-column .table-responsive {
@@ -722,19 +823,182 @@ select.glass-input option {
     width: 100%;
     margin-bottom: 16px;
   }
-  
-  .pos-right-column {
-    height: auto !important;
-    overflow: visible !important;
+}
+
+/* ==========================================================
+   GLOBAL RESPONSIVE INTELLIGENCE (Mobile, Tablet, Laptop)
+   ========================================================== */
+
+/* 1. Modals and Panels Optimization */
+@media (max-width: 768px) {
+  .glass-panel {
+    padding: 16px !important;
+    border-radius: 16px !important;
   }
   
-  .pos-right-column .glass-panel {
-    height: auto !important;
-    overflow: visible !important;
+  .modal-content.glass-panel {
+    padding: 16px !important;
+    max-height: 95vh !important;
+    width: 95% !important;
+    margin: auto !important;
   }
   
-  .pos-right-column .scrollable-data {
-    overflow-y: visible !important;
-    height: auto !important;
+  .page-container {
+    padding: 16px !important;
+  }
+  
+  /* 2. Grid & Flexbox Smart Collapse */
+  /* Detects inline grids and forces them to 1 column on mobile */
+  div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  
+  /* Buttons group inside forms usually have flex direction row */
+  div[style*="display: flex"][style*="gap"] > .glass-button {
+    flex: 1;
+    width: 100%;
+  }
+
+  /* Force side-by-side elements to stack */
+  .search-bar-container, div[style*="justify-content: space-between"] {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  
+  /* Fix headers */
+  h1, h2 {
+    font-size: 20px !important;
+  }
+  
+  .form-group {
+    grid-column: 1 / -1 !important;
+    margin-bottom: 12px !important;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 769px) and (max-width: 1024px) {
+  div[style*="grid-template-columns: 1fr 1fr 1fr"], 
+  div[style*="grid-template-columns: repeat(3"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+/* 3. Table Responsiveness */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
+}
+.table-responsive::-webkit-scrollbar {
+  height: 8px;
+}
+.table-responsive::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 10px;
+}
+.table-responsive::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.1);
+}
+
+@media (max-width: 768px) {
+  .glass-table th, .glass-table td {
+    padding: 12px 10px !important;
+    font-size: 13px !important;
+    white-space: nowrap !important; /* Force horizontal scroll */
+  }
+}
+
+
+/* ==========================================================
+   URGENT OVERFLOW FIXES (Mobile)
+   ========================================================== */
+@media (max-width: 768px) {
+  html, body {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    position: relative;
+  }
+
+  .app-container, .page-container, .main-content, .page-full-height, .pos-left-column, .pos-right-column, .grid-2-1, .grid-1-1, .grid-1-1-1 {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+    min-width: 0 !important; /* Flexbox fix */
+  }
+
+  .topbar {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .glass-panel {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-wrap: break-word !important;
+    word-wrap: break-word !important;
+  }
+
+  /* Prevent any input or select from expanding past container */
+  input, select, textarea, button {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Prevent long tenant names from pushing menu out of screen */
+  .topbar-logo {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+  .topbar-logo span {
+    display: inline-block;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 16px !important; /* Smaller font on mobile */
+  }
+  
+  /* Make sure flex containers don't expand beyond parent */
+  .app-container, .main-content, .page-container, .page-full-height, .pos-left-column, .pos-right-column, .grid-2-1, .grid-1-1, .grid-1-1-1, .glass-panel, .modal-content, .form-group {
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .topbar-profile span {
+    display: none !important;
+  }
+  .topbar-profile {
+    gap: 0 !important;
+  }
+}
+
+/* Fix profile popover width constraint caused by glass-panel max-width */
+.profile-popover {
+  max-width: 280px !important;
+  width: 280px !important;
+}
+
+@media (max-width: 768px) {
+  .profile-popover {
+    position: fixed !important;
+    top: var(--topbar-height) !important;
+    right: 16px !important;
   }
 }

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, Package, X, UploadCloud, DownloadCloud, Settings, Trash, Camera } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Package, X, UploadCloud, DownloadCloud, Settings, Trash, Camera, Library } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
 import CameraScanner from '../components/CameraScanner';
 import * as XLSX from 'xlsx';
+import PageHeader from '../components/PageHeader';
 
 const Catalogo = () => {
   const { tenantInfo } = useTenantStore();
@@ -481,23 +482,22 @@ const Catalogo = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 className="page-title">Catálogo de Artículos</h1>
+      <PageHeader title="Catálogo de Productos" icon={Library}>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button className="glass-button" style={{ background: 'var(--bg-card)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }} onClick={handleDownloadTemplate}>
-            <DownloadCloud size={18} /> Descargar Plantilla
+             Descargar Plantilla
           </button>
           
           <label className="glass-button" style={{ background: '#10b981', cursor: 'pointer', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <UploadCloud size={18} /> Importar Excel
+             Importar Excel
             <input type="file" accept=".xlsx, .xls" style={{ display: 'none' }} onChange={handleFileUpload} />
           </label>
 
           <button className="glass-button" onClick={openNew}>
-            <Plus size={18} /> Nuevo Artículo
+             Nuevo Artículo
           </button>
         </div>
-      </div>
+      </PageHeader>
 
       <div className="glass-panel" style={{ padding: '24px' }}>
         <div style={{ marginBottom: '20px', position: 'relative', maxWidth: '400px' }}>

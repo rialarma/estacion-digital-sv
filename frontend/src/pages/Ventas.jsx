@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Save, Lock, Monitor, Plus, Info, Users, FileText, Star } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { ShoppingCart, Save, Lock, Monitor, Plus, Info, Users, FileText, Star, Minus, Trash2, Search, Printer, Package, ArrowLeft } from 'lucide-react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
+import PageHeader from '../components/PageHeader';
 import ProductSearch from '../components/ProductSearch';
 import CameraScanner from '../components/CameraScanner';
 import { printDocument } from '../utils/printUtils';
@@ -41,6 +42,10 @@ const Ventas = () => {
   const [lastSaleData, setLastSaleData] = useState(null);
   const [showScanner, setShowScanner] = useState(false);
   const [pointsToUse, setPointsToUse] = useState(0);
+
+  // Payment Modal State
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [amountTendered, setAmountTendered] = useState('');
 
   useEffect(() => {
     fetchActiveShift();
@@ -339,6 +344,26 @@ const Ventas = () => {
   }, 0);
   const subtotal = totalOrder - tax_iva;
 
+  const handleIntentToSave = () => {
+    if (items.length === 0) return;
+    
+    // Validar membresías vs consumidor final
+    const hasSubscription = items.some(i => i.is_subscription);
+    if (hasSubscription && !selectedClientId) {
+      alert("La venta contiene suscripciones o membresías. Es obligatorio seleccionar un Cliente válido.");
+      return;
+    }
+
+    if (!selectedSellerId) {
+      alert("Debes seleccionar un Vendedor para registrar la venta.");
+      return;
+    }
+
+    // Reset payment values
+    setAmountTendered('');
+    setShowPaymentModal(true);
+  };
+
   const handleSaveOrder = async () => {
     if (items.length === 0) return;
     
@@ -427,8 +452,8 @@ const Ventas = () => {
           payment_method: paymentMethod,
           balance: paymentMethod === 'CREDITO' ? totalDb : 0,
           shift_id: activeShift ? activeShift.id : null,
-          driver_id: (selectedDriverId && selectedDriverId !== 'PENDING') ? selectedDriverId : null,
-          delivery_status: selectedDriverId ? 'PENDIENTE_DE_CARGA' : 'ENTREGADO'
+          driver_id: (selectedDriverId && selectedDriverId !== 'PENDING' && selectedDriverId !== 'PENDING_RETIRO') ? selectedDriverId : null,
+          delivery_status: selectedDriverId === 'PENDING_RETIRO' ? 'PENDIENTE_RETIRO_TIENDA' : (selectedDriverId ? 'PENDIENTE_DE_CARGA' : 'ENTREGADO')
         }])
         .select()
         .single();
@@ -594,12 +619,13 @@ const Ventas = () => {
         }))
       });
 
+      setShowPaymentModal(false);
       setPrintModalOpen(true);
 
       setItems([]);
       setSelectedClientId('');
       setSelectedDriverId('');
-      setPaymentMethod('CONTADO');
+      setPaymentMethod('EFECTIVO');
       
       const quoteId = searchParams.get('quote');
       if (quoteId) {
@@ -633,11 +659,11 @@ const Ventas = () => {
 
   return (
     <div className="page-full-height" style={{ gap: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+      <PageHeader title="Punto de Venta (POS)" icon={ShoppingCart}>
         <Link to="/caja" className="glass-button" style={{ background: '#ef4444', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', fontSize: '13px' }}>
           <Lock size={14} /> Cerrar Turno
         </Link>
-      </div>
+      </PageHeader>
 
       <div className="grid-2-1" style={{ alignItems: 'flex-start', flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {/* Left side: Current Items (Focus on Products) */}
@@ -653,7 +679,7 @@ const Ventas = () => {
             </div>
 
             {showScanner && (
-              <div className="modal-overlay" style={{ zIndex: 100 }}>
+              <div className="modal-backdrop" style={{ zIndex: 100 }}>
                 <CameraScanner 
                   onScan={handleCameraScan} 
                   onClose={() => setShowScanner(false)} 
@@ -782,16 +808,15 @@ const Ventas = () => {
                   value={selectedDriverId} 
                   onChange={(e) => setSelectedDriverId(e.target.value)}
                 >
-                  <option value="">-- En Tienda --</option>
+                  <option value="">-- Retiro Inmediato (En Tienda) --</option>
+                  <option value="PENDING_RETIRO">-- Retirará Después (En Tienda) --</option>
+                  <option value="PENDING">-- A Despacho (Domicilio) --</option>
                   {tenantInfo?.module_logistics !== false && (
-                    <>
-                      <option value="PENDING">-- A Despacho --</option>
-                      <optgroup label="Repartidores">
-                        {drivers.map(d => (
-                          <option key={d.id} value={d.id}>{d.name}</option>
-                        ))}
-                      </optgroup>
-                    </>
+                    <optgroup label="Repartidores">
+                      {drivers.map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </optgroup>
                   )}
                 </select>
               </div>
@@ -867,7 +892,7 @@ const Ventas = () => {
                 className="glass-button"
                 style={{ width: '100%', justifyContent: 'center', height: '48px', fontSize: '15px' }}
                 disabled={items.length === 0 || saving || !selectedSellerId}
-                onClick={handleSaveOrder}
+                onClick={handleIntentToSave}
               >
                 <Save size={18} /> {saving ? 'Enviando...' : 'Emitir Documento (F4)'}
               </button>
@@ -884,8 +909,72 @@ const Ventas = () => {
           </div>
         </div>
       </div>
+      
+      {showPaymentModal && (
+        <div className="modal-backdrop">
+          <div className="glass-panel" style={{ padding: '24px', width: '400px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <h2 style={{ textAlign: 'center', marginBottom: '8px', color: 'var(--primary)' }}>Cobro de Venta</h2>
+            
+            <div style={{ textAlign: 'center', padding: '16px', background: 'var(--bg-dark)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Total a Pagar</span>
+              <div style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--primary)' }}>
+                ${Math.max(0, totalOrder - pointsToUse).toFixed(2)}
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label style={{ fontSize: '14px', marginBottom: '8px', display: 'block' }}>Monto Recibido</label>
+              <input
+                type="number"
+                className="glass-input"
+                style={{ fontSize: '24px', padding: '12px', textAlign: 'center', fontWeight: 'bold' }}
+                placeholder="0.00"
+                value={amountTendered}
+                autoFocus={true}
+                onChange={(e) => setAmountTendered(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (Number(amountTendered) >= Math.max(0, totalOrder - pointsToUse) || paymentMethod !== 'EFECTIVO') {
+                      handleSaveOrder();
+                    }
+                  }
+                }}
+              />
+            </div>
+
+            {paymentMethod === 'EFECTIVO' && Number(amountTendered) > 0 && (
+              <div style={{ textAlign: 'center', padding: '12px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Vuelto (Cambio)</span>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#10b981' }}>
+                  ${Math.max(0, Number(amountTendered) - Math.max(0, totalOrder - pointsToUse)).toFixed(2)}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+              <button 
+                className="glass-button" 
+                style={{ flex: 1, background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}
+                onClick={() => setShowPaymentModal(false)}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="glass-button" 
+                style={{ flex: 1, justifyContent: 'center', background: 'var(--primary)' }}
+                disabled={saving || (paymentMethod === 'EFECTIVO' && (Number(amountTendered) < Math.max(0, totalOrder - pointsToUse) || amountTendered === ''))}
+                onClick={handleSaveOrder}
+              >
+                {saving ? 'Enviando...' : 'Confirmar Pago'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {printModalOpen && (
-        <div className="modal-overlay">
+        <div className="modal-backdrop">
           <div className="glass-panel" style={{ padding: '24px', width: '400px', textAlign: 'center' }}>
             <h2 style={{ marginBottom: '16px', color: '#10b981' }}>¡Venta Exitosa!</h2>
             <p style={{ marginBottom: '24px', color: 'var(--text-muted)' }}>¿Deseas imprimir el comprobante para el cliente?</p>

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useAuth } from '../hooks/useAuth';
-import { User, Building2 } from 'lucide-react';
+import { User, Building2, Briefcase } from 'lucide-react';
+import PageHeader from '../components/PageHeader';
 
 const JoinTenant = () => {
   const { inviteCode } = useParams();
@@ -50,7 +51,7 @@ const JoinTenant = () => {
       <div className="glass-panel" style={{ width: '100%', maxWidth: '400px', padding: '40px' }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <Building2 size={48} style={{ color: 'var(--primary)', marginBottom: '16px' }} />
-          <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>Únete a tu Empresa</h1>
+          <PageHeader title="Únete a tu Empresa" icon={Briefcase} />
           <p style={{ color: 'var(--text-muted)' }}>Ingresa tu nombre para completar la configuración.</p>
         </div>
 

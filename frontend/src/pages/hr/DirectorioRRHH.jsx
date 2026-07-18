@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { supabase, supabaseUrl, supabaseAnonKey } from '../../supabase';
 import { createClient } from '@supabase/supabase-js';
 import { useTenantStore } from '../../store/useTenantStore';
-import { Plus, Edit2, Trash2, User, UserPlus, FileText, Shield, Truck } from 'lucide-react';
+import { Plus, Edit2, Trash2, User, UserPlus, FileText, Shield, Truck, Users } from 'lucide-react';
+import PageHeader from '../../components/PageHeader';
 
 const DirectorioRRHH = () => {
   const { tenantInfo } = useTenantStore();
@@ -225,9 +226,9 @@ const DirectorioRRHH = () => {
 
   return (
     <div className="page-full-height" style={{ gap: '24px' }}>
-      <div className="page-header" style={{ flexShrink: 0 }}>
+      <PageHeader title="Directorio de Personal y RRHH" icon={Users}>
         <div>
-          <h1 className="page-title">Directorio de Personal y RRHH</h1>
+          
           <p className="page-subtitle">Gestiona de forma unificada la información de tus empleados y sus accesos.</p>
         </div>
         <button className="glass-button" onClick={() => {
@@ -237,7 +238,7 @@ const DirectorioRRHH = () => {
         }}>
           <UserPlus size={18} /> Registrar Empleado
         </button>
-      </div>
+      </PageHeader>
       
       <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {loading ? (
@@ -330,7 +331,7 @@ const DirectorioRRHH = () => {
 
       {showModal && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="modal-content glass-panel" style={{ maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
             <h2 style={{ marginBottom: '24px' }}>{editingEmp ? 'Editar Ficha de Empleado' : 'Registrar Nuevo Empleado'}</h2>
             <form onSubmit={handleSave}>
               

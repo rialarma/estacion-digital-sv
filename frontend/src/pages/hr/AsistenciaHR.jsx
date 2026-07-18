@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { useTenantStore } from '../../store/useTenantStore';
 import { Clock, Plus, Save, Trash2, RefreshCw, CheckSquare } from 'lucide-react';
+import PageHeader from '../../components/PageHeader';
 
 const AsistenciaHR = () => {
   const { tenantInfo } = useTenantStore();
@@ -258,12 +259,12 @@ const AsistenciaHR = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header" style={{ marginBottom: '24px' }}>
+      <PageHeader title="Control de Asistencia y Horas Extra" icon={Clock}>
         <div>
-          <h1 className="page-title">Control de Asistencia y Horas Extra</h1>
+          
           <p className="page-subtitle">Registra o sincroniza las horas trabajadas desde el Kiosko para el cálculo de planilla.</p>
         </div>
-      </div>
+      </PageHeader>
 
       <div className="grid-2-1">
         {/* Tabla Histórica */}

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, ShoppingBag, X, Search, Printer, FileText, ArrowRightLeft, Undo2 } from 'lucide-react';
+import { ShoppingCart, ShoppingBag, X, Search, Printer, FileText, ArrowRightLeft, Undo2, History } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
 import { printDocument } from '../utils/printUtils';
+import PageHeader from '../components/PageHeader';
 
 const Historial = () => {
   const [transactions, setTransactions] = useState([]);
@@ -184,9 +185,9 @@ const Historial = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title">Historial de Transacciones</h1>
-      </div>
+      <PageHeader title="Historial de Transacciones" icon={History}>
+        
+      </PageHeader>
 
       <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>

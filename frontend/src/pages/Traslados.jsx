@@ -3,6 +3,7 @@ import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
 import { useAuth } from '../hooks/useAuth';
 import { ArrowRightLeft, Search, Plus, Save } from 'lucide-react';
+import PageHeader from '../components/PageHeader';
 
 const Traslados = () => {
   const { tenantId } = useTenantStore();
@@ -161,10 +162,9 @@ const Traslados = () => {
 
   return (
     <div className="page-container" style={{ maxWidth: '900px', margin: '0 auto' }}>
-      <div className="page-header" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+      <PageHeader title="Traslados de Inventario" icon={ArrowRightLeft}>
         <ArrowRightLeft size={32} color="var(--primary)" />
-        <h1 className="page-title">Traslados de Inventario</h1>
-      </div>
+      </PageHeader>
 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
         <div className="glass-panel" style={{ padding: '24px' }}>

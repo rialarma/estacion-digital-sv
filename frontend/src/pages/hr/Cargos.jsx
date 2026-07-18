@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { useTenantStore } from '../../store/useTenantStore';
 import { Plus, Edit2, Trash2, Briefcase } from 'lucide-react';
+import PageHeader from '../../components/PageHeader';
 
 const Cargos = () => {
   const { tenantInfo } = useTenantStore();
@@ -116,9 +117,9 @@ const Cargos = () => {
 
   return (
     <div className="page-full-height" style={{ gap: '24px' }}>
-      <div className="page-header" style={{ flexShrink: 0 }}>
+      <PageHeader title="Cargos" icon={Briefcase}>
         <div>
-          <h1 className="page-title">Cargos</h1>
+          
           <p className="page-subtitle">Define los cargos o puestos de trabajo y su salario base.</p>
         </div>
         <button className="glass-button" onClick={() => {
@@ -128,7 +129,7 @@ const Cargos = () => {
         }}>
           <Plus size={18} /> Nuevo Cargo
         </button>
-      </div>
+      </PageHeader>
       
       <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {loading ? (
@@ -192,7 +193,7 @@ const Cargos = () => {
 
       {showModal && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <div className="modal-content glass-panel">
             <h2 style={{ marginBottom: '24px' }}>{editingPosition ? 'Editar Cargo' : 'Nuevo Cargo'}</h2>
             <form onSubmit={handleSave}>
               <div className="form-group" style={{ marginBottom: '16px' }}>

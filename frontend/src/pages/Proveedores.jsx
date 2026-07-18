@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { Truck, Plus, Edit2, Trash2, X } from 'lucide-react';
+import PageHeader from '../components/PageHeader';
 
 const Proveedores = () => {
   const [suppliers, setSuppliers] = useState([]);
@@ -89,8 +90,7 @@ const Proveedores = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title">Directorio de Proveedores</h1>
+      <PageHeader title="Directorio de Proveedores" icon={Truck}>
         <button className="glass-button" onClick={() => {
           setEditingId(null);
           setFormData({ name: '', nit: '', nrc: '', email: '', phone: '' });
@@ -98,7 +98,7 @@ const Proveedores = () => {
         }}>
           <Plus size={18} /> Nuevo Proveedor
         </button>
-      </div>
+      </PageHeader>
 
       <div className="glass-panel" style={{ padding: '24px' }}>
         {loading ? (

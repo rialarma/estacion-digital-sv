@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { useTenantStore } from '../../store/useTenantStore';
 import { FileText, Plus, Edit2, CheckCircle, Save, Trash2, Calculator } from 'lucide-react';
+import PageHeader from '../../components/PageHeader';
 
 const calculateDeductions = (monthlySalary) => {
   const ISSS_RATE = 0.03;
@@ -241,9 +242,9 @@ const Planilla = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header" style={{ marginBottom: '24px' }}>
+      <PageHeader title="Motor de Planillas" icon={FileText}>
         <div>
-          <h1 className="page-title">Motor de Planillas</h1>
+          
           <p className="page-subtitle">Nómina empresarial con cálculo automático de AFP, ISSS y Renta.</p>
         </div>
         <button className="glass-button" onClick={() => {
@@ -255,7 +256,7 @@ const Planilla = () => {
         }}>
           <Calculator size={18} /> Calcular Planilla
         </button>
-      </div>
+      </PageHeader>
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>Cargando planillas...</div>
@@ -391,7 +392,7 @@ const Planilla = () => {
 
       {showGenerateModal && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <div className="modal-content glass-panel">
             <h2 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}><Calculator size={24} /> Asistente de Planilla</h2>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '24px' }}>
               Se calculará automáticamente el ISSS, AFP y Renta de todos los empleados activos según el salario base y el período seleccionado.

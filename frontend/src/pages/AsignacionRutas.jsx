@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, Search, UserCheck, Calendar } from 'lucide-react';
+import { Truck, Search, UserCheck, Calendar, MapPin } from 'lucide-react';
+import PageHeader from '../components/PageHeader';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
 
@@ -108,11 +109,7 @@ const AsignacionRutas = () => {
 
   return (
     <div className="fade-in" style={{ paddingBottom: '40px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h2>Asignación de Rutas</h2>
-          <p style={{ color: 'var(--text-muted)' }}>Asigna repartidores a los pedidos pendientes de envío.</p>
-        </div>
+      <PageHeader title="Asignación de Rutas" icon={MapPin}>
         <button 
           className="glass-button" 
           onClick={fetchPendingSales}
@@ -120,7 +117,7 @@ const AsignacionRutas = () => {
         >
           Actualizar Lista
         </button>
-      </div>
+      </PageHeader>
 
       <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: '24px' }}>

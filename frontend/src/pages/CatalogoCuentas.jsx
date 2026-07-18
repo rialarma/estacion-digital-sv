@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
-import { Plus, Settings, Check, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Settings, Check, Edit2, Trash2, Book } from 'lucide-react';
+import PageHeader from '../components/PageHeader';
 
 const CatalogoCuentas = () => {
   const { tenantId } = useTenantStore();
@@ -102,19 +103,18 @@ const CatalogoCuentas = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title">Catálogo de Cuentas</h1>
+      <PageHeader title="Catálogo de Cuentas Contables" icon={Book}>
         <div style={{ display: 'flex', gap: '12px' }}>
           {accounts.length === 0 && !loading && (
             <button className="glass-button" onClick={handleInitialize} style={{ background: '#fbbf24', color: '#000' }}>
-              <Settings size={18} /> Cargar Catálogo Base (El Salvador)
+               Cargar Catálogo Base (El Salvador)
             </button>
           )}
           <button className="glass-button" onClick={openNew}>
-            <Plus size={18} /> Nueva Cuenta
+             Nueva Cuenta
           </button>
         </div>
-      </div>
+      </PageHeader>
 
       <div className="glass-panel" style={{ padding: '24px' }}>
         {loading ? (

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { useTenantStore } from '../../store/useTenantStore';
-import { Calendar, Plus, Save, Trash2, Calculator } from 'lucide-react';
+import { Calendar, Plus, Save, Trash2, Calculator, Sun } from 'lucide-react';
+import PageHeader from '../../components/PageHeader';
 
 const Vacaciones = () => {
   const { tenantInfo } = useTenantStore();
@@ -108,12 +109,12 @@ const Vacaciones = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header" style={{ marginBottom: '24px' }}>
+      <PageHeader title="Gestión de Vacaciones" icon={Sun}>
         <div>
-          <h1 className="page-title">Gestión de Vacaciones</h1>
+          
           <p className="page-subtitle">Programa períodos vacacionales y calcula la Prima del 30% (Ley de El Salvador).</p>
         </div>
-      </div>
+      </PageHeader>
 
       <div className="grid-2-1">
         {/* Tabla Histórica */}

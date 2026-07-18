@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
-import { BarChart2, PieChart, FileText, Calendar, Download } from 'lucide-react';
+import { BarChart2, PieChart, FileText, Calendar, Download, BarChart } from 'lucide-react';
+import PageHeader from '../components/PageHeader';
 
 const getLocalISODate = () => {
   const d = new Date();
@@ -118,11 +119,9 @@ const EstadosFinancieros = () => {
 
   return (
     <div className="page-container" style={{ maxWidth: '1000px', margin: '0 auto' }}>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <PageHeader title="ESTADO DE RESULTADOS" icon={BarChart}>
         <div>
-          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <BarChart2 color="var(--primary)" /> Estados Financieros
-          </h1>
+          
           <p style={{ color: 'var(--text-muted)' }}>Análisis gerencial y reportes contables.</p>
         </div>
         
@@ -148,7 +147,7 @@ const EstadosFinancieros = () => {
             />
           </div>
         </div>
-      </div>
+      </PageHeader>
 
       {/* TABS */}
       <div style={{ display: 'flex', gap: '16px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '24px', paddingBottom: '16px' }}>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Truck, CheckSquare, Square, PackageOpen, CheckCircle, Printer } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
+import PageHeader from '../components/PageHeader';
 
 const RevisionCargas = () => {
   const [drivers, setDrivers] = useState([]);
@@ -168,9 +169,9 @@ const RevisionCargas = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title">Revisión de Cargas (Bodega)</h1>
-      </div>
+      <PageHeader title="Hoja de Revisión de Carga (Bodega)" icon={CheckSquare}>
+        
+      </PageHeader>
 
       <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px' }}>
         <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>

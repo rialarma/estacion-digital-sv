@@ -5,6 +5,7 @@ import L from 'leaflet';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
 import { Map, Navigation } from 'lucide-react';
+import PageHeader from '../components/PageHeader';
 
 // Fix for default marker icons in Leaflet with Webpack/Vite
 delete L.Icon.Default.prototype._getIconUrl;
@@ -91,7 +92,7 @@ const MapaLogistica = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <Map size={32} color="var(--primary)" />
           <div>
-            <h1 style={{ fontSize: '24px', margin: 0 }}>Mapa de Logística</h1>
+            <PageHeader title="Mapa de Logística" icon={Map} />
             <p style={{ color: 'var(--text-muted)', margin: 0 }}>Rastreo en vivo de Preventas y Repartidores</p>
           </div>
         </div>

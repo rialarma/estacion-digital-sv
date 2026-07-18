@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
-import { 
-  Wrench, Plus, X, Search, CheckCircle, Clock, 
-  AlertCircle, PenTool, User, Tag, DollarSign, Package
-} from 'lucide-react';
+import PageHeader from '../components/PageHeader';
+import { Wrench, Plus, X, Search, CheckCircle, Clock, AlertCircle, PenTool, User, Tag, DollarSign, Package } from 'lucide-react';
 
 const statusColors = {
   'RECIBIDO': { bg: 'rgba(59, 130, 246, 0.1)', border: 'rgba(59, 130, 246, 0.3)', text: '#3b82f6', icon: <Package size={16} /> },
@@ -170,15 +168,11 @@ const Taller = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title">
-          <Wrench style={{ display: 'inline', marginRight: '8px', verticalAlign: 'text-bottom' }} /> 
-          Taller y Reparaciones
-        </h1>
+      <PageHeader title="Órdenes de Reparación" icon={Wrench}>
         <button className="glass-button" onClick={() => handleOpenModal()}>
-          <Plus size={18} /> Nueva Orden
+           Nueva Orden
         </button>
-      </div>
+      </PageHeader>
 
       <div className="glass-panel" style={{ padding: '24px' }}>
         <div style={{ marginBottom: '24px', position: 'relative', maxWidth: '400px' }}>

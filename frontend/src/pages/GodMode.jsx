@@ -7,6 +7,7 @@ import {
   Plus, Copy, XCircle, Building2, Trash2, UserCheck, CreditCard, MessageCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import PageHeader from '../components/PageHeader';
 
 // Cliente secundario para registrar al dueño sin desloguear al GodMode
 const godmodeAuthClient = createClient(
@@ -490,11 +491,9 @@ const GodMode = () => {
 
   return (
     <div className="page-container" style={{ padding: '40px' }}>
-      <div className="page-header" style={{ marginBottom: '30px', borderBottom: '1px solid rgba(239, 68, 68, 0.3)', paddingBottom: '20px' }}>
+      <PageHeader title="Acceso Denegado / God Mode" icon={ShieldAlert}>
         <div>
-          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#ef4444' }}>
-            <ShieldAlert size={32} /> God Mode - Panel de Control Súper Admin
-          </h1>
+          
           <p style={{ color: 'var(--text-muted)', marginTop: '8px' }}>Gestiona los módulos y páginas individuales de cada inquilino de forma granular.</p>
         </div>
         <button 
@@ -502,9 +501,9 @@ const GodMode = () => {
           onClick={() => { setShowCreateModal(true); setGeneratedCredentials(null); setNewTenantData({ companyName: '', companyNit: '', branchName: 'Principal', companyPrefix: '', adminFirstName: '', adminLastName: '', adminPassword: '' }); }}
           style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--primary)', color: 'white' }}
         >
-          <Plus size={18} /> Crear Nueva Empresa
+           Crear Nueva Empresa
         </button>
-      </div>
+      </PageHeader>
 
       {botStatus === 'CONNECTED' ? (
         <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '12px 16px', borderRadius: '12px', marginBottom: '30px', display: 'flex', alignItems: 'center', gap: '12px' }}>

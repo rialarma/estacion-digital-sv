@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
 import { BookOpen, Search, Plus, Save, X, Trash2 } from 'lucide-react';
+import PageHeader from '../components/PageHeader';
 
 const getLocalISODate = () => {
   const d = new Date();
@@ -128,9 +129,9 @@ const LibroDiario = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title">Libro Diario (Partidas)</h1>
-      </div>
+      <PageHeader title="Libro Diario (Partidas)" icon={BookOpen}>
+        
+      </PageHeader>
 
       <div className="glass-panel" style={{ padding: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>

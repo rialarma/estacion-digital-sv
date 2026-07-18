@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { Search, DollarSign, Calendar, User, FileText, CheckCircle, ChevronRight, X } from 'lucide-react';
 import { useTenantStore } from '../store/useTenantStore';
+import PageHeader from '../components/PageHeader';
 
 const CuentasPorCobrar = () => {
   const { tenantId } = useTenantStore();
@@ -103,8 +104,7 @@ const CuentasPorCobrar = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 className="page-title">Cuentas por Cobrar (Clientes)</h1>
+      <PageHeader title="Cuentas por Cobrar (Clientes)" icon={DollarSign}>
         <div style={{ display: 'flex', gap: '16px', background: 'rgba(59, 130, 246, 0.1)', padding: '10px 20px', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Cartera Total Pendiente</span>
@@ -113,7 +113,7 @@ const CuentasPorCobrar = () => {
             </span>
           </div>
         </div>
-      </div>
+      </PageHeader>
 
       <div className="glass-panel" style={{ padding: '24px' }}>
         <div style={{ marginBottom: '20px', position: 'relative', maxWidth: '400px' }}>

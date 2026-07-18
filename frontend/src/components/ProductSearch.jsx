@@ -65,6 +65,7 @@ const ProductSearch = ({ products, onSelect, onCameraClick, placeholder = "Busca
           onKeyDown={handleKeyDown}
           style={{ paddingLeft: '40px', paddingRight: onCameraClick ? '40px' : '12px', width: '100%' }}
           autoComplete="off"
+          autoFocus={true}
         />
         {onCameraClick && (
           <button

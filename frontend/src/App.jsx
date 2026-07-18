@@ -65,12 +65,31 @@ const Vacaciones = lazy(() => import('./pages/hr/Vacaciones'));
 import GPSBackgroundTracker from './components/GPSBackgroundTracker';
 const ReportesHR = lazy(() => import('./pages/hr/ReportesHR'));
 import SubNavTabs from './components/SubNavTabs';
+import { useSessionHeartbeat } from './hooks/useSessionHeartbeat';
+
 function App() {
   const { user, loading } = useAuth();
   const { tenantId, tenantInfo } = useTenantStore();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [customDomainTenantId, setCustomDomainTenantId] = useState(null);
   const [checkingDomain, setCheckingDomain] = useState(true);
+
+  const handleLogout = async () => {
+    try {
+      const sessionId = localStorage.getItem('current_session_id');
+      if (sessionId) {
+        await supabase.rpc('end_session_log', { p_session_id: sessionId });
+        localStorage.removeItem('current_session_id');
+      }
+    } catch (err) {
+      console.error('Error logging out session:', err);
+    } finally {
+      await supabase.auth.signOut();
+    }
+  };
+
+  // Activar el heartbeat para tracking de sesiones avanzado (cada 2 mins)
+  useSessionHeartbeat(2);
 
   const isPublicStoreRoute = window.location.pathname.startsWith('/tienda');
   const isPublicKioskRoute = window.location.pathname.startsWith('/kiosko');
@@ -274,7 +293,7 @@ function App() {
       )}
 
       <div className="app-container">
-        <Topbar onLogout={() => supabase.auth.signOut()} />
+        <Topbar onLogout={handleLogout} />
         
         <main className="main-content">
           {/* <SubNavTabs /> */}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, Link, useLocation } from 'react-router-dom';
 import { 
   ShoppingBag, ShoppingCart, FileText, Package, Users, UserCheck, 
   Settings, MonitorDot, LogOut, Store, Truck, ClipboardList, 
@@ -58,6 +58,8 @@ const Topbar = ({ onLogout }) => {
   const [openGroup, setOpenGroup] = useState('');
   const [role, setRole] = useState(null);
   const [userName, setUserName] = useState('');
+  const [lastLogin, setLastLogin] = useState(null);
+  const [userEmail, setUserEmail] = useState('');
   const [pendingWebOrders, setPendingWebOrders] = useState(0);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
@@ -71,10 +73,12 @@ const Topbar = ({ onLogout }) => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data } = await supabase.from('user_profiles').select('role, full_name').eq('id', user.id).single();
+        setUserEmail(user.email || '');
+        const { data } = await supabase.from('user_profiles').select('role, first_name, last_name, last_login_at').eq('id', user.id).single();
         if (data) {
           setRole(data.role);
-          setUserName(data.full_name || user.email);
+          setUserName(data.first_name ? `${data.first_name} ${data.last_name || ''}`.trim() : user.email);
+          setLastLogin(data.last_login_at);
         }
       }
     };
@@ -113,27 +117,19 @@ const Topbar = ({ onLogout }) => {
   return (
     <nav className="topbar">
       {/* Branding */}
-      <div className="topbar-logo">
+      <Link to="/" className="topbar-logo" style={{ textDecoration: 'none' }} onClick={() => setIsMobileOpen(false)}>
         {tenantInfo?.logo_url ? (
           <img src={tenantInfo.logo_url} alt="Logo" style={{ width: '32px', height: '32px', objectFit: 'contain', borderRadius: '4px' }} />
         ) : (
           <Store size={24} style={{ color: 'var(--primary)' }} />
         )}
         <span>{tenantInfo?.company_name || tenantInfo?.name || 'Mi Empresa'}</span>
-      </div>
+      </Link>
       
-      {/* Mobile Toggle */}
-      <button className="mobile-menu-toggle" onClick={() => setIsMobileOpen(!isMobileOpen)}>
-        {isMobileOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
-
       {/* Menus and Profile */}
       <div className={`topbar-menu ${isMobileOpen ? 'open' : ''}`}>
         {/* Navigation */}
         <div className="topbar-nav" style={{ flex: 1, justifyContent: 'center' }}>
-        <NavLink to="/" className={({ isActive }) => `topbar-link ${isActive ? 'active' : ''}`} onClick={closeMenu} end>
-          <Home size={18} /> Inicio
-        </NavLink>
 
         {role === 'REPARTIDOR' ? (
           <NavLink to="/mi-ruta" className={({ isActive }) => `topbar-link ${isActive ? 'active' : ''}`} onClick={closeMenu}>
@@ -240,24 +236,59 @@ const Topbar = ({ onLogout }) => {
           </>
         )}
       </div>
+      </div>
 
-        {/* Profile & Logout */}
-        <div className="topbar-profile">
-          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontWeight: '600', fontSize: '14px', color: 'var(--text-main)' }}>{userName}</span>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{role}</span>
+      {/* Right Controls */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="topbar-profile-container">
+          <div className="topbar-profile">
+            <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontWeight: '600', fontSize: '14px', color: 'var(--text-main)' }}>{userName}</span>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{role}</span>
+            </div>
+            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', flexShrink: 0 }}>
+              {userName ? userName.charAt(0).toUpperCase() : <UserCheck size={20} />}
+            </div>
           </div>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>
-            {userName ? userName.charAt(0).toUpperCase() : <UserCheck size={20} />}
+
+          <div className="profile-popover glass-panel">
+            <div className="popover-header">
+              <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '20px', marginBottom: '12px' }}>
+                {userName ? userName.charAt(0).toUpperCase() : <UserCheck size={24} />}
+              </div>
+              <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>{userName}</h4>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>{userEmail}</span>
+              <span className="badge" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', marginTop: '4px' }}>{role}</span>
+            </div>
+            
+            <div className="popover-body">
+              <div className="popover-row">
+                <Building2 size={16} />
+                <span>{tenantInfo?.name || 'Mi Empresa'}</span>
+              </div>
+              {lastLogin && (
+                <div className="popover-row" style={{ marginTop: '8px' }}>
+                  <Clock size={16} />
+                  <span>Último acceso: <br/><strong>{new Date(lastLogin).toLocaleString()}</strong></span>
+                </div>
+              )}
+            </div>
+
+            <div className="popover-footer">
+              <button 
+                onClick={onLogout}
+                className="logout-button-full"
+              >
+                <LogOut size={18} /> Cerrar Sesión
+              </button>
+            </div>
           </div>
-          <button 
-            onClick={onLogout}
-            style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', padding: '10px', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', marginLeft: '8px' }}
-            title="Cerrar Sesión"
-          >
-            <LogOut size={18} />
-          </button>
         </div>
+        
+        {/* Mobile Toggle */}
+        <button className="mobile-menu-toggle" onClick={() => setIsMobileOpen(!isMobileOpen)}>
+          {isMobileOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
       </div>
     </nav>
   );

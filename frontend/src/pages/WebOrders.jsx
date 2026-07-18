@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
-import { ShoppingBag, CheckCircle, Package, Clock, RefreshCw, Eye } from 'lucide-react';
+import { ShoppingBag, CheckCircle, Package, Clock, RefreshCw, Eye, Globe } from 'lucide-react';
+import PageHeader from '../components/PageHeader';
 
 const WebOrders = () => {
   const { tenantId, tenantInfo } = useTenantStore();
@@ -154,12 +155,11 @@ const WebOrders = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 className="page-title"><ShoppingBag size={24} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Pedidos Web</h1>
+      <PageHeader title="Pedidos Web" icon={Globe}>
         <button className="glass-button" onClick={fetchOrders} disabled={loading}>
-          <RefreshCw size={18} className={loading ? 'spin' : ''} /> Actualizar
+           Actualizar
         </button>
-      </div>
+      </PageHeader>
 
       <div style={{ display: 'grid', gridTemplateColumns: selectedOrder ? '1fr 400px' : '1fr', gap: '24px', alignItems: 'start' }}>
         {/* Tabla de Pedidos */}

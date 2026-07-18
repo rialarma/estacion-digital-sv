@@ -3,6 +3,7 @@ import { supabase } from '../supabase';
 import { Clock, Search, LogOut, CheckCircle, AlertCircle, MapPin, Calendar, FileText, BarChart2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useTenantStore } from '../store/useTenantStore';
+import PageHeader from '../components/PageHeader';
 
 const Asistencia = () => {
   const { user } = useAuth();
@@ -148,14 +149,12 @@ const Asistencia = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header">
+      <PageHeader title="Registro de Asistencia" icon={Clock}>
         <div>
-          <h1 className="page-title">
-            <Clock size={28} /> Control de Asistencia
-          </h1>
+          
           <p className="page-subtitle">Registro de entradas y salidas del personal.</p>
         </div>
-      </div>
+      </PageHeader>
 
       <div className="glass-panel" style={{ padding: '24px' }}>
         

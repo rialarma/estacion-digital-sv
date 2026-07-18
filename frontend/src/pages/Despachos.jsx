@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, Search, Printer, CheckCircle, PackageOpen } from 'lucide-react';
+import { Truck, Search, Printer, CheckCircle, PackageOpen, Package } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
+import PageHeader from '../components/PageHeader';
 
 const Despachos = () => {
   const [drivers, setDrivers] = useState([]);
@@ -144,9 +145,9 @@ const Despachos = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title">Despachos y Consolidado de Cargas</h1>
-      </div>
+      <PageHeader title="Hoja de Consolidado de Carga" icon={Package}>
+        
+      </PageHeader>
 
       <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>

@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabase';
 import { useCartStore } from './CartStore';
-import { ShoppingCart, Plus, Minus, Trash2, Phone, Search, X, MessageCircle, Heart, User } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, Phone, Search, X, MessageCircle, Heart, User, Store } from 'lucide-react';
 import AuthStoreModal from './AuthStoreModal';
 import './Storefront.css';
+import PageHeader from '../../components/PageHeader';
 
 const StorefrontHome = ({ customTenantId }) => {
   const params = useParams();
@@ -145,7 +146,7 @@ const StorefrontHome = ({ customTenantId }) => {
             {tenantConfig?.logo_url && (
               <img src={tenantConfig.logo_url} alt="Logo" className="sf-logo" />
             )}
-            <h1 className="sf-title">{tenantName}</h1>
+            <PageHeader title="Catálogo de Tienda" icon={Store} />
           </a>
 
           <div className="sf-search-container">

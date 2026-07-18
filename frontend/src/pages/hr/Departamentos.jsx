@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { useTenantStore } from '../../store/useTenantStore';
-import { Plus, Edit2, Trash2, Building2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Building2, Building } from 'lucide-react';
+import PageHeader from '../../components/PageHeader';
 
 const Departamentos = () => {
   const { tenantInfo } = useTenantStore();
@@ -109,9 +110,9 @@ const Departamentos = () => {
     <div className="page-full-height" style={{ gap: '24px' }}>
       
       {/* Header */}
-      <div className="page-header" style={{ flexShrink: 0 }}>
+      <PageHeader title="Departamentos" icon={Building}>
         <div>
-          <h1 className="page-title">Departamentos</h1>
+          
           <p className="page-subtitle">Gestiona las áreas o departamentos de la empresa.</p>
         </div>
         <button className="glass-button" onClick={() => {
@@ -121,7 +122,7 @@ const Departamentos = () => {
         }}>
           <Plus size={18} /> Nuevo Departamento
         </button>
-      </div>
+      </PageHeader>
       
       <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {loading ? (
@@ -183,7 +184,7 @@ const Departamentos = () => {
 
       {showModal && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <div className="modal-content glass-panel">
             <h2 style={{ marginBottom: '24px' }}>{editingDept ? 'Editar Departamento' : 'Nuevo Departamento'}</h2>
             <form onSubmit={handleSave}>
               <div className="form-group" style={{ marginBottom: '16px' }}>

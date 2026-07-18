@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
-import { Package, Search, ArrowRight, TrendingUp, TrendingDown, Clock } from 'lucide-react';
+import { Package, Search, ArrowRight, TrendingUp, TrendingDown, Clock, ClipboardList } from 'lucide-react';
+import PageHeader from '../components/PageHeader';
 
 const Kardex = () => {
   const { tenantId } = useTenantStore();
@@ -65,11 +66,9 @@ const Kardex = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Clock size={24} /> Historial de Movimientos (Kardex)
-        </h1>
-      </div>
+      <PageHeader title="Kardex de Inventario" icon={ClipboardList}>
+        
+      </PageHeader>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px' }}>
         {/* Lista de Productos */}

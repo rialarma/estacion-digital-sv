@@ -13,7 +13,12 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        args: [
+            '--no-sandbox', 
+            '--disable-setuid-sandbox',
+            '--disable-features=RendererCodeIntegrity'
+        ]
     }
 });
 

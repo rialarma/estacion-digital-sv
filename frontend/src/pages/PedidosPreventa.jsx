@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, ExternalLink } from 'lucide-react';
+import { ShoppingCart, ExternalLink, ShoppingBag } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
 import { useNavigate } from 'react-router-dom';
+import PageHeader from '../components/PageHeader';
 
 const PedidosPreventa = () => {
   const { tenantInfo } = useTenantStore();
@@ -26,15 +27,15 @@ const PedidosPreventa = () => {
 
   return (
     <div className="page-container fade-in">
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <PageHeader title="Pedidos Preventa" icon={ShoppingBag}>
         <div className="header-title">
           <ShoppingCart size={32} color="var(--primary)" />
           <div>
-            <h1>Pedidos Preventa</h1>
+            
             <p style={{ color: 'var(--text-muted)' }}>Ventas generadas en calle pendientes de facturar.</p>
           </div>
         </div>
-      </div>
+      </PageHeader>
 
       <div className="glass-panel" style={{ padding: '24px' }}>
         <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px' }}>Pedidos Pendientes</h2>

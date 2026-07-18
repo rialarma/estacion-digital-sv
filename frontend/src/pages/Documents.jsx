@@ -5,6 +5,7 @@ import {
   ChevronRight, AlertTriangle, Mail, MessageCircle
 } from 'lucide-react';
 import { supabase } from '../supabase';
+import PageHeader from '../components/PageHeader';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ESTADOS DTE — ciclo de vida de un documento tributario electrónico (El Salvador)
@@ -299,12 +300,11 @@ const Documents = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title">Firmador DTE</h1>
+      <PageHeader title="Firmador DTE" icon={FileText}>
         <button className="glass-button" onClick={fetchDocuments} disabled={loading}>
           Actualizar
         </button>
-      </div>
+      </PageHeader>
 
       {/* Banner modo simulación */}
       <div style={{

@@ -55,6 +55,39 @@ const Auth = ({ onAuthSuccess }) => {
         });
         if (loginError) throw loginError;
         if (data.session) {
+          // Ejecutamos la lógica de bitácora de fondo
+          const userAgent = navigator.userAgent;
+          const initSession = async () => {
+            try {
+              const { data: sessionId, error } = await supabase.rpc('start_session_log', {
+                p_user_agent: userAgent
+              });
+              if (error) {
+                console.error('Error in start_session_log RPC:', error);
+                alert("Error guardando sesión: " + JSON.stringify(error));
+              } else if (sessionId) {
+                localStorage.setItem('current_session_id', sessionId);
+                
+                // Luego pedimos el GPS de forma asíncrona
+                if (navigator.geolocation) {
+                  navigator.geolocation.getCurrentPosition(
+                    async (pos) => {
+                      await supabase.from('user_sessions_log')
+                        .update({ latitude: pos.coords.latitude, longitude: pos.coords.longitude })
+                        .eq('id', sessionId);
+                    },
+                    (err) => console.warn('GPS no permitido o falló:', err),
+                    { timeout: 10000, enableHighAccuracy: false }
+                  );
+                }
+              }
+            } catch (e) {
+              console.error('Exception calling start_session_log:', e);
+            }
+          };
+
+          await initSession();
+          // No bloqueamos con el GPS, pero sí esperamos el RPC rápido
           handleAuthSuccess(data.session);
         }
       }

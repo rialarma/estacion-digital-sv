@@ -89,7 +89,7 @@ const AuthStoreModal = ({ tenantId, isOpen, onClose, onLoginSuccess }) => {
 
   return (
     <div className="sf-auth-modal-overlay">
-      <div className="sf-auth-modal">
+      <div className="sf-auth-modal glass-panel">
         <button className="sf-auth-close" onClick={onClose}>
           <X size={24} />
         </button>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, LayoutDashboard, PieChart, ShoppingCart, Package, Users, Truck } from 'lucide-react';
+import { Calendar, LayoutDashboard, PieChart, ShoppingCart, Package, Users, Truck, BarChart2 } from 'lucide-react';
 import { useTenantStore } from '../store/useTenantStore';
+import PageHeader from '../components/PageHeader';
 
 // Lazy load los dashboards para no sobrecargar el bundle inicial ni la RAM del cliente
 const DashboardGerencial = lazy(() => import('./reportes/DashboardGerencial'));
@@ -62,12 +63,7 @@ const Reportes = () => {
   return (
     <div className="fade-in" style={{ paddingBottom: '40px' }}>
       {/* Cabecera y Filtros */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h2>Dashboard {tabs.find(t => t.id === activeTab)?.label || 'Empresarial'}</h2>
-          <p style={{ color: 'var(--text-muted)' }}>Métricas clave y rendimiento de tu negocio.</p>
-        </div>
-        
+      <PageHeader title={`Dashboard ${tabs.find(t => t.id === activeTab)?.label || 'Empresarial'}`} icon={BarChart2}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--glass-bg)', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
           <Calendar size={16} style={{ color: 'var(--primary)' }} />
           <select 
@@ -82,7 +78,7 @@ const Reportes = () => {
             <option value="year">Último Año</option>
           </select>
         </div>
-      </div>
+      </PageHeader>
       {/* Tabs Navigation Removed - Replaced by Topbar Dropdown */}
 
       {/* Contenido del Dashboard Seleccionado */}

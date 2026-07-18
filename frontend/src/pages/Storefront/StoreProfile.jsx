@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabase';
 import { ArrowLeft, User, Package, MapPin, Phone, LogOut } from 'lucide-react';
+import PageHeader from '../../components/PageHeader';
 
 const StoreProfile = () => {
   const { tenantId } = useParams();
@@ -74,7 +75,7 @@ const StoreProfile = () => {
           <button onClick={() => navigate(`/tienda/${tenantId}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--sf-text-on-primary)' }}>
             <ArrowLeft size={24} />
           </button>
-          <h1 className="sf-title" style={{ fontSize: '1.25rem' }}>Mi Cuenta</h1>
+          <PageHeader title="Mi Cuenta" icon={User} />
         </div>
       </header>
 

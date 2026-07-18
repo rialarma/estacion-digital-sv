@@ -3,6 +3,7 @@ import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
 import { Clock, CheckCircle, XCircle, User, MapPin, Camera } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
+import PageHeader from '../components/PageHeader';
 
 const KioskoAsistencia = () => {
   const { tenantId: paramTenantId } = useParams();
@@ -194,9 +195,7 @@ const KioskoAsistencia = () => {
     <div style={{ minHeight: '100vh', display: 'flex', background: '#0f172a', color: 'white' }}>
       {/* Lado Izquierdo: Branding y Cámara */}
       <div style={{ flex: 1, padding: '40px', borderRight: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <h1 style={{ fontSize: '28px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Clock size={32} color="var(--primary)" /> Reloj Control
-        </h1>
+        <PageHeader title="Kiosko de Asistencia" icon={Clock} />
         <p style={{ color: 'var(--text-muted)', marginBottom: '40px' }}>{tenantInfo?.name}</p>
 
         {/* CÁMARA */}

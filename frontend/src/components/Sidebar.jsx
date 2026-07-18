@@ -150,18 +150,6 @@ const Sidebar = ({ onLogout, isOpen, onClose }) => {
       
       {/* Links Container */}
       <div className="sidebar-links">
-        <NavLink 
-          to="/" 
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} 
-          style={{ marginBottom: '16px' }} 
-          onClick={() => {
-            setOpenGroup('');
-            onClose();
-          }} 
-          end
-        >
-          <Home size={18} /> Inicio
-        </NavLink>
 
         {role === 'REPARTIDOR' ? (
           <NavLink 

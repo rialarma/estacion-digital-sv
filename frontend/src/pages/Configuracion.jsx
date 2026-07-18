@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTenantStore } from '../store/useTenantStore';
 import { Save, Upload, Building2, Receipt, Image as ImageIcon, Package, Palette, Settings, Store } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
+import PageHeader from '../components/PageHeader';
 
 const Configuracion = () => {
   const { user } = useAuth();
@@ -368,11 +369,9 @@ const Configuracion = () => {
 
   return (
     <div className="page-container" style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <PageHeader title="Configuración del Sistema" icon={Settings}>
         <div>
-          <h1 className="page-title">
-            Configuración {activeTab === 'facturacion' ? 'DTE' : activeTab === 'sistema' ? 'ERP' : activeTab === 'tienda' ? 'Tienda' : 'General'}
-          </h1>
+          
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px', fontFamily: 'monospace' }}>
             Tenant ID: {tenantInfo.id}
           </p>
@@ -383,10 +382,10 @@ const Configuracion = () => {
           disabled={saving}
           style={{ background: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '8px' }}
         >
-          <Save size={18} />
+          
           {saving ? 'Guardando...' : 'Guardar Cambios'}
         </button>
-      </div>
+      </PageHeader>
 
       {/* Tabs Navigation Removed - Replaced by Topbar Dropdown */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>

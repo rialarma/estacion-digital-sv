@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
-import { Download, Calendar, FileText } from 'lucide-react';
+import { Download, Calendar, FileText, FileDigit } from 'lucide-react';
+import PageHeader from '../components/PageHeader';
 
 const LibrosIva = () => {
   const { tenantId } = useTenantStore();
@@ -182,14 +183,13 @@ const LibrosIva = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title">Libros de IVA</h1>
+      <PageHeader title="Libros de IVA" icon={FileDigit}>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button className="glass-button" onClick={exportToCSV} style={{ background: 'var(--primary)', color: '#000' }}>
             <Download size={18} /> Exportar a CSV (Excel)
           </button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Filters and Tabs */}
       <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px' }}>
