@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { useTenantStore } from '../store/useTenantStore';
 import PageHeader from '../components/PageHeader';
-import { Wrench, Plus, X, Search, CheckCircle, Clock, AlertCircle, PenTool, User, Tag, DollarSign, Package } from 'lucide-react';
+import { Wrench, Plus, X, Search, CheckCircle, Clock, AlertCircle, PenTool, User, Tag, DollarSign, Package, MonitorDot } from 'lucide-react';
 
 const statusColors = {
   'RECIBIDO': { bg: 'rgba(59, 130, 246, 0.1)', border: 'rgba(59, 130, 246, 0.3)', text: '#3b82f6', icon: <Package size={16} /> },

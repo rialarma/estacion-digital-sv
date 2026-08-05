@@ -80,6 +80,13 @@ const StorefrontHome = ({ customTenantId }) => {
     return () => subscription.unsubscribe();
   }, [tenantId]);
 
+  // Actualizar el título de la pestaña del navegador con el nombre del tenant
+  useEffect(() => {
+    if (tenantName) {
+      document.title = tenantName;
+    }
+  }, [tenantName]);
+
   const parentProducts = products.filter(p => !p.parent_id);
   
   const filteredProducts = parentProducts.filter(p => 
@@ -146,7 +153,7 @@ const StorefrontHome = ({ customTenantId }) => {
             {tenantConfig?.logo_url && (
               <img src={tenantConfig.logo_url} alt="Logo" className="sf-logo" />
             )}
-            <PageHeader title="Catálogo de Tienda" icon={Store} />
+            <PageHeader title={tenantName} />
           </a>
 
           <div className="sf-search-container">
@@ -178,8 +185,10 @@ const StorefrontHome = ({ customTenantId }) => {
         </div>
       </header>
 
-      <section className="sf-hero">
-        <img src={tenantConfig?.hero_banner_url || "https://images.unsplash.com/photo-1540569014015-19a7be504e3a?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80"} alt="Promo" className="sf-hero-image" />
+      <section className="sf-hero" style={{ background: tenantConfig?.hero_banner_url ? 'none' : 'linear-gradient(135deg, var(--sf-primary), #1e293b)' }}>
+        {tenantConfig?.hero_banner_url && (
+          <img src={tenantConfig.hero_banner_url} alt="Promo" className="sf-hero-image" />
+        )}
         <div className="sf-hero-overlay"></div>
         <div className="sf-hero-content">
           {tenantConfig?.store_slogan !== '' && <h2>{tenantConfig?.store_slogan ?? 'Todo tiene solución'}</h2>}

@@ -407,8 +407,8 @@ const Clients = () => {
       </div>
 
       {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-content glass-panel">
+        <div className="modal-backdrop" onClick={() => setShowModal(false)}>
+          <div className="modal-content glass-panel" onClick={e => e.stopPropagation()}>
             <h2 style={{ marginBottom: '24px' }}>{editingId ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
             <form onSubmit={handleSave}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', marginBottom: '16px' }}>

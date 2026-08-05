@@ -63,8 +63,8 @@ export const useCartStore = create(
 
           if (existingProfile) {
             profile = existingProfile;
-          } else {
-            // Crear perfil silenciosamente si no existe, para poder guardar el carrito
+          } else if (get().items.length > 0) {
+            // Crear perfil silenciosamente solo si hay items en el carrito
             const { data: newProfile } = await supabase
               .from('clients')
               .insert({
@@ -123,18 +123,6 @@ export const useCartStore = create(
 
           if (existingProfiles && existingProfiles.length > 0) {
             profile = existingProfiles[0];
-          } else {
-            const { data: newProfile } = await supabase
-              .from('clients')
-              .insert({
-                tenant_id: tenantId,
-                user_id: session.user.id,
-                name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
-                email: session.user.email
-              })
-              .select('id')
-              .single();
-            if (newProfile) profile = newProfile;
           }
 
           if (!profile) return;

@@ -117,14 +117,12 @@ const Topbar = ({ onLogout }) => {
   return (
     <nav className="topbar">
       {/* Branding */}
-      <Link to="/" className="topbar-logo" style={{ textDecoration: 'none' }} onClick={() => setIsMobileOpen(false)}>
-        {tenantInfo?.logo_url ? (
-          <img src={tenantInfo.logo_url} alt="Logo" style={{ width: '32px', height: '32px', objectFit: 'contain', borderRadius: '4px' }} />
-        ) : (
-          <Store size={24} style={{ color: 'var(--primary)' }} />
+      <div className="topbar-brand">
+        {tenantInfo?.logo_url && (
+          <img src={tenantInfo.logo_url} alt="Logo" className="tenant-logo" style={{ maxHeight: '32px', objectFit: 'contain', cursor: 'pointer' }} onClick={() => navigate('/home')} />
         )}
-        <span>{tenantInfo?.company_name || tenantInfo?.name || 'Mi Empresa'}</span>
-      </Link>
+        <span className="tenant-name" onClick={() => navigate('/home')} style={{ cursor: 'pointer' }}>{tenantInfo?.name || 'Cargando...'}</span>
+      </div>
       
       {/* Menus and Profile */}
       <div className={`topbar-menu ${isMobileOpen ? 'open' : ''}`}>
