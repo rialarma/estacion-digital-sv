@@ -25,6 +25,10 @@ const Catalogo = () => {
   const [configType, setConfigType] = useState('category');
   const [uploadingCatImage, setUploadingCatImage] = useState(null);
   const [showScanner, setShowScanner] = useState(false);
+  
+  const [purchaseHistory, setPurchaseHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
   const [formData, setFormData] = useState({
     name: '', sku: '', barcode: '', description: '', category: '', brand: '',
     price: '', cost: '', target_margin: '', is_taxable: true,
@@ -136,12 +140,45 @@ const Catalogo = () => {
 
   const openNew = () => {
     setEditingId(null);
+    setPurchaseHistory([]);
     setFormData({ name: '', sku: '', barcode: '', description: '', category: '', brand: '', price: '', cost: '', target_margin: '', is_taxable: true, units_per_box: 1, box_price: '', is_service: false, is_subscription: false, subscription_days: 30, min_stock: 1, show_on_web: false, image_url: '', parent_id: null, variant_name: '', supplier_id: '' });
     setShowModal(true);
   };
 
+  const fetchPurchaseHistory = async (productId) => {
+    setLoadingHistory(true);
+    setPurchaseHistory([]);
+    try {
+      const { data, error } = await supabase
+        .from('purchase_items')
+        .select(`
+          quantity,
+          unit_cost,
+          purchases (
+            created_at,
+            status,
+            suppliers (
+              name
+            )
+          )
+        `)
+        .eq('product_id', productId)
+        .order('id', { ascending: false })
+        .limit(100);
+
+      if (!error && data) {
+        setPurchaseHistory(data);
+      }
+    } catch (err) {
+      console.error("Error fetching purchase history", err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
   const openEdit = (prod) => {
     setEditingId(prod.id);
+    fetchPurchaseHistory(prod.id);
     setFormData({
       name: prod.name,
       sku: prod.sku,
@@ -863,6 +900,46 @@ const Catalogo = () => {
                   </div>
                 )}
               </div>
+
+              {editingId && (
+                <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)', marginTop: '12px' }}>
+                  <h3 style={{ fontSize: '14px', marginBottom: '12px', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Library size={16} /> Historial de Compras
+                  </h3>
+                  {loadingHistory ? (
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Cargando historial...</div>
+                  ) : purchaseHistory.length === 0 ? (
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No hay compras registradas para este producto.</div>
+                  ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', fontSize: '12px', textAlign: 'left', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ color: 'var(--text-muted)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                            <th style={{ padding: '4px 0' }}>Fecha</th>
+                            <th style={{ padding: '4px 0' }}>Proveedor</th>
+                            <th style={{ padding: '4px 0', textAlign: 'right' }}>Cant.</th>
+                            <th style={{ padding: '4px 0', textAlign: 'right' }}>Costo Unit.</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {purchaseHistory.map((ph, idx) => (
+                            <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                              <td style={{ padding: '6px 0', color: ph.purchases?.status === 'CANCELADA' ? '#f87171' : 'inherit' }}>
+                                {new Date(ph.purchases?.created_at).toLocaleDateString()}
+                              </td>
+                              <td style={{ padding: '6px 0', color: ph.purchases?.status === 'CANCELADA' ? '#f87171' : 'inherit' }}>
+                                {ph.purchases?.suppliers?.name || '—'} {ph.purchases?.status === 'CANCELADA' && '(Anulada)'}
+                              </td>
+                              <td style={{ padding: '6px 0', textAlign: 'right' }}>{ph.quantity}</td>
+                              <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 600 }}>${Number(ph.unit_cost).toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
                 <button type="button" className="glass-button" style={{ flex: 1, background: 'rgba(255,255,255,0.05)', justifyContent: 'center' }}

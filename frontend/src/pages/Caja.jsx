@@ -75,7 +75,7 @@ const Caja = () => {
       });
 
       const totalProfit = totalRevenue - totalCost;
-      const profitMargin = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
+      const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
       setShiftStats({
         salesTotal: efecSales,

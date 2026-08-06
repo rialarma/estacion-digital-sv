@@ -16,8 +16,7 @@ const Auth = ({ onAuthSuccess }) => {
     if (pendingCode) {
       window.location.href = `/join/${pendingCode}`;
     } else {
-      window.history.replaceState(null, '', '/');
-      if (onAuthSuccess) onAuthSuccess(session);
+      window.location.href = '/';
     }
   };
 

@@ -17,6 +17,7 @@ const Compras = () => {
   const [selectedPurchase, setSelectedPurchase] = useState(null);
   const [purchaseDetails, setPurchaseDetails] = useState([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [annulling, setAnnulling] = useState(false);
 
   // Form state
   const [selectedSupplierId, setSelectedSupplierId] = useState('');
@@ -215,6 +216,11 @@ const Compras = () => {
         if (rpcError) {
           console.error("Error actualizando costo/precio:", rpcError);
         }
+
+        // 2.5.5 Actualizar el proveedor sugerido del producto si se seleccionó uno en la compra
+        if (selectedSupplierId) {
+          await supabase.from('products').update({ supplier_id: selectedSupplierId }).eq('id', item.product_id);
+        }
       }
 
       // 2.6 Generar Partida Contable Automática
@@ -237,6 +243,92 @@ const Compras = () => {
       alert('Error al registrar la compra: ' + err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAnularCompra = async (purchase) => {
+    if (purchase.status === 'CANCELADA') return;
+    
+    if (!window.confirm('¿Estás seguro de anular esta compra? Se revertirá el inventario, se borrará de cuentas por pagar y se anulará la partida contable. Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    setAnnulling(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user.id;
+
+      // 1. Obtener items de la compra
+      const { data: items, error: itemsError } = await supabase
+        .from('purchase_items')
+        .select('*')
+        .eq('purchase_id', purchase.id);
+      
+      if (itemsError) throw itemsError;
+
+      // 2. Revertir inventario por cada item
+      for (const item of items) {
+        // Obtener stock actual
+        const { data: existing } = await supabase
+          .from('inventory')
+          .select('id, stock')
+          .eq('product_id', item.product_id)
+          .eq('branch_id', purchase.branch_id)
+          .single();
+
+        if (existing) {
+          const newStock = Math.max(0, existing.stock - item.quantity); // Restar lo comprado
+          await supabase
+            .from('inventory')
+            .update({ stock: newStock, last_updated: new Date().toISOString() })
+            .eq('id', existing.id);
+
+          // Insertar en Kardex (OUT)
+          await supabase.from('inventory_movements').insert([{
+            tenant_id: purchase.tenant_id,
+            branch_id: purchase.branch_id,
+            product_id: item.product_id,
+            movement_type: 'OUT',
+            quantity: item.quantity,
+            previous_stock: existing.stock,
+            new_stock: newStock,
+            reference_id: purchase.id,
+            description: `Anulación de Compra`,
+            created_by: userId
+          }]);
+        }
+
+        // 3. Eliminar lotes asociados a esta compra
+        await supabase
+          .from('product_batches')
+          .delete()
+          .eq('purchase_id', purchase.id)
+          .eq('product_id', item.product_id);
+      }
+
+      // 4. Eliminar Partida Contable (journal_entries) y Accounts Payable (si existe)
+      // journal_entries hace CASCADE a journal_lines.
+      await supabase
+        .from('journal_entries')
+        .delete()
+        .eq('reference_id', purchase.id)
+        .eq('reference_type', 'COMPRA');
+
+      // 5. Actualizar estado de compra a CANCELADA
+      await supabase
+        .from('purchases')
+        .update({ status: 'CANCELADA' })
+        .eq('id', purchase.id);
+
+      alert('✅ Compra anulada correctamente.');
+      fetchData(); // Refrescar lista
+      setDetailModalOpen(false);
+      setSelectedPurchase(null);
+    } catch (err) {
+      console.error('Error al anular:', err);
+      alert('Error al anular compra: ' + err.message);
+    } finally {
+      setAnnulling(false);
     }
   };
 
@@ -308,11 +400,12 @@ const Compras = () => {
                   <td>
                     <span style={{
                       display: 'inline-flex', alignItems: 'center', gap: '4px',
-                      color: '#4ade80', background: 'rgba(74,222,128,0.1)',
-                      border: '1px solid rgba(74,222,128,0.3)',
+                      color: p.status === 'CANCELADA' ? '#f87171' : '#4ade80', 
+                      background: p.status === 'CANCELADA' ? 'rgba(248,113,113,0.1)' : 'rgba(74,222,128,0.1)',
+                      border: p.status === 'CANCELADA' ? '1px solid rgba(248,113,113,0.3)' : '1px solid rgba(74,222,128,0.3)',
                       padding: '3px 8px', borderRadius: '5px', fontSize: '12px', fontWeight: 600
                     }}>
-                      <Check size={11} /> {p.status}
+                      {p.status === 'CANCELADA' ? <X size={11} /> : <Check size={11} />} {p.status}
                     </span>
                   </td>
                   <td>
@@ -488,10 +581,25 @@ const Compras = () => {
         <div className="modal-backdrop" onClick={() => setDetailModalOpen(false)}>
           <div className="modal-content glass-panel" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', width: '95%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h2>Detalle de Compra</h2>
-              <button onClick={() => setDetailModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                <X size={20} />
-              </button>
+              <h2 style={{ fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ShoppingBag size={20} color="var(--primary)" /> 
+                Detalle de Compra {selectedPurchase?.status === 'CANCELADA' && <span style={{ color: '#f87171', fontSize: '14px', border: '1px solid rgba(248,113,113,0.3)', padding: '2px 6px', borderRadius: '4px', background: 'rgba(248,113,113,0.1)' }}>ANULADA</span>}
+              </h2>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                {selectedPurchase?.status !== 'CANCELADA' && (
+                  <button 
+                    className="glass-button" 
+                    style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)', padding: '6px 12px', fontSize: '13px' }}
+                    onClick={() => handleAnularCompra(selectedPurchase)}
+                    disabled={annulling}
+                  >
+                    {annulling ? 'Anulando...' : 'Anular Compra'}
+                  </button>
+                )}
+                <button onClick={() => setDetailModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                  <X size={24} />
+                </button>
+              </div>
             </div>
             
             <div style={{ marginBottom: '20px', padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>

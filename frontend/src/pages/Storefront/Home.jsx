@@ -149,11 +149,11 @@ const StorefrontHome = ({ customTenantId }) => {
 
       <header className="storefront-header">
         <div className="storefront-header-content">
-          <a href="#" className="sf-brand">
+          <a onClick={(e) => { e.preventDefault(); navigate(customTenantId ? '/' : `/tienda/${tenantId}`); }} href={customTenantId ? '/' : `/tienda/${tenantId}`} className="sf-brand" style={{ textDecoration: 'none' }}>
             {tenantConfig?.logo_url && (
               <img src={tenantConfig.logo_url} alt="Logo" className="sf-logo" />
             )}
-            <PageHeader title={tenantName} />
+            <span style={{ fontSize: '24px', fontWeight: '800', color: '#ffffff', letterSpacing: '0.5px' }}>{tenantName}</span>
           </a>
 
           <div className="sf-search-container">
@@ -487,7 +487,9 @@ const StorefrontHome = ({ customTenantId }) => {
       <footer className="sf-footer">
         <div className="sf-footer-content">
           <div className="sf-footer-brand">
-            <h4>{tenantName}</h4>
+            <a onClick={(e) => { e.preventDefault(); navigate(customTenantId ? '/' : `/tienda/${tenantId}`); }} href={customTenantId ? '/' : `/tienda/${tenantId}`} style={{ textDecoration: 'none', display: 'inline-flex', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '24px', fontWeight: '800', color: '#ffffff', letterSpacing: '0.5px' }}>{tenantName}</span>
+            </a>
             <p>{tenantConfig?.about_us || 'Tu mejor opción en línea. Calidad y servicio hasta la puerta de tu casa.'}</p>
             
             <div style={{ marginTop: '1.5rem', color: 'rgba(255,255,255,0.9)', fontSize: '0.95rem' }}>

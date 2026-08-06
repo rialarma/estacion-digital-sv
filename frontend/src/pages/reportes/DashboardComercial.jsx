@@ -6,7 +6,7 @@ import {
 import { ShoppingCart, Target, Users, CreditCard, Package } from 'lucide-react';
 
 import { useTenantStore } from '../../store/useTenantStore';
-const DashboardComercial = ({ tenantId, isoStart }) => {
+const DashboardComercial = ({ tenantId, isoStart, isoEnd }) => {
   const { tenantInfo } = useTenantStore();
   const [loading, setLoading] = useState(true);
   const [kpis, setKpis] = useState({ ventas: 0, meta: 15000, ticketPromedio: 0, transacciones: 0 });
@@ -17,10 +17,10 @@ const DashboardComercial = ({ tenantId, isoStart }) => {
   const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'];
 
   useEffect(() => {
-    if (tenantId && isoStart) {
+    if (tenantId && isoStart && isoEnd) {
       fetchData();
     }
-  }, [tenantId, isoStart]);
+  }, [tenantId, isoStart, isoEnd]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -37,7 +37,8 @@ const DashboardComercial = ({ tenantId, isoStart }) => {
           sale_items ( quantity, unit_price, product_id, products ( name ) )
         `)
         .eq('tenant_id', tenantId)
-        .gte('created_at', isoStart);
+        .gte('created_at', isoStart)
+        .lte('created_at', isoEnd);
 
       if (salesError) throw salesError;
 

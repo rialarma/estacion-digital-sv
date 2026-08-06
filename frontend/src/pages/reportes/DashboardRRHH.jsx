@@ -5,16 +5,16 @@ import {
 } from 'recharts';
 import { Users, UserCheck, DollarSign, Calendar } from 'lucide-react';
 
-const DashboardRRHH = ({ tenantId, isoStart }) => {
+const DashboardRRHH = ({ tenantId, isoStart, isoEnd }) => {
   const [loading, setLoading] = useState(true);
   const [kpis, setKpis] = useState({ empleados: 0, costoNomina: 0, asistenciasHoy: 0 });
   const [chartData, setChartData] = useState([]);
 
   useEffect(() => {
-    if (tenantId && isoStart) {
+    if (tenantId && isoStart && isoEnd) {
       fetchData();
     }
-  }, [tenantId, isoStart]);
+  }, [tenantId, isoStart, isoEnd]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -31,7 +31,8 @@ const DashboardRRHH = ({ tenantId, isoStart }) => {
         .from('hr_payroll')
         .select('total_amount')
         .eq('tenant_id', tenantId)
-        .gte('created_at', isoStart);
+        .gte('created_at', isoStart)
+        .lte('created_at', isoEnd);
 
       // 3. Asistencias (hoy)
       const startOfToday = new Date();

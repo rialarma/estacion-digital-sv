@@ -4,7 +4,7 @@ import {
   ShoppingBag, ShoppingCart, FileText, Package, Users, UserCheck, 
   Settings, MonitorDot, LogOut, Store, Truck, ClipboardList, 
   BarChart2, X, BookOpen, ChevronDown, Briefcase, 
-  Layers, Contact, Calculator, ShieldCheck, DollarSign, Monitor, FileSignature, ArrowRightLeft, Home, Clock, Calendar, PieChart, Wrench, Map, Menu, LayoutDashboard, Building2, Receipt
+  Layers, Contact, Calculator, ShieldCheck, DollarSign, Monitor, FileSignature, ArrowRightLeft, Home, Clock, Calendar, PieChart, Wrench, Map, Menu, LayoutDashboard, Building2, Receipt, Tag
 } from 'lucide-react';
 import { useTenantStore } from '../store/useTenantStore';
 import { supabase } from '../supabase';
@@ -117,12 +117,14 @@ const Topbar = ({ onLogout }) => {
   return (
     <nav className="topbar">
       {/* Branding */}
-      <div className="topbar-brand">
-        {tenantInfo?.logo_url && (
-          <img src={tenantInfo.logo_url} alt="Logo" className="tenant-logo" style={{ maxHeight: '32px', objectFit: 'contain', cursor: 'pointer' }} onClick={() => navigate('/home')} />
-        )}
-        <span className="tenant-name" onClick={() => navigate('/home')} style={{ cursor: 'pointer' }}>{tenantInfo?.name || 'Cargando...'}</span>
-      </div>
+      <Link to="/" style={{ textDecoration: 'none' }}>
+        <div className="topbar-logo">
+          {tenantInfo?.logo_url && (
+            <img src={tenantInfo.logo_url} alt="Logo" style={{ maxHeight: '32px', objectFit: 'contain' }} />
+          )}
+          <span>{tenantInfo?.name || 'Cargando...'}</span>
+        </div>
+      </Link>
       
       {/* Menus and Profile */}
       <div className={`topbar-menu ${isMobileOpen ? 'open' : ''}`}>
@@ -215,7 +217,9 @@ const Topbar = ({ onLogout }) => {
                   <NavLink to="/reportes?tab=financiero" className={() => getTabClass('/reportes', 'financiero', 'gerencial')} onClick={closeMenu}><PieChart size={18} /> Dash. Financiero</NavLink>
                   <NavLink to="/reportes?tab=inventario" className={() => getTabClass('/reportes', 'inventario', 'gerencial')} onClick={closeMenu}><Package size={18} /> Dash. Inventario</NavLink>
                   <NavLink to="/reportes?tab=abastecimiento" className={() => getTabClass('/reportes', 'abastecimiento', 'gerencial')} onClick={closeMenu}><Truck size={18} /> Dash. Abastecimiento</NavLink>
+                  <NavLink to="/reportes?tab=mejores-precios" className={() => getTabClass('/reportes', 'mejores-precios', 'gerencial')} onClick={closeMenu}><Tag size={18} /> Dash. Mejores Precios</NavLink>
                   <NavLink to="/reportes?tab=rrhh" className={() => getTabClass('/reportes', 'rrhh', 'gerencial')} onClick={closeMenu}><Users size={18} /> Dash. RRHH</NavLink>
+                  <NavLink to="/reportes?tab=ventas-diarias" className={() => getTabClass('/reportes', 'ventas-diarias', 'gerencial')} onClick={closeMenu}><FileText size={18} /> Dash. Ventas Diarias</NavLink>
                 </>
               )}
             </TopbarDropdown>

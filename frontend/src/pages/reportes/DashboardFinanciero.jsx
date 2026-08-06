@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { DollarSign, ArrowDownRight, ArrowUpRight, Percent, Briefcase } from 'lucide-react';
 
-const DashboardFinanciero = ({ tenantId, isoStart }) => {
+const DashboardFinanciero = ({ tenantId, isoStart, isoEnd }) => {
   const [loading, setLoading] = useState(true);
   const [kpis, setKpis] = useState({ ingresos: 0, gastos: 0, utilidad: 0, margen: 0 });
   const [chartData, setChartData] = useState([]);
@@ -14,10 +14,10 @@ const DashboardFinanciero = ({ tenantId, isoStart }) => {
   const COLORS = ['#ef4444', '#f59e0b', '#3b82f6']; // Gastos colores
 
   useEffect(() => {
-    if (tenantId && isoStart) {
+    if (tenantId && isoStart && isoEnd) {
       fetchData();
     }
-  }, [tenantId, isoStart]);
+  }, [tenantId, isoStart, isoEnd]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -28,6 +28,7 @@ const DashboardFinanciero = ({ tenantId, isoStart }) => {
         .select('total, created_at')
         .eq('tenant_id', tenantId)
         .gte('created_at', isoStart)
+        .lte('created_at', isoEnd)
         .order('created_at', { ascending: true });
 
       // 2. Compras (Gastos Operativos / Inventario)
@@ -36,14 +37,15 @@ const DashboardFinanciero = ({ tenantId, isoStart }) => {
         .select('total, created_at')
         .eq('tenant_id', tenantId)
         .gte('created_at', isoStart)
+        .lte('created_at', isoEnd)
         .order('created_at', { ascending: true });
 
       // 3. Nómina (Gastos Administrativos)
       const { data: payrollData, error: payrollError } = await supabase
         .from('hr_payroll')
         .select('total_amount, created_at')
-        .eq('tenant_id', tenantId)
-        .gte('created_at', isoStart);
+        .gte('created_at', isoStart)
+        .lte('created_at', isoEnd);
 
       if (salesError) throw salesError;
 
@@ -88,7 +90,7 @@ const DashboardFinanciero = ({ tenantId, isoStart }) => {
 
       const totalGastos = totalCompras + totalNomina;
       const utilidad = totalIngresos - totalGastos;
-      const margen = totalGastos > 0 ? (utilidad / totalGastos) * 100 : 0;
+      const margen = totalIngresos > 0 ? (utilidad / totalIngresos) * 100 : 0;
 
       setKpis({
         ingresos: totalIngresos,

@@ -5,16 +5,16 @@ import {
 } from 'recharts';
 import { TrendingUp, DollarSign, Percent, Users } from 'lucide-react';
 
-const DashboardGerencial = ({ tenantId, isoStart }) => {
+const DashboardGerencial = ({ tenantId, isoStart, isoEnd }) => {
   const [loading, setLoading] = useState(true);
   const [kpis, setKpis] = useState({ ingresos: 0, utilidad: 0, margen: 0, clientes: 0 });
   const [chartData, setChartData] = useState([]);
 
   useEffect(() => {
-    if (tenantId && isoStart) {
+    if (tenantId && isoStart && isoEnd) {
       fetchData();
     }
-  }, [tenantId, isoStart]);
+  }, [tenantId, isoStart, isoEnd]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -30,6 +30,7 @@ const DashboardGerencial = ({ tenantId, isoStart }) => {
         `)
         .eq('tenant_id', tenantId)
         .gte('created_at', isoStart)
+        .lte('created_at', isoEnd)
         .order('created_at', { ascending: true });
 
       if (salesError) throw salesError;
@@ -63,7 +64,7 @@ const DashboardGerencial = ({ tenantId, isoStart }) => {
       });
 
       const utilidad = totalIngresos - totalCosto;
-      const margen = totalCosto > 0 ? (utilidad / totalCosto) * 100 : 0;
+      const margen = totalIngresos > 0 ? (utilidad / totalIngresos) * 100 : 0;
 
       setKpis({
         ingresos: totalIngresos,
