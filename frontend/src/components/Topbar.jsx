@@ -4,7 +4,7 @@ import {
   ShoppingBag, ShoppingCart, FileText, Package, Users, UserCheck, 
   Settings, MonitorDot, LogOut, Store, Truck, ClipboardList, 
   BarChart2, X, BookOpen, ChevronDown, Briefcase, 
-  Layers, Contact, Calculator, ShieldCheck, DollarSign, Monitor, FileSignature, ArrowRightLeft, Home, Clock, Calendar, PieChart, Wrench, Map, Menu, LayoutDashboard, Building2, Receipt, Tag
+  Layers, Contact, Calculator, ShieldCheck, Shield, DollarSign, Monitor, FileSignature, ArrowRightLeft, Home, Clock, Calendar, PieChart, Wrench, Map, Menu, LayoutDashboard, Building2, Receipt, Tag
 } from 'lucide-react';
 import { useTenantStore } from '../store/useTenantStore';
 import { supabase } from '../supabase';
@@ -204,9 +204,10 @@ const Topbar = ({ onLogout }) => {
               {isPageActive(tenantInfo, 'libros_iva') && <NavLink to="/contabilidad/libros-iva" className="topbar-dropdown-item" onClick={closeMenu}><BookOpen size={18} /> Libros de IVA</NavLink>}
             </TopbarDropdown>
 
-            <TopbarDropdown title="Auditoría" icon={ShieldCheck} currentPath={location.pathname} activePaths={['/historial', '/checkin']} isOpen={openGroup === 'Auditoría'} onToggle={handleToggleGroup}>
+            <TopbarDropdown title="Auditoría" icon={ShieldCheck} currentPath={location.pathname} activePaths={['/historial', '/checkin', '/auditoria']} isOpen={openGroup === 'Auditoría'} onToggle={handleToggleGroup}>
               {isPageActive(tenantInfo, 'historial') && <NavLink to="/historial" className="topbar-dropdown-item" onClick={closeMenu}><ArrowRightLeft size={18} /> Historial Global</NavLink>}
               {isPageActive(tenantInfo, 'checkin') && <NavLink to="/checkin" className="topbar-dropdown-item" onClick={closeMenu}><UserCheck size={18} /> Control de Acceso</NavLink>}
+              {isPageActive(tenantInfo, 'auditoria') && role !== 'VENDEDOR' && role !== 'BODEGUERO' && <NavLink to="/auditoria" className="topbar-dropdown-item" onClick={closeMenu}><Shield size={18} /> Bitácora de Eventos</NavLink>}
             </TopbarDropdown>
 
             <TopbarDropdown title="Reportes" icon={BarChart2} currentPath={location.pathname} activePaths={['/reportes']} isOpen={openGroup === 'Reportes'} onToggle={handleToggleGroup}>

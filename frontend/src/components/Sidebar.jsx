@@ -4,7 +4,7 @@ import {
   ShoppingBag, ShoppingCart, FileText, Package, Users, UserCheck, 
   Settings, MonitorDot, LogOut, Store, Truck, ClipboardList, 
   BarChart2, X, BookOpen, ChevronDown, ChevronRight, Briefcase, 
-  Layers, Contact, Calculator, ShieldCheck, DollarSign, Monitor, FileSignature, ArrowRightLeft, Home, Clock, Calendar, PieChart, Wrench, Map
+  Layers, Contact, Calculator, ShieldCheck, Shield, DollarSign, Monitor, FileSignature, ArrowRightLeft, Home, Clock, Calendar, PieChart, Wrench, Map
 } from 'lucide-react';
 import { useTenantStore } from '../store/useTenantStore';
 import { supabase } from '../supabase';
@@ -454,10 +454,15 @@ const Sidebar = ({ onLogout, isOpen, onClose }) => {
           title="Administración" 
           icon={Settings} 
           currentPath={location.pathname} 
-          activePaths={['/reportes', '/configuracion', '/configuracion/usuarios']}
+          activePaths={['/reportes', '/configuracion', '/configuracion/usuarios', '/auditoria']}
           isOpen={openGroup === 'Administración'}
           onToggle={handleToggleGroup}
         >
+          {isPageActive(tenantInfo, 'auditoria') && role !== 'VENDEDOR' && role !== 'BODEGUERO' && (
+            <NavLink to="/auditoria" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+              <Shield size={18} /> Auditoría
+            </NavLink>
+          )}
           {isPageActive(tenantInfo, 'reportes') && (
             <NavLink to="/reportes" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onClose}>
               <BarChart2 size={18} /> Reportes

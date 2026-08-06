@@ -39,7 +39,13 @@ const Historial = () => {
     // 1. Fetch Sales
     const { data: salesData, error: salesError } = await supabase
       .from('sales')
-      .select('*, clients(name), seller:user_profiles!sales_seller_id_fkey(first_name, last_name)');
+      .select(`
+        *,
+        clients(name),
+        seller:user_profiles!sales_seller_id_fkey(first_name, last_name),
+        cashier:user_profiles!sales_cashier_id_fkey(first_name, last_name),
+        dtes(dte_type, codigo_generacion)
+      `);
       
     // 2. Fetch Purchases
     const { data: purchasesData, error: purchasesError } = await supabase
@@ -49,12 +55,17 @@ const Historial = () => {
     let combined = [];
 
     if (!salesError && salesData) {
-      combined = combined.concat(salesData.map(s => ({
-        ...s,
-        tipo_transaccion: 'VENTA',
-        entidad_nombre: s.clients?.name || 'Consumidor Final',
-        documento_ref: 'DTE ' + (s.status === 'COMPLETADA' ? '' : s.status), // Simplified, ideally we'd fetch DTE but we don't have it joined here
-      })));
+      combined = combined.concat(salesData.map(s => {
+        // dtes es un arreglo, tomamos el primero si existe
+        const dte = s.dtes && s.dtes.length > 0 ? s.dtes[0] : null;
+        return {
+          ...s,
+          tipo_transaccion: 'VENTA',
+          entidad_nombre: s.clients?.name || 'Consumidor Final',
+          documento_ref: 'DTE ' + (s.status === 'COMPLETADA' ? '' : s.status),
+          dte_type: dte ? dte.dte_type : '01',
+        };
+      }));
     }
 
     if (!purchasesError && purchasesData) {
@@ -131,19 +142,33 @@ const Historial = () => {
         is_service: false // Por simplicidad asumimos false.
       }));
       
-      const { error } = await supabase.rpc('process_return', {
+      const { error } = await supabase.rpc('process_smart_return', {
         p_tenant_id: returnTx.tenant_id,
         p_branch_id: returnTx.branch_id,
         p_sale_id: returnTx.id,
         p_cashier_id: user.id,
         p_shift_id: returnTx.shift_id,
         p_reason: returnReason,
+        p_dte_type: returnTx.dte_type || '01',
         p_items: payloadItems
       });
       
       if (error) throw error;
       
-      alert("Devolución procesada con éxito.");
+      if (returnTx.dte_type === '03') {
+        alert("✅ Devolución procesada. Se ha generado una NOTA DE CRÉDITO para el Firmador.");
+      } else {
+        alert("✅ Devolución procesada. El FCF original fue ANULADO y se generó una NUEVA FACTURA con el remanente (Pendiente de Firma).");
+      }
+      
+      const auditMsg = returnTx.dte_type === '03' 
+        ? `Nota de Crédito. Motivo: ${returnReason}`
+        : `Anulación FCF y Refacturación. Motivo: ${returnReason}`;
+
+      import('../utils/auditLogger').then(({ logAudit }) => {
+        logAudit(returnTx.tenant_id, user.id, 'ANULAR', 'VENTA', returnTx.id, auditMsg, returnTx.branch_id);
+      });
+      
       setReturnModalOpen(false);
       fetchTransactions();
     } catch (err) {
@@ -379,11 +404,16 @@ const Historial = () => {
             </div>
             
             <div style={{ marginBottom: '20px', padding: '16px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '8px' }}>
-              <p style={{ margin: 0, fontSize: '13px', color: '#f59e0b' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: '#f59e0b', marginBottom: '8px' }}>
                 Estás procesando una devolución para la Venta <strong>{returnTx.documento_ref}</strong> de <strong>{returnTx.entidad_nombre}</strong>.
               </p>
+              <div style={{ fontSize: '12px', color: 'var(--text-main)', background: 'rgba(0,0,0,0.2)', padding: '8px', borderRadius: '4px' }}>
+                <strong>Regla DTE Automática:</strong><br/>
+                {returnTx.dte_type === '03' 
+                  ? '📄 Esta venta es CCF. Se generará una NOTA DE CRÉDITO en el Firmador.' 
+                  : '📄 Esta venta es FCF. Se ANULARÁ la factura original por completo y se emitirá una NUEVA PENDIENTE con los productos no devueltos.'}
+              </div>
             </div>
-
             {loadingDetails ? (
               <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>Cargando detalles de la venta...</div>
             ) : (

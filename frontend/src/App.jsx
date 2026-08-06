@@ -25,6 +25,7 @@ const Repartidores = lazy(() => import('./pages/Repartidores'));
 const Usuarios = lazy(() => import('./pages/Usuarios'));
 const Configuracion = lazy(() => import('./pages/Configuracion'));
 const Reportes = lazy(() => import('./pages/Reportes'));
+const Auditoria = lazy(() => import('./pages/Auditoria'));
 const Taller = lazy(() => import('./pages/Taller'));
 const ConfigCatalogo = lazy(() => import('./pages/CatalogoCuentas'));
 const LibroDiario = lazy(() => import('./pages/LibroDiario'));
@@ -338,6 +339,7 @@ function App() {
               <Route path="/logistica/repartidores" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'BODEGUERO']}><Repartidores /></ProtectedRoute>} />
               <Route path="/historial" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO']}><Historial /></ProtectedRoute>} />
               <Route path="/reportes" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Reportes /></ProtectedRoute>} />
+              <Route path="/auditoria" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE']}><Auditoria /></ProtectedRoute>} />
               
               {/* Control de Asistencia */}
               <Route path="/rrhh/asistencia" element={<ProtectedRoute allowedRoles={['ADMIN', 'GERENTE', 'CAJERO', 'BODEGUERO']}><Asistencia /></ProtectedRoute>} />

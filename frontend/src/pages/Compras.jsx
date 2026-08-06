@@ -238,6 +238,10 @@ const Compras = () => {
       fetchData();
       alert(`✅ Compra registrada exitosamente.\nSe actualizó el inventario de ${items.length} artículo(s).`);
 
+      import('../utils/auditLogger').then(({ logAudit }) => {
+        logAudit(tenant_id, userId, 'CREAR', 'COMPRA', purchase.id, `Compra al proveedor ingresada por $${totalDb.toFixed(2)}`, branch_id);
+      });
+
     } catch (err) {
       console.error('Error en compra:', err);
       alert('Error al registrar la compra: ' + err.message);
@@ -321,6 +325,11 @@ const Compras = () => {
         .eq('id', purchase.id);
 
       alert('✅ Compra anulada correctamente.');
+      
+      import('../utils/auditLogger').then(({ logAudit }) => {
+        logAudit(purchase.tenant_id, userId, 'ANULAR', 'COMPRA', purchase.id, `Compra anulada. Doc Ref: ${purchase.document_number || 'N/A'}`, purchase.branch_id);
+      });
+      
       fetchData(); // Refrescar lista
       setDetailModalOpen(false);
       setSelectedPurchase(null);
