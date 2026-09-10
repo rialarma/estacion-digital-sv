@@ -31,7 +31,6 @@ const DirectorioRRHH = () => {
     // Access fields
     email: '',
     password: '',
-    password: '',
     role: 'VENDEDOR',
     // Existing user link
     linked_user_id: '',

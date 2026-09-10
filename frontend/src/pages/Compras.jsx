@@ -239,7 +239,7 @@ const Compras = () => {
       alert(`✅ Compra registrada exitosamente.\nSe actualizó el inventario de ${items.length} artículo(s).`);
 
       import('../utils/auditLogger').then(({ logAudit }) => {
-        logAudit(tenant_id, userId, 'CREAR', 'COMPRA', purchase.id, `Compra al proveedor ingresada por $${totalDb.toFixed(2)}`, branch_id);
+        logAudit(tenant_id, userData?.user?.id, 'CREAR', 'COMPRA', purchase.id, `Compra al proveedor ingresada por $${total.toFixed(2)}`, branch_id);
       });
 
     } catch (err) {

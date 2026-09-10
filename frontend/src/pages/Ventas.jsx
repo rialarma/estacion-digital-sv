@@ -599,7 +599,7 @@ const Ventas = () => {
       const tipoLabel = dteTipo === '03' ? 'CCF' : 'FCF';
       
       import('../utils/auditLogger').then(({ logAudit }) => {
-        logAudit(tenantId, userId, 'CREAR', 'VENTA', sale.id, `Venta POS por $${totalDb.toFixed(2)}`, branch_id);
+        logAudit(tenant_id, userId, 'CREAR', 'VENTA', sale.id, `Venta POS por $${totalDb.toFixed(2)}`, branch_id);
       });
       
       const clientObj = selectedClientId ? clients.find(c => c.id === selectedClientId) : null;
