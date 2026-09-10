@@ -170,7 +170,7 @@ app.get('/', (req, res) => {
     if (isReady) {
         res.send('<h1>✅ Bot Conectado y Corriendo</h1><p>El bot de WhatsApp ya está vinculado. No necesitas escanear nada.</p>');
     } else {
-        res.sendFile(path.join(__dirname, 'qr.html'));
+        res.sendFile('qr.html', { root: __dirname });
     }
 });
 
